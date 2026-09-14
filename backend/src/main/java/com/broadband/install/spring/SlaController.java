@@ -6,6 +6,7 @@ import com.broadband.install.model.SlaEvaluation;
 import com.broadband.install.model.SlaRecord;
 import com.broadband.install.model.SlaRule;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/sla")
+@PreAuthorize("hasAuthority('sla:view')")
 public class SlaController {
 
     @Autowired

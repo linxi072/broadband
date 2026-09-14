@@ -3,6 +3,7 @@ package com.broadband.install.spring;
 import com.broadband.install.model.CapacityBoardItem;
 import com.broadband.install.model.DispatchPlan;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,11 +25,13 @@ public class DispatchController {
     private DispatchServiceApi dispatchService;
 
     @PostMapping("/run")
+    @PreAuthorize("hasAuthority('dispatch:run')")
     public DispatchPlan run() {
         return dispatchService.runDispatch();
     }
 
     @GetMapping("/capacity")
+    @PreAuthorize("hasAuthority('workorder:view')")
     public List<CapacityBoardItem> capacity(@RequestParam String timeSlot) {
         return dispatchService.capacityBoard(timeSlot);
     }

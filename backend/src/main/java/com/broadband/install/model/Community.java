@@ -11,6 +11,7 @@ public class Community {
     public String name;
     public String region;      // 所属片区，如 "南山"
     public String street;      // 所属街道，如 "科技园路"
+    public String carrier;     // 覆盖运营商（PC 后台展示用，不参与派单算法）
     public double latitude;
     public double longitude;
     public boolean installable = true;

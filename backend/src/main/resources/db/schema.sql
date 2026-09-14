@@ -293,3 +293,151 @@ CREATE TABLE IF NOT EXISTS package_upgrade_order (
   KEY idx_upgrade_cust (customer_id),
   KEY idx_upgrade_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='套餐升级申请单';
+
+-- ---------------------------------------------------------------------------
+-- 18. 小区表补列：覆盖运营商（PC 后台 小区覆盖管理 展示用）
+--     MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，这里用 information_schema 判定后
+--     动态执行，保证脚本可重复执行（幂等）。
+-- ---------------------------------------------------------------------------
+SET @add_carrier := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE community ADD COLUMN carrier VARCHAR(64) NULL COMMENT ''覆盖运营商''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'community' AND column_name = 'carrier'
+);
+PREPARE stmt_carrier FROM @add_carrier;
+EXECUTE stmt_carrier;
+DEALLOCATE PREPARE stmt_carrier;
+
+-- ---------------------------------------------------------------------------
+-- 19. 业务订单（PC 后台 订单管理 / 销售 / 财务 / 看板 数据源）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS biz_order (
+  id             VARCHAR(32)  NOT NULL COMMENT '订单号',
+  customer_id    VARCHAR(32)           COMMENT '客户ID',
+  customer_name  VARCHAR(64)           COMMENT '客户姓名',
+  phone          VARCHAR(32)           COMMENT '联系电话',
+  package_id     VARCHAR(32)           COMMENT '套餐ID',
+  package_name   VARCHAR(128)          COMMENT '套餐名称',
+  amount         INT          NOT NULL DEFAULT 0 COMMENT '订单金额（元）',
+  sales_name     VARCHAR(64)           COMMENT '归属销售',
+  community_id   VARCHAR(32)           COMMENT '小区ID',
+  community_name VARCHAR(128)          COMMENT '小区名称',
+  order_type     VARCHAR(24)  NOT NULL DEFAULT 'NEW_INSTALL' COMMENT 'NEW_INSTALL/MOVE/RENEW/SPEED_UP/REPAIR/ADDON',
+  status         VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/INSTALLING/DONE/CANCELLED',
+  created_time   BIGINT       NOT NULL DEFAULT 0 COMMENT '下单时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_order_status (status),
+  KEY idx_order_created (created_time),
+  KEY idx_order_sales (sales_name),
+  KEY idx_order_customer (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='业务订单';
+
+-- ---------------------------------------------------------------------------
+-- 20. 投诉与评价（PC 后台 投诉与评价管理 数据源）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS review (
+  id            VARCHAR(32)  NOT NULL COMMENT '编号',
+  order_id      VARCHAR(32)           COMMENT '关联订单/工单号',
+  customer_name VARCHAR(64)           COMMENT '客户',
+  worker_name   VARCHAR(64)           COMMENT '服务师傅',
+  score         INT          NOT NULL DEFAULT 0 COMMENT '评分 0-5',
+  tags          VARCHAR(255)          COMMENT '评价标签（逗号分隔）',
+  type          VARCHAR(16)  NOT NULL DEFAULT 'REVIEW' COMMENT 'REVIEW=评价 / COMPLAINT=投诉',
+  content       VARCHAR(512)          COMMENT '内容',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/VISITED/CLOSED',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_review_status (status),
+  KEY idx_review_type (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投诉与评价';
+
+-- ===========================================================================
+-- RBAC（system 模块）：用户 / 角色 / 菜单权限 / 操作日志
+-- 模型：用户(User) --< 用户角色 -- 角色(Role) --< 角色菜单 -- 菜单/权限(Menu)
+-- 权限码（perm）同时是后端 @PreAuthorize 的 authority 与前端路由 meta.perm
+-- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- 21. 系统用户
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_user (
+  id           VARCHAR(32)  NOT NULL COMMENT '用户ID',
+  username     VARCHAR(64)  NOT NULL COMMENT '登录账号',
+  password     VARCHAR(128) NOT NULL COMMENT '密码（BCrypt 哈希）',
+  name         VARCHAR(64)  NOT NULL COMMENT '姓名',
+  dept         VARCHAR(64)           COMMENT '部门',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_sys_user_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户';
+
+-- ---------------------------------------------------------------------------
+-- 22. 角色
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_role (
+  id     VARCHAR(32) NOT NULL COMMENT '角色ID',
+  code   VARCHAR(32) NOT NULL COMMENT '角色标识 ADMIN/OPERATOR/FINANCE/CS/SALES',
+  name   VARCHAR(64) NOT NULL COMMENT '角色名称',
+  remark VARCHAR(255)         COMMENT '说明',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_sys_role_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统角色';
+
+-- ---------------------------------------------------------------------------
+-- 23. 菜单 / 权限（前端路由 meta.perm 与后端 authority 同源）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_menu (
+  id         VARCHAR(32) NOT NULL COMMENT '菜单ID',
+  parent_id  VARCHAR(32)          COMMENT '父级ID（顶级为空）',
+  name       VARCHAR(64) NOT NULL COMMENT '名称',
+  path       VARCHAR(128)         COMMENT '前端路由',
+  perm       VARCHAR(64)          COMMENT '权限码，如 order:view',
+  type       VARCHAR(16) NOT NULL DEFAULT 'MENU' COMMENT 'DIR=目录 / MENU=菜单 / BUTTON=按钮',
+  sort_order INT         NOT NULL DEFAULT 0 COMMENT '排序',
+  PRIMARY KEY (id),
+  KEY idx_menu_parent (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='菜单与权限';
+
+-- ---------------------------------------------------------------------------
+-- 24. 用户-角色
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_user_role (
+  id      BIGINT      NOT NULL AUTO_INCREMENT,
+  user_id VARCHAR(32) NOT NULL COMMENT '用户ID',
+  role_id VARCHAR(32) NOT NULL COMMENT '角色ID',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_role (user_id, role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联';
+
+-- ---------------------------------------------------------------------------
+-- 25. 角色-菜单（角色授权）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_role_menu (
+  id      BIGINT      NOT NULL AUTO_INCREMENT,
+  role_id VARCHAR(32) NOT NULL COMMENT '角色ID',
+  menu_id VARCHAR(32) NOT NULL COMMENT '菜单ID',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_role_menu (role_id, menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色菜单关联';
+
+-- ---------------------------------------------------------------------------
+-- 26. 操作日志（登录、写操作、越权尝试）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_oper_log (
+  id           BIGINT      NOT NULL AUTO_INCREMENT,
+  username     VARCHAR(64)          COMMENT '账号',
+  name         VARCHAR(64)          COMMENT '姓名',
+  action       VARCHAR(64)          COMMENT '操作',
+  target       VARCHAR(255)         COMMENT '目标接口',
+  method       VARCHAR(16)          COMMENT 'HTTP 方法',
+  ip           VARCHAR(64)          COMMENT '来源IP',
+  result       VARCHAR(32)          COMMENT '结果：成功 / 拒绝(403) / 未认证(401) / 失败',
+  cost_ms      BIGINT      NOT NULL DEFAULT 0 COMMENT '耗时（毫秒）',
+  created_time BIGINT      NOT NULL DEFAULT 0 COMMENT '时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_log_created (created_time),
+  KEY idx_log_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志';

@@ -39,6 +39,13 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- 安全：RBAC + JWT 鉴权（Spring Security 6）。
+             JWT 自身用 JDK 的 HMAC-SHA256 实现（见 system/security/JwtUtil，纯 Java 无三方依赖），
+             因此这里不引入 jjwt，保持依赖面最小。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

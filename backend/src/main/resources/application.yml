@@ -1,0 +1,46 @@
+# ============================================================================
+# 宽带业务管理系统 · 后端配置（单体 Spring Boot，配置走「yml + 环境变量」）
+#   按既定架构决策：不引入 Apollo 等外部配置中心，敏感项用环境变量注入。
+#   启动示例：
+#     DB_PASSWORD=yourpass mvn spring-boot:run
+#   或：java -jar target/broadband-backend-1.0.0.jar --spring.datasource.password=yourpass
+# ============================================================================
+server:
+  port: 8082
+
+spring:
+  application:
+    name: broadband-backend
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # createDatabaseIfNotExist=true：首次启动自动建库（后续表结构由 schema.sql 初始化）
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:broadband}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+  # 启动时执行 classpath:db/schema.sql + db/data.sql。
+  # 两者均为幂等写法（CREATE TABLE IF NOT EXISTS / INSERT IGNORE），
+  # 因此每次启动可安全重复执行，且不会覆盖运行期新增的数据。
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      continue-on-error: false
+
+mybatis-plus:
+  configuration:
+    # 驼峰 <-> 下划线自动映射（entity 字段 packageId -> 列 package_id）
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: assign_id
+      table-underline: true
+
+logging:
+  level:
+    com.broadband: info

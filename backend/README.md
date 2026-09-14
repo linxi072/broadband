@@ -82,3 +82,82 @@ java -cp /tmp/dispatch-out com.broadband.dispatch.DispatchDemo
    - 非相邻单占用非相邻容量（每师傅 1–2 单）。
 4. **超容拦截**：某时段所有师傅对应容量耗尽时，剩余工单进入 `DispatchPlan.exceptions`，
    返回改派 / 增派 / 调整时段建议，不静默丢弃。
+
+---
+
+## 运行（Maven + MySQL，M4 已落地）
+
+> 后端已从「纯 Java 演示 + mock」升级为**可运行的 Spring Boot 单体服务**，直接读写 MySQL。
+
+### 1. 前置
+- JDK 21、Maven 3.9+
+- MySQL 8.x 已启动，并具备一个可建表的账号（示例用 `broadband / broadband`）
+
+### 2. 建库
+无需手工建表——`spring.datasource.url` 带 `createDatabaseIfNotExist=true`，
+且启动时会自动执行 `src/main/resources/db/schema.sql`（建表）与 `db/data.sql`（种子数据）。
+两者均为幂等写法（`CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`），可反复启动。
+
+> 如需手工执行：`mysql -ubroadband -p broadband < src/main/resources/db/schema.sql`，
+> 再执行 `db/data.sql`。
+
+### 3. 启动
+```bash
+cd backend
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home
+mvn -DskipTests clean package
+
+# 连接信息通过环境变量注入（不落库、不进仓库）
+DB_USERNAME=broadband DB_PASSWORD=broadband \
+DB_HOST=127.0.0.1 DB_PORT=3306 DB_NAME=broadband \
+java -jar target/broadband-backend-1.0.0.jar --server.port=8082
+```
+可用环境变量：`DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD`（均有默认值，密码默认空）。
+
+### 4. 冒烟验证
+```bash
+curl -G 'http://127.0.0.1:8082/api/community/check' --data-urlencode 'name=科技园'
+curl -G 'http://127.0.0.1:8082/api/package/detail' --data-urlencode 'id=pkg500'
+curl -G 'http://127.0.0.1:8082/api/traffic/usage'  --data-urlencode 'customerId=demo'
+curl -G 'http://127.0.0.1:8082/api/package/upgrade-options' --data-urlencode 'customerId=demo'
+curl -s -X POST http://127.0.0.1:8082/api/dispatch/run -H 'Content-Type: application/json' -d '{}'
+curl -s -G http://127.0.0.1:8082/api/dispatch/capacity --data-urlencode 'timeSlot=2026-09-15#AM'
+```
+
+> `POST /api/dispatch/run` 会把待派工单置为 `ASSIGNED`，因此**重复演示前**需重置：
+> `UPDATE work_order SET status='PENDING', worker_id=NULL, cluster_id=NULL, adjacent_route=NULL;`
+
+### 5. 目录结构（重构后 3 模块）
+```
+backend/src/main/java/com/broadband/
+├── BroadbandApplication.java     # 启动类（@MapperScan 只扫 @Mapper 注解接口）
+├── common/Ids.java               # 主键生成（纯 Java，零框架依赖）
+├── community/                    # 模块一：小区覆盖（check / demand）
+├── install/                      # 模块二：派单 dispatch + 装维 SLA 赔付 sla
+└── product/                      # 模块三：套餐 pkg + 流量 traffic
+    ├── engine/  algorithm/       # 纯 Java 核心算法（可独立编译运行验证）
+    ├── mapper/                   # MyBatis-Plus Mapper
+    └── spring/                   # ServiceApi / ServiceImpl / Controller
+```
+
+### 6. 关键设计：模型零 ORM 注解
+`model/` 下的实体**不引入任何 MyBatis-Plus 注解**，保持纯 Java（核心算法可脱离框架独立验证）。
+由此带来两点约定：
+
+- 主键由 `common/Ids.next()` 显式生成，不依赖 ORM 主键策略；
+- 两个与 SQL 关键字/歧义冲突的列做了「列名 ↔ 接口字段」桥接（见对应 Mapper 的 `@Select`）：
+
+| 表列名 | 接口字段 | 原因 |
+|---|---|---|
+| `package_converge_item.description` | `desc` | `DESC` 是 MySQL 保留字 |
+| `package_param_option.option_value` | `value` | 避免与 SQL 关键字歧义 |
+
+### 7. 数据库表（17 张）
+`community` / `worker` / `worker_capacity` / `work_order` / `community_demand` /
+`sla_rule` / `sla_record` / `compensation` /
+`package_info` / `package_image` / `package_converge_item` / `package_param` / `package_param_option` /
+`traffic_usage` / `customer` / `customer_contract` / `package_upgrade_order`
+
+> 依赖说明：Spring Boot 3 必须使用 `mybatis-plus-spring-boot3-starter`。
+> 若误用 `mybatis-plus-boot-starter`，会引入 `mybatis-spring 2.x`，启动即报
+> `Invalid value type for attribute 'factoryBeanObjectType': java.lang.String`。

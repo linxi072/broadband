@@ -1,6 +1,7 @@
 package com.broadband.install.spring;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.broadband.common.Ids;
 import com.broadband.install.engine.SlaEngine;
 import com.broadband.install.mapper.CompensationMapper;
 import com.broadband.install.mapper.SlaRecordMapper;
@@ -34,6 +35,8 @@ public class SlaServiceImpl implements SlaServiceApi {
     @Override
     public SlaEvaluation evaluate(SlaRecord record) {
         if (record.createdTime == 0) record.createdTime = System.currentTimeMillis();
+        // 主键必须在评估前就位：引擎生成的 summary 与赔付工单的 slaRecordId 都会引用它
+        if (record.id == null || record.id.isEmpty()) record.id = Ids.next();
         SlaRule rule = pickRule(record);
         SlaEvaluation ev = engine.evaluate(record, rule);
         if (ev.skipped) return ev;
@@ -41,6 +44,9 @@ public class SlaServiceImpl implements SlaServiceApi {
         recordMapper.insert(record);
         if (ev.compensation != null) {
             ev.compensation.slaRecordId = record.id;
+            if (ev.compensation.id == null || ev.compensation.id.isEmpty()) {
+                ev.compensation.id = Ids.next();
+            }
             compensationMapper.insert(ev.compensation);
         }
         return ev;

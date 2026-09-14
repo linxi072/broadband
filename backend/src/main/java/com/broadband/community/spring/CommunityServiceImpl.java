@@ -1,6 +1,7 @@
 package com.broadband.community.spring;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.broadband.common.Ids;
 import com.broadband.community.engine.CommunityChecker;
 import com.broadband.community.mapper.CommunityDemandMapper;
 import com.broadband.community.model.CommunityCheckResult;
@@ -41,7 +42,7 @@ public class CommunityServiceImpl implements CommunityServiceApi {
     @Override
     public String registerDemand(CommunityDemand demand) {
         if (demand == null) demand = new CommunityDemand();
-        demand.id = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        demand.id = Ids.next();
         demand.createdAt = System.currentTimeMillis();
         if (demand.status == null || demand.status.isEmpty()) demand.status = "PENDING";
         demandMapper.insert(demand);

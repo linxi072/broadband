@@ -35,7 +35,9 @@ public class PackageServiceImpl implements PackageServiceApi {
 
     @Override
     public PackageDetailVO getDetail(String id) {
-        PackageInfo info = packageMapper.selectById(id);
+        // 显式按 id 列查询（不依赖 ORM 主键元数据，保持 model 零注解、纯 Java）
+        PackageInfo info = packageMapper.selectOne(
+                new QueryWrapper<PackageInfo>().eq("id", id).last("limit 1"));
         if (info == null) return null;
 
         PackageDetailVO vo = new PackageDetailVO();
@@ -54,9 +56,8 @@ public class PackageServiceImpl implements PackageServiceApi {
                 new QueryWrapper<PackageImage>().eq("package_id", id).orderByAsc("sort_order"));
         vo.images = images;
 
-        List<PackageConvergeItem> converge = convergeMapper.selectList(
-                new QueryWrapper<PackageConvergeItem>().eq("package_id", id).orderByAsc("sort_order"));
-        vo.converge = converge;
+        // 列名 description 与接口字段 desc 的桥接在 Mapper 内完成（见 PackageConvergeMapper）
+        vo.converge = convergeMapper.selectByPackage(id);
 
         List<PackageParam> params = paramMapper.selectList(
                 new QueryWrapper<PackageParam>().eq("package_id", id).orderByAsc("sort_order"));
@@ -67,9 +68,8 @@ public class PackageServiceImpl implements PackageServiceApi {
             pv.name = p.name;
             pv.type = p.type;
             pv.required = p.required;
-            List<PackageParamOption> opts = optionMapper.selectList(
-                    new QueryWrapper<PackageParamOption>().eq("param_id", p.id).orderByAsc("sort_order"));
-            pv.options = opts;
+            // 列名 option_value 与接口字段 value 的桥接在 Mapper 内完成（见 PackageParamOptionMapper）
+            pv.options = optionMapper.selectByParam(p.id);
             paramVOs.add(pv);
         }
         vo.params = paramVOs;

@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="nav-bar">工单首页</view>
+  <view class="grid3">
+    <view class="stat" wx:for="{{stats}}" wx:key="l"><view class="n">{{item.n}}</view><view class="l">{{item.l}}</view></view>
+  </view>
+  <view class="card-title" style="margin-top:24rpx">今日工单</view>
+  <view class="card" wx:for="{{today}}" wx:key="id">
+    <view class="card-title">工单 #{{item.id}} · {{item.cust}}</view>
+    <view class="row"><text class="muted">地址</text><text>{{item.addr}}</text></view>
+    <view class="row"><text class="muted">套餐</text><text>{{item.pkg}}</text></view>
+    <view class="row"><text class="muted">时段</text><text>{{item.time}}</text></view>
+    <view class="row"><text class="muted">状态</text><text class="pill">{{item.statusText}}</text></view>
+    <view class="grid2">
+      <view class="btn-ghost" data-id="{{item.id}}" bindtap="goDetail">查看</view>
+      <view class="btn-primary" data-id="{{item.id}}" bindtap="startComplete">开始完工</view>
+    </view>
+  </view>
+</view>

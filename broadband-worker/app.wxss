@@ -1,4 +1,4 @@
-page { --c: #2563eb; background: #f5f7fb; font-family: -apple-system,"PingFang SC",sans-serif; color: #1f2937; font-size: 28rpx; }
+page { --c: #ea580c; background: #fff7ed; font-family: -apple-system,"PingFang SC",sans-serif; color: #1f2937; font-size: 28rpx; }
 
 .container { padding: 24rpx; }
 .nav-bar { font-size: 34rpx; font-weight: 600; padding: 24rpx 8rpx; }
@@ -27,3 +27,5 @@ textarea.input { width: auto; height: 160rpx; }
 .step { display: flex; align-items: center; margin: 10rpx 0; }
 .step .dot { width: 36rpx; height: 36rpx; border-radius: 50%; background: #e5e7eb; color: #94a3b8; font-size: 22rpx; text-align: center; line-height: 36rpx; margin-right: 16rpx; }
 .step.done .dot { background: var(--c); color: #fff; }
+
+.pill { background: #ffedd5; }

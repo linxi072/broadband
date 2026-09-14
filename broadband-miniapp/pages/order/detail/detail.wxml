@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="nav-bar">订单详情</view>
+  <view class="stat" style="text-align:left;padding:28rpx"><view style="font-size:30rpx;font-weight:600">{{order.statusText}}</view><view class="l">单号 {{order.id}}</view></view>
+  <view class="card">
+    <view class="card-title">订单信息</view>
+    <view class="row"><text class="muted">套餐</text><text>{{order.name}}</text></view>
+    <view class="row"><text class="muted">安装地址</text><text>{{order.addr}}</text></view>
+    <view class="row"><text class="muted">联系人</text><text>{{order.contact}}</text></view>
+    <view class="row"><text class="muted">下单时间</text><text>{{order.time}}</text></view>
+    <view class="row"><text class="muted">金额</text><text style="color:var(--c);font-weight:700">¥{{order.amount}}</text></view>
+  </view>
+  <view class="card">
+    <view class="card-title">安装进度</view>
+    <view class="step {{index<=order.current ? 'done' : ''}}" wx:for="{{order.steps}}" wx:key="*this"><view class="dot">{{index+1}}</view><text>{{item}}</text></view>
+  </view>
+  <view class="grid2">
+    <view class="btn-ghost" bindtap="call">联系师傅</view>
+    <view class="btn-ghost" bindtap="cancel">取消订单</view>
+  </view>
+</view>

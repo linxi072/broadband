@@ -17,14 +17,21 @@ Page({
   },
   onTap(e) {
     const item = e.currentTarget.dataset.item;
-    if (item.action === 'pkg') {
-      wx.navigateTo({ url: '/pages/package/detail/detail?id=demo' });
-    } else if (item.key === 'query') {
-      wx.navigateTo({ url: '/pages/community/query/query' });
-    } else if (item.action === 'upgrade') {
-      wx.navigateTo({ url: '/pages/package/upgrade/upgrade' });
-    } else if (item.action === 'traffic') {
-      wx.navigateTo({ url: '/pages/traffic/traffic' });
+    const map = {
+      new: '/pages/package/detail/detail?id=demo',
+      query: '/pages/community/query/query',
+      upgrade: '/pages/package/upgrade/upgrade',
+      traffic: '/pages/traffic/traffic',
+      move: '/pages/move/move',
+      renew: '/pages/upgrade/upgrade',
+      speed: '/pages/upgrade/upgrade',
+      smart: '/pages/smart/smart',
+      self: '/pages/self/self'
+    };
+    if (map[item.key]) {
+      wx.navigateTo({ url: map[item.key] });
+    } else if (item.key === 'repair') {
+      wx.showToast({ title: '故障报修（演示）', icon: 'none' });
     } else {
       wx.showToast({ title: '功能建设中', icon: 'none' });
     }

@@ -1,0 +1,10 @@
+<view class="container">
+  <view class="nav-bar">容量看板</view>
+  <view class="card"><view class="card-title">{{date}} 师傅时段容量</view>
+    <view wx:for="{{slots}}" wx:key="time" style="margin:16rpx 0">
+      <view class="row"><text>{{item.time}}</text><text class="muted">{{item.used}}/{{item.max}} 单</text></view>
+      <view class="bar {{item.used>=item.max ? 'full' : ''}}"><view style="width:{{item.pct}}%"></view></view>
+    </view>
+  </view>
+  <view class="muted">说明：相邻小区每时段 3-4 单、非相邻 1-2 单；满容工单将自动顺延。</view>
+</view>

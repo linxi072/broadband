@@ -1,0 +1,12 @@
+<view class="container">
+  <view class="nav-bar">工单列表</view>
+  <view class="grid2" style="margin-bottom:16rpx">
+    <view class="tile" wx:for="{{tabs}}" wx:key="*this" data-i="{{index}}" bindtap="switchTab" style="{{index===active ? 'outline:3rpx solid var(--c)' : ''}}"><view class="lb">{{item}}</view></view>
+  </view>
+  <view class="card" wx:for="{{list}}" wx:key="id">
+    <view class="card-title">工单 #{{item.id}} · {{item.cust}}</view>
+    <view class="row"><text class="muted">地址</text><text>{{item.addr}}</text></view>
+    <view class="row"><text class="muted">状态</text><text class="pill">{{item.statusText}}</text></view>
+    <view class="btn-ghost" data-id="{{item.id}}" bindtap="goDetail">查看详情</view>
+  </view>
+</view>

@@ -1,0 +1,19 @@
+<view class="container">
+  <view class="nav-bar">工单详情</view>
+  <view class="stat" style="text-align:left;padding:28rpx"><view style="font-size:30rpx;font-weight:600">#{{order.id}} {{order.statusText}}</view><view class="l">{{order.cust}} · {{order.pkg}}</view></view>
+  <view class="card">
+    <view class="card-title">安装信息</view>
+    <view class="row"><text class="muted">地址</text><text>{{order.addr}}</text></view>
+    <view class="row"><text class="muted">联系电话</text><text>{{order.phone}}</text></view>
+    <view class="row"><text class="muted">上门时段</text><text>{{order.slot}}</text></view>
+  </view>
+  <view class="card">
+    <view class="card-title">服务项</view>
+    <view class="pill" wx:for="{{order.items}}" wx:key="*this">{{item}}</view>
+  </view>
+  <view class="grid2">
+    <view class="btn-ghost" bindtap="navigate">导航</view>
+    <view class="btn-ghost" bindtap="call">联系客户</view>
+  </view>
+  <view class="btn-primary" bindtap="start">开始完工回传</view>
+</view>

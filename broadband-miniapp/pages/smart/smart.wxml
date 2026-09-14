@@ -1,0 +1,12 @@
+<view class="container">
+  <view class="nav-bar">智慧家庭增值</view>
+  <view class="grid2">
+    <view class="card" wx:for="{{items}}" wx:key="id">
+      <view class="ic" style="font-size:46rpx">{{item.icon}}</view>
+      <view style="font-weight:600;margin:8rpx 0">{{item.name}}</view>
+      <view class="muted">{{item.desc}}</view>
+      <view style="color:var(--c);font-weight:700;margin:8rpx 0">{{item.price}}</view>
+      <view class="btn-ghost" data-name="{{item.name}}" bindtap="add">加购</view>
+    </view>
+  </view>
+</view>

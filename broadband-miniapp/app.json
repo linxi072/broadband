@@ -6,13 +6,50 @@
     "pages/package/upgrade/upgrade",
     "pages/community/query/query",
     "pages/order/address/address",
-    "pages/traffic/traffic"
+    "pages/traffic/traffic",
+    "pages/package/list/list",
+    "pages/order/list/list",
+    "pages/order/detail/detail",
+    "pages/order/confirm/confirm",
+    "pages/profile/profile",
+    "pages/move/move",
+    "pages/upgrade/upgrade",
+    "pages/smart/smart",
+    "pages/self/self",
+    "pages/review/review",
+    "pages/login/login",
+    "pages/address/address",
+    "pages/settings/settings"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2563eb",
     "navigationBarTitleText": "宽带办理",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f7fb"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#2563eb",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/package/list/list",
+        "text": "套餐"
+      },
+      {
+        "pagePath": "pages/order/list/list",
+        "text": "订单"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

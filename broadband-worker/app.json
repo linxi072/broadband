@@ -1,0 +1,40 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/order/order",
+    "pages/order-detail/order-detail",
+    "pages/confirm/confirm",
+    "pages/capacity/capacity",
+    "pages/schedule/schedule",
+    "pages/profile/profile",
+    "pages/login/login"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ea580c",
+    "navigationBarTitleText": "装维师傅端",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#fff7ed"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#ea580c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "工单"
+      },
+      {
+        "pagePath": "pages/order/order",
+        "text": "任务"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

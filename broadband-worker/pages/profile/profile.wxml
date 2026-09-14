@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="card" style="background:var(--c);color:#fff">
+    <view style="font-size:36rpx;font-weight:700">{{worker.name}}</view>
+    <view style="opacity:.9;margin-top:8rpx">工号 {{worker.no}} · {{worker.phone}} · {{worker.star}}★</view>
+  </view>
+  <view class="grid3" style="margin:16rpx 0">
+    <view class="stat" wx:for="{{stats}}" wx:key="l"><view class="n">{{item.n}}</view><view class="l">{{item.l}}</view></view>
+  </view>
+  <view class="card"><view class="card-title">客户评价标签</view><text wx:for="{{tags}}" wx:key="*this" class="pill">{{item}}</text></view>
+  <view class="btn-ghost" style="margin-top:24rpx" bindtap="logout">退出登录</view>
+</view>

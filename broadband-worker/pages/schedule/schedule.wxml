@@ -1,0 +1,6 @@
+<view class="container">
+  <view class="nav-bar">我的排班</view>
+  <view class="card" wx:for="{{shifts}}" wx:key="day">
+    <view class="row"><text style="font-weight:600">{{item.day}}</text><text class="{{item.rest?'muted':''}}">{{item.rest ? '休息' : item.am + ' / ' + item.pm}}</text></view>
+  </view>
+</view>

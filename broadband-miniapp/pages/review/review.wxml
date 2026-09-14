@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="nav-bar">评价与投诉</view>
+  <view class="card">
+    <view class="card-title">本次服务评分</view>
+    <view style="font-size:52rpx">
+      <text wx:for="{{5}}" wx:key="*this" data-i="{{index+1}}" bindtap="setStar" style="color:{{index<stars?'#f59e0b':'#d1d5db'}}">★</text>
+    </view>
+    <view style="margin-top:12rpx">
+      <text wx:for="{{tags}}" wx:key="*this" class="pill" data-t="{{item}}" bindtap="toggleTag" style="{{selected.indexOf(item)>=0?'background:var(--c);color:#fff':''}}">{{item}}</text>
+    </view>
+  </view>
+  <view class="card">
+    <view class="card-title">投诉与建议</view>
+    <textarea class="input" placeholder="如有问题，请描述（可上传照片）" bindinput="onComplaint" value="{{complaint}}"></textarea>
+    <view class="btn-primary" bindtap="submit">提交</view>
+  </view>
+  <view class="card"><view class="card-title">我的投诉进度</view><text class="pill">处理中</text></view>
+</view>

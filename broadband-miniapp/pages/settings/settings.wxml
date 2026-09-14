@@ -1,0 +1,9 @@
+<view class="container">
+  <view class="nav-bar">设置</view>
+  <view class="card">
+    <view class="row" wx:for="{{items}}" wx:key="key" data-key="{{item.key}}" data-name="{{item.name}}" bindtap="tap">
+      <view style="display:flex;align-items:center"><text style="font-size:36rpx;margin-right:16rpx">{{item.icon}}</text><text>{{item.name}}</text></view>
+      <text class="muted">{{item.desc || '›'}}</text>
+    </view>
+  </view>
+</view>

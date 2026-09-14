@@ -1,0 +1,10 @@
+<view class="container">
+  <view class="nav-bar">套餐广场</view>
+  <view class="card" wx:for="{{packages}}" wx:key="id">
+    <view class="card-title">{{item.name}} <text wx:if="{{item.hot}}" class="pill">热销</text></view>
+    <view class="row"><text class="muted">速率</text><text>{{item.speed}}</text></view>
+    <view class="row"><text class="muted">资费</text><text style="color:var(--c);font-weight:700">¥{{item.price}}/月</text></view>
+    <view><text wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this" class="pill">{{t}}</text></view>
+    <view class="btn-primary" data-id="{{item.id}}" bindtap="goDetail">立即办理</view>
+  </view>
+</view>

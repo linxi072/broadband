@@ -1,54 +1,35 @@
 // utils/api.js —— 请求封装，对齐后端接口（Spring Boot :8082）
-// 套餐详情：      GET  /api/package/detail?id=
-// 小区可装校验：  GET  /api/community/check?name=
-// 安装需求登记：  POST /api/community/demand
-// 装维 SLA 评估： POST /api/sla/evaluate
-// 套餐升级选项：  GET  /api/package/upgrade-options
-// 套餐升级提交：  POST /api/package/upgrade
-// 流量用量查询：  GET  /api/traffic/usage
-
 function request(path, method, data) {
+  // 登录态：若本地已存 token，统一以 Bearer 注入请求头（c 端开放层由后端 protect-client-api 开关决定是否校验）
+  const token = (getApp() && getApp().globalData && getApp().globalData.token) || '';
+  const header = { 'content-type': 'application/json' };
+  if (token) header['Authorization'] = 'Bearer ' + token;
   return new Promise((resolve, reject) => {
     wx.request({
       url: (getApp().globalData.baseUrl || '') + path,
       method: method || 'GET',
       data: data || {},
-      header: { 'content-type': 'application/json' },
+      header: header,
       success: (res) => resolve(res.data),
       fail: (err) => reject(err)
     });
   });
 }
-
 const api = {
-  // 融合套餐详情（后端未实现时返回空，由页面走 mock）
-  getPackageDetail(id) {
-    return request('/api/package/detail?id=' + (id || ''), 'GET');
+  getPackageDetail(id) { return request('/api/package/detail?id=' + (id || ''), 'GET'); },
+  checkCommunity(name) { return request('/api/community/check?name=' + encodeURIComponent(name || ''), 'GET'); },
+  registerDemand(payload) { return request('/api/community/demand', 'POST', payload || {}); },
+  evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); },
+  getUpgradeOptions(payload) { return request('/api/package/upgrade-options', 'GET', payload || {}); },
+  submitUpgrade(payload) { return request('/api/package/upgrade', 'POST', payload || {}); },
+  getTrafficUsage(payload) { return request('/api/traffic/usage', 'GET', payload || {}); },
+  // —— 小程序登录态（演示：本地 mock；接后端时替换为 /api/auth/login）——
+  login(phone, code) {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve({ token: 'mock-' + Date.now(), customer: { name: '陈先生', phone: phone, level: '千兆五星' } }), 200);
+    });
   },
-  // 小区可安装性校验（下单前 / 查询页复用）
-  checkCommunity(name) {
-    return request('/api/community/check?name=' + encodeURIComponent(name || ''), 'GET');
-  },
-  // 安装需求登记（小区未覆盖时）
-  registerDemand(payload) {
-    return request('/api/community/demand', 'POST', payload || {});
-  },
-  // 装维 SLA 评估（完工回传，对应 SlaController）
-  evaluateSla(record) {
-    return request('/api/sla/evaluate', 'POST', record);
-  },
-  // 套餐升级：升档选项 + 补差预览（对应 PackageUpgradeController）
-  getUpgradeOptions(payload) {
-    return request('/api/package/upgrade-options', 'GET', payload || {});
-  },
-  // 套餐升级：提交升档申请
-  submitUpgrade(payload) {
-    return request('/api/package/upgrade', 'POST', payload || {});
-  },
-  // 流量监控：客户流量用量（对应 TrafficController）
-  getTrafficUsage(payload) {
-    return request('/api/traffic/usage', 'GET', payload || {});
-  }
+  listPackages() { return request('/api/package/list', 'GET'); },
+  getOrders(customerId) { return request('/api/admin/orders?customerId=' + (customerId || ''), 'GET'); }
 };
-
 module.exports = api;

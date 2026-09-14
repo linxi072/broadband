@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="nav-bar">完工确认</view>
+  <view class="card"><view class="card-title">工单 #{{order.id}} · {{order.cust}}</view><text class="muted">{{order.addr}} · {{order.pkg}}</text></view>
+  <view class="card">
+    <view class="card-title">六项服务确认</view>
+    <view class="row" wx:for="{{services}}" wx:key="key" data-i="{{index}}" bindtap="toggleService">
+      <text>{{item.name}}</text><text style="color:{{item.ok?'var(--c)':'#cbd5e1'}}">{{item.ok ? '✓ 已完成' : '○ 待完成'}}</text>
+    </view>
+  </view>
+  <view class="card">
+    <view class="card-title">装机测速</view>
+    <input class="input" placeholder="下行速率（Mbps）" value="{{down}}" bindinput="onDown" type="digit" />
+    <input class="input" placeholder="上行速率（Mbps）" value="{{up}}" bindinput="onUp" type="digit" />
+  </view>
+  <view class="card">
+    <view class="card-title">客户签名</view>
+    <input class="input" placeholder="请输入客户姓名" value="{{sign}}" bindinput="onSign" />
+  </view>
+  <view class="btn-primary" bindtap="submit">提交完工</view>
+</view>

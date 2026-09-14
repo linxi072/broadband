@@ -1,5 +1,7 @@
 package com.broadband.system.spring;
 
+import com.broadband.product.mapper.CustomerMapper;
+import com.broadband.product.model.Customer;
 import com.broadband.system.mapper.SysMenuMapper;
 import com.broadband.system.mapper.SysUserMapper;
 import com.broadband.system.model.LoginUser;
@@ -7,6 +9,7 @@ import com.broadband.system.model.SysMenu;
 import com.broadband.system.model.SysUser;
 import com.broadband.system.security.JwtUtil;
 import com.broadband.system.security.RestAuthHandlers;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +44,7 @@ public class AuthController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private OperLogService operLogService;
+    @Autowired private CustomerMapper customerMapper;
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> req, HttpServletRequest http) {
@@ -76,6 +80,47 @@ public class AuthController {
         resp.put("expiresIn", jwtUtil.getTtlSeconds());
         resp.put("demo", false);
         resp.put("user", profile(user));
+        return resp;
+    }
+
+    /**
+     * 小程序登录（C 端客户 / 师傅端通用）：手机号 + 短信验证码。
+     *
+     * <p>演示实现：验证码固定为 {@code 1234}；按手机号查客户档案，未注册则回退到演示档案
+     * （customerId=demo）。签发 JWT（dept=CUSTOMER），该 token 由于没有对应 sys_user，
+     * 在 JwtAuthFilter 中不会映射到后台权限，仅用于标识客户身份（c 端开放层本就无需鉴权）。
+     * 小程序侧把 {@code app.security.protect-client-api} 置 true 后，开放层转为强制鉴权，
+     * 届时需在此做「微信 code → openid → 绑定客户」的真实换取。</p>
+     */
+    @PostMapping("/miniapp-login")
+    public Map<String, Object> miniappLogin(@RequestBody Map<String, String> req) {
+        String phone = req.get("phone");
+        String code = req.get("code");
+        if (phone == null || !phone.matches("^1\\d{10}$")) {
+            throw new BadCredentials("请输入正确的手机号");
+        }
+        if (code == null || !code.equals("1234")) {
+            throw new BadCredentials("验证码错误（演示验证码：1234）");
+        }
+
+        Customer c = customerMapper.selectOne(
+                new QueryWrapper<Customer>().eq("phone", phone).last("limit 1"));
+        String customerId = c == null ? "demo" : c.id;
+        String customerName = c == null ? "演示客户" : c.name;
+        String level = c == null ? "GOLD" : c.level;
+
+        String token = jwtUtil.issue(phone, customerId, customerName, "CUSTOMER");
+
+        Map<String, Object> customer = new LinkedHashMap<>();
+        customer.put("id", customerId);
+        customer.put("name", customerName);
+        customer.put("phone", phone);
+        customer.put("level", level);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("token", token);
+        resp.put("expiresIn", jwtUtil.getTtlSeconds());
+        resp.put("customer", customer);
         return resp;
     }
 

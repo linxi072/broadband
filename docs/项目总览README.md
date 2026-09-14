@@ -1,6 +1,11 @@
 # 宽带业务管理系统 · 项目总览
 
-> 文档版本：v1.2 ｜ 更新日期：2026-09-14 ｜ 关联设计稿：broadband-design/index.html（v1.9）
+> 文档版本：v1.3 ｜ 更新日期：2026-09-14 ｜ 关联设计稿：broadband-design/index.html（v1.9）
+>
+> **v1.3 变更**：修复小程序真实缺陷（M7 收尾）——
+> ① 小程序登录态由「本地 mock」改为**真实后端鉴权**：新增 `POST /api/auth/miniapp-login`（演示码 1234 签发真实 JWT），两端 `login` 已接入；
+> ② 修复 4 个契约/逻辑缺陷：客户端套餐列表 404、我的订单越权端点、两端 `request()` 静默吞错、师傅端工单详情 404；
+> ③ 后端配套新增/修正 4 接口，接口总数 **45 → 49**（GET 31 / POST 13 / PUT 5）。
 >
 > **v1.2 变更**：小程序补页（M7）落地 ——
 > ① 客户端 `broadband-miniapp` 由 7 页扩到 **20 页**（含登录页）；
@@ -24,7 +29,7 @@
 |---|---|---|
 | 微信小程序（客户端 / 师傅端） | 微信原生框架（WXML / WXSS / JS / app.json），utils/api.js 请求封装 | ✅ 客户端 20 页（含登录态）+ 师傅端 8 页（两独立工程） |
 | PC 后台（web-admin） | Vue 3 + Element Plus（按需引入）+ Pinia + Vue Router + Vite | ✅ 已落地（22 业务页 / 22 路由） |
-| 后端服务 | Spring Boot 3.2.1 + MyBatis-Plus（boot3 starter）+ JDK 21 + Maven，单体应用，端口 8082 | ✅ 4 模块 / 45 接口 |
+| 后端服务 | Spring Boot 3.2.1 + MyBatis-Plus（boot3 starter）+ JDK 21 + Maven，单体应用，端口 8082 | ✅ 4 模块 / 49 接口 |
 | 数据库 | MySQL 8.4（25 张表 + 幂等初始化脚本，启动自动建表） | ✅ 已接入 |
 | 权限 | Spring Security 6 + 自研 JWT（HS256，零三方依赖）+ RBAC | ✅ 已落地（5 角色 / 21 权限码） |
 | 配置 | Spring Boot 原生（application.yml + 环境变量） | ✅ 采用 |
@@ -81,7 +86,7 @@
 
 关键设计：① **登录态骨架**——`utils/api.js` 的 `request()` 统一注入本地 `Bearer` token；`utils/auth.js` 提供 `isLogin/requireLogin`；`pages/profile` `onShow` 校验未登录跳登录页；
 ② **c 端开放层**——客户端接口当前未强制鉴权（后端 `protect-client-api=false`），登录态正式接入后由一处开关收口；
-③ **mock 兜底**——`api.login` 演示码 `1234`，后端不可达时降级本地数据。
+③ **真实登录**——`api.login` 调 `POST /api/auth/miniapp-login`（演示码 `1234`）向后端换取**真实 JWT**，失败不再静默。
 
 ### 4.2 安装师傅端小程序 — 8 个页面（独立工程）
 
@@ -112,7 +117,7 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 ② **路由守卫 + `v-perm` 指令**——无 token 跳登录，越权菜单不渲染；
 ③ **演示兜底**——接口不可达时降级为内置演示数据并标注「演示数据」，保证演示不中断。
 
-### 4.4 后端服务 — 4 个模块 / 45 个接口
+### 4.4 后端服务 — 4 个模块 / 49 个接口
 
 每个模块遵循「纯 Java 引擎（model + engine，可 `javac`+`java` 独立运行）+ Spring 适配层（Mapper / Service / Controller）」的同构分层。
 
@@ -124,7 +129,7 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 | system | RBAC 权限 + 后台聚合与监控 | 23 | —（JWT + Spring Security + JdbcTemplate 聚合） | 18 |
 | common | 主键生成 / 全局异常处理 | 2 | — | — |
 
-> 接口总数 **45 个**（GET 28 / POST 12 / PUT 5），全部读写真实 MySQL 数据。
+> 接口总数 **49 个**（GET 31 / POST 13 / PUT 5），全部读写真实 MySQL 数据。
 > 核心算法模块仍保留可独立运行的 `*Demo`（共 6 个），无需 Maven / 数据库即可验证业务算法。
 
 ### 4.5 数据库与安全
@@ -157,12 +162,12 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 
 - ✅ **设计稿 v1.9**：覆盖客户端 20 页规划 + PC 后台 16 模块规划，含套餐升级与流量监控专章。
 - ✅ **小程序骨架 → 全量页面**：客户端 **20 页**（含登录态）+ 师傅端 **8 页**（独立工程 `broadband-worker`），接口封装注入 Bearer token。
-- ✅ **后端 4 模块 / 45 接口**：community / install / product / system，核心算法保留 6 个可独立运行的 Demo。
+- ✅ **后端 4 模块 / 49 接口**：community / install / product / system，核心算法保留 6 个可独立运行的 Demo。
 - ✅ **数据库接入**：MySQL 8.4，25 张表 + 幂等 `schema.sql` / `data.sql`，启动自动初始化。
 - ✅ **PC 后台**：`web-admin`（Vue 3 + Element Plus）22 业务页 / 22 路由，全量对接真实接口，侧边栏由后端菜单树驱动。
 - ✅ **RBAC / 安全**：Spring Security 6 + 自研 JWT（HS256），5 角色 / 26 菜单 / 21 权限码；
   实测鉴权矩阵 —— 无 token → 401、越权 → 403、授权内 → 200；含 7 条 JWT 回归单测。
-- ⬜ **小程序登录态正式接入后端鉴权**：当前为 mock + token 注入骨架，待微信 session 换 token 后由 `protect-client-api` 一处收口。
+- ✅ **小程序登录态已接入真实后端鉴权**：`POST /api/auth/miniapp-login`（演示码 1234）签发真实 JWT，两端 `login` 已接入；c 端接口仍属开放层（`protect-client-api=false`，设计有意保留），如需强制全体鉴权将开关置 `true` 即可。
 - ✅ **配置策略**：单体 Spring Boot 原生配置（application.yml + 环境变量），不引入 Apollo 等外部配置中心。
 
 ---

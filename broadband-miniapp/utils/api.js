@@ -10,26 +10,38 @@ function request(path, method, data) {
       method: method || 'GET',
       data: data || {},
       header: header,
-      success: (res) => resolve(res.data),
+      // 真实缺陷修复：非 2xx 必须 reject，否则 401/403/404 会被当成成功、页面静默无数据
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
+        else reject(res.data || { message: '请求失败(' + res.statusCode + ')' });
+      },
       fail: (err) => reject(err)
     });
   });
 }
 const api = {
+  // —— 套餐（C 端开放层）——
   getPackageDetail(id) { return request('/api/package/detail?id=' + (id || ''), 'GET'); },
+  // 修复：原先指向不存在的 /api/package/list（404）；后端已新增 GET /api/package/list（在售套餐）
+  listPackages() { return request('/api/package/list', 'GET'); },
+  getUpgradeOptions(payload) { return request('/api/package/upgrade-options?customerId=' + encodeURIComponent((payload && payload.customerId) || 'demo'), 'GET'); },
+  submitUpgrade(payload) { return request('/api/package/upgrade', 'POST', payload || {}); },
+  // —— 小区 ——
   checkCommunity(name) { return request('/api/community/check?name=' + encodeURIComponent(name || ''), 'GET'); },
   registerDemand(payload) { return request('/api/community/demand', 'POST', payload || {}); },
-  evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); },
-  getUpgradeOptions(payload) { return request('/api/package/upgrade-options', 'GET', payload || {}); },
-  submitUpgrade(payload) { return request('/api/package/upgrade', 'POST', payload || {}); },
-  getTrafficUsage(payload) { return request('/api/traffic/usage', 'GET', payload || {}); },
-  // —— 小程序登录态（演示：本地 mock；接后端时替换为 /api/auth/login）——
+  // —— 流量 ——
+  getTrafficUsage(payload) { return request('/api/traffic/usage?customerId=' + encodeURIComponent((payload && payload.customerId) || 'demo'), 'GET'); },
+  // —— 订单（C 端开放层，按客户查自己的订单）——
+  // 修复：原先指向 /api/admin/orders（需 order:view 权限 → 403，且语义是管理端）；
+  // 后端已新增 GET /api/order/my?customerId=（开放层）
+  getOrders(customerId) { return request('/api/order/my?customerId=' + encodeURIComponent(customerId || 'demo'), 'GET'); },
+  // —— 小程序登录（真实后端鉴权）——
+  // 修复：原先是本地 mock 返回假 token；现调 POST /api/auth/miniapp-login 换取真实 JWT
   login(phone, code) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ token: 'mock-' + Date.now(), customer: { name: '陈先生', phone: phone, level: '千兆五星' } }), 200);
-    });
+    return request('/api/auth/miniapp-login', 'POST', { phone: phone, code: code })
+      .then(r => ({ token: r.token, customer: r.customer }));
   },
-  listPackages() { return request('/api/package/list', 'GET'); },
-  getOrders(customerId) { return request('/api/admin/orders?customerId=' + (customerId || ''), 'GET'); }
+  // —— SLA 测速（管理端接口，需登录态）——
+  evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); }
 };
 module.exports = api;

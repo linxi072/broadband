@@ -41,11 +41,13 @@ public class SecurityConfig {
 
     /** C 端开放接口（小程序使用） */
     private static final String[] CLIENT_API = {
+            "/api/package/list",
             "/api/package/detail",
             "/api/package/upgrade-options",
             "/api/package/upgrade",
             "/api/community/check",
             "/api/community/demand",
+            "/api/order/my",
             "/api/traffic/usage"
     };
 
@@ -81,7 +83,7 @@ public class SecurityConfig {
             .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers))
             .authorizeHttpRequests(reg -> {
                 reg.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                reg.requestMatchers("/api/auth/login", "/error").permitAll();
+                reg.requestMatchers("/api/auth/login", "/api/auth/miniapp-login", "/error").permitAll();
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }

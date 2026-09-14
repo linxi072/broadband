@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +69,23 @@ public class AdminInstallController {
         }
         sql.append(" ORDER BY w.time_slot, w.id");
         return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    /** 单条工单详情（师傅端工单详情页用）。 */
+    @GetMapping("/work-orders/{id}")
+    @PreAuthorize("hasAuthority('workorder:view')")
+    public Map<String, Object> workOrder(@PathVariable String id) {
+        List<Map<String, Object>> rows = jdbc.queryForList("""
+                SELECT w.id, w.customer_name AS customer, w.package_desc AS pkgDesc,
+                       c.name AS community, w.address, w.time_slot AS timeSlot,
+                       COALESCE(k.name, '—') AS worker, w.status, w.cluster_id AS clusterId,
+                       w.adjacent_route AS adjacent
+                FROM work_order w
+                LEFT JOIN community c ON c.id = w.community_id
+                LEFT JOIN worker k ON k.id = w.worker_id
+                WHERE w.id = ?
+                """, id);
+        return rows.isEmpty() ? Map.of() : rows.get(0);
     }
 
     /**

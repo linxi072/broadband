@@ -1,13 +1,30 @@
 const api = require('../../../utils/api.js');
 const auth = require('../../../utils/auth.js');
-Page({
-  data: { packages: [
-      { id: 'pkg500', name: '1000M 融合「美好家」', price: 129, speed: '1000M', tags: ['宽带','60G流量','IPTV','2副卡'], hot: true },
-      { id: 'pkg300', name: '500M 全家享', price: 99, speed: '500M', tags: ['宽带','40G流量','IPTV'], hot: false },
-      { id: 'pkg200', name: '300M 单宽带', price: 69, speed: '300M', tags: ['宽带'], hot: false }
-    ] },
-  onLoad(options) {
 
+function speedOf(name) {
+  const m = /(\d+\s?M)/i.exec(name || '');
+  return m ? m[1].toUpperCase() : '';
+}
+
+Page({
+  data: { loading: true, packages: [] },
+  onLoad(options) {
+    // 修复：原先是写死的静态数据；现从开放层 GET /api/package/list 拉取真实在售套餐
+    api.listPackages()
+      .then(list => {
+        this.setData({
+          loading: false,
+          packages: (list || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            hot: false,
+            speed: speedOf(p.name) || p.category || '',
+            price: p.monthlyFee,
+            tags: [p.category].filter(Boolean).concat(p.cover ? [] : [])
+          }))
+        });
+      })
+      .catch(() => { this.setData({ loading: false, packages: [] }); });
   },
   goDetail(e) { wx.navigateTo({ url: '/pages/package/detail/detail?id=' + e.currentTarget.dataset.id }); }
 });

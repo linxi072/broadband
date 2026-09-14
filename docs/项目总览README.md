@@ -1,6 +1,11 @@
 # 宽带业务管理系统 · 项目总览
 
-> 文档版本：v1.1 ｜ 更新日期：2026-09-14 ｜ 关联设计稿：broadband-design/index.html（v1.9）
+> 文档版本：v1.2 ｜ 更新日期：2026-09-14 ｜ 关联设计稿：broadband-design/index.html（v1.9）
+>
+> **v1.2 变更**：小程序补页（M7）落地 ——
+> ① 客户端 `broadband-miniapp` 由 7 页扩到 **20 页**（含登录页）；
+> ② 新建师傅端 `broadband-worker`（独立工程，橙 `#ea580c`）**8 页**（含登录页）；
+> ③ 两端统一请求封装注入 Bearer token + `auth.js` 登录门禁 + `profile` 页 `onShow` 校验。
 >
 > **v1.1 变更**：PC 后台 `web-admin`（Vue 3）与本后端安全体系（Spring Security 6 + JWT + RBAC）落地；
 > 后端模块 3→4（新增 `system`）、接口 13→45、表 17→25。
@@ -17,7 +22,7 @@
 
 | 端 | 技术选型 | 状态 |
 |---|---|---|
-| 微信小程序（客户端 / 师傅端） | 微信原生框架（WXML / WXSS / JS / app.json），utils/api.js 请求封装 | 🟡 客户端骨架落地（7 页）；师傅端待建 |
+| 微信小程序（客户端 / 师傅端） | 微信原生框架（WXML / WXSS / JS / app.json），utils/api.js 请求封装 | ✅ 客户端 20 页（含登录态）+ 师傅端 8 页（两独立工程） |
 | PC 后台（web-admin） | Vue 3 + Element Plus（按需引入）+ Pinia + Vue Router + Vite | ✅ 已落地（22 业务页 / 22 路由） |
 | 后端服务 | Spring Boot 3.2.1 + MyBatis-Plus（boot3 starter）+ JDK 21 + Maven，单体应用，端口 8082 | ✅ 4 模块 / 45 接口 |
 | 数据库 | MySQL 8.4（25 张表 + 幂等初始化脚本，启动自动建表） | ✅ 已接入 |
@@ -31,10 +36,14 @@
 ```
 宽带业务管理系统/
 ├── broadband-design/index.html   # 功能页面设计稿（HTML 线框，v1.9）
-├── broadband-miniapp/            # 微信小程序客户端
+├── broadband-miniapp/            # 微信小程序客户端（蓝 #2563eb，20 页 + 登录态）
 │   ├── app.js / app.json / app.wxss
-│   ├── utils/api.js              # 接口封装（未实现走 mock）
-│   └── pages/                    # 7 个页面（见第四节）
+│   ├── utils/api.js · auth.js    # 接口封装（Bearer 注入）+ 登录态校验
+│   └── pages/                    # 20 个页面（见第四节）
+├── broadband-worker/             # ★ 安装师傅端小程序（橙 #ea580c，8 页 + 登录态，独立工程）
+│   ├── app.js / app.json / app.wxss / project.config.json / sitemap.json
+│   ├── utils/api.js · auth.js    # 师傅端请求封装（Bearer 注入）
+│   └── pages/                    # 8 个页面（见第四节）
 ├── web-admin/                    # ★ PC 运营后台（Vue 3 单页应用）
 │   ├── vite.config.js            # 按需引入 Element Plus + /api 代理到 :8082
 │   ├── .env.development / .env.production
@@ -59,21 +68,34 @@
 
 ## 四、三端说明
 
-### 4.1 微信小程序（客户端）— 7 个页面
+### 4.1 微信小程序（客户端）— 20 个页面
 
-| 页面 | 路径 | 说明 |
-|---|---|---|
-| 首页 | pages/index/index | 入口页 |
-| 服务聚合 | pages/service/service | 九宫格服务入口（含「套餐升级」「流量监控」） |
-| 融合套餐详情 | pages/package/detail/detail | 主图轮播 + 套餐组成 + 动态参数（单选/多选）+ 实时算价 + 立即办理 |
-| 套餐升级 | pages/package/upgrade/upgrade | 带宽升档 / 加购多选 / 一次性补差预览 / 提交 |
-| 可安装小区查询 | pages/community/query/query | 输入小区名查询是否可上门安装 |
-| 安装地址 | pages/order/address/address | 填写安装地址（与小区查询 / 详情页联动） |
-| 流量监控 | pages/traffic/traffic | 手机流量条 / 宽带时长 / 7 日趋势柱 / 加购流量包 |
+> `broadband-miniapp/`，蓝 `#2563eb`，微信原生。设计稿规划的 20 页**已全部落页**，并接入登录态骨架。
 
-> 设计稿规划客户端共 20 页；当前已落地 7 个核心骨架页，其余页面按设计稿迭代补充。
+| 分组 | 页面 |
+|---|---|
+| 核心 | 首页 `pages/index`、服务聚合 `pages/service`、个人中心 `pages/profile`（含登录门禁）、设置 `pages/settings`、登录 `pages/login` |
+| 套餐与流量 | 套餐详情 `pages/package/detail`、套餐列表 `pages/package/list`、套餐升级 `pages/package/upgrade` + `pages/upgrade`、流量监控 `pages/traffic` |
+| 下单与安装 | 可装小区查询 `pages/community/query`、安装地址 `pages/order/address`、订单确认 `pages/order/confirm`、订单列表 `pages/order/list`、订单详情 `pages/order/detail`、地址管理 `pages/address`、移机 `pages/move` |
+| 服务与报修 | 自助服务 `pages/self`（续费/提速/报修/发票）、报修评价 `pages/review`、智慧家庭 `pages/smart` |
 
-### 4.2 PC 后台（web-admin）— 已落地
+关键设计：① **登录态骨架**——`utils/api.js` 的 `request()` 统一注入本地 `Bearer` token；`utils/auth.js` 提供 `isLogin/requireLogin`；`pages/profile` `onShow` 校验未登录跳登录页；
+② **c 端开放层**——客户端接口当前未强制鉴权（后端 `protect-client-api=false`），登录态正式接入后由一处开关收口；
+③ **mock 兜底**——`api.login` 演示码 `1234`，后端不可达时降级本地数据。
+
+### 4.2 安装师傅端小程序 — 8 个页面（独立工程）
+
+> `broadband-worker/`，橙 `#ea580c`，微信原生，**v1.2 新建独立工程**。与客户端为两个小程序，经同一后端 `:8082` 取数。
+
+| 分组 | 页面 |
+|---|---|
+| 工作台 | 首页 `pages/index`（今日工单概览）、个人中心 `pages/profile`（含登录门禁）、登录 `pages/login` |
+| 工单履约 | 我的工单 `pages/order` + 详情 `pages/order-detail`、完工确认/测速 `pages/confirm` |
+| 调度支撑 | 排班与容量 `pages/capacity`（时段热力 + 个人容量）、工单路线 `pages/schedule` |
+
+登录态与客户端同构：`setWorkerLogin` 写 token + 本地存储，`request()` 注入 Bearer，关联后端 `GET /admin/work-orders`、`GET /api/dispatch/capacity`、`POST /api/sla/evaluate` 等。
+
+### 4.3 PC 后台（web-admin）— 已落地
 
 Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router（history 模式）+ Vite。设计稿 v1.9 规划的
 16 个后台模块已全部落地为 **22 个业务页面 / 22 条路由**（另含登录页与 403 / 404）：
@@ -90,7 +112,7 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 ② **路由守卫 + `v-perm` 指令**——无 token 跳登录，越权菜单不渲染；
 ③ **演示兜底**——接口不可达时降级为内置演示数据并标注「演示数据」，保证演示不中断。
 
-### 4.3 后端服务 — 4 个模块 / 45 个接口
+### 4.4 后端服务 — 4 个模块 / 45 个接口
 
 每个模块遵循「纯 Java 引擎（model + engine，可 `javac`+`java` 独立运行）+ Spring 适配层（Mapper / Service / Controller）」的同构分层。
 
@@ -105,7 +127,7 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 > 接口总数 **45 个**（GET 28 / POST 12 / PUT 5），全部读写真实 MySQL 数据。
 > 核心算法模块仍保留可独立运行的 `*Demo`（共 6 个），无需 Maven / 数据库即可验证业务算法。
 
-### 4.4 数据库与安全
+### 4.5 数据库与安全
 
 - **25 张表**：业务域（community / work_order / worker / worker_capacity / sla_rule / sla_record / compensation /
   customer / customer_contract / package_info / package_image / package_converge_item / package_param /
@@ -134,13 +156,13 @@ Vue 3 + Element Plus（按需引入，未全量引样式）+ Pinia + Vue Router�
 ## 六、当前进度与里程碑
 
 - ✅ **设计稿 v1.9**：覆盖客户端 20 页规划 + PC 后台 16 模块规划，含套餐升级与流量监控专章。
-- ✅ **小程序骨架**：7 个核心页面 + 服务聚合入口 + api.js 封装（后端不可达时 mock 兜底）。
+- ✅ **小程序骨架 → 全量页面**：客户端 **20 页**（含登录态）+ 师傅端 **8 页**（独立工程 `broadband-worker`），接口封装注入 Bearer token。
 - ✅ **后端 4 模块 / 45 接口**：community / install / product / system，核心算法保留 6 个可独立运行的 Demo。
 - ✅ **数据库接入**：MySQL 8.4，25 张表 + 幂等 `schema.sql` / `data.sql`，启动自动初始化。
 - ✅ **PC 后台**：`web-admin`（Vue 3 + Element Plus）22 业务页 / 22 路由，全量对接真实接口，侧边栏由后端菜单树驱动。
 - ✅ **RBAC / 安全**：Spring Security 6 + 自研 JWT（HS256），5 角色 / 26 菜单 / 21 权限码；
   实测鉴权矩阵 —— 无 token → 401、越权 → 403、授权内 → 200；含 7 条 JWT 回归单测。
-- ⬜ **小程序补页**：客户端剩余约 13 页 + 师傅端 8 页。
+- ⬜ **小程序登录态正式接入后端鉴权**：当前为 mock + token 注入骨架，待微信 session 换 token 后由 `protect-client-api` 一处收口。
 - ✅ **配置策略**：单体 Spring Boot 原生配置（application.yml + 环境变量），不引入 Apollo 等外部配置中心。
 
 ---
@@ -199,10 +221,9 @@ java -cp /tmp/bwall com.broadband.product.PackageUpgradeDemo
 
 ## 八、后续规划（摘要）
 
-1. **小程序补页**：客户端剩余约 13 页（新装/移机/续费/提速/报修/智慧家庭/自助服务/评价投诉）+ 师傅端 8 页（工单/排班容量/路线/完工/测速/评价）。
-2. **小程序登录态**：接入微信 session 换取 token 后，将 `app.security.protect-client-api` 置 `true`，把 c 端开放接口一并纳入鉴权。
-3. **业务增强**：工单状态机流转与改派、SLA 规则在线编辑、套餐上下架审批流。
-4. **交付增强**：性能监控指标细化（QPS/耗时分位）、操作日志归档策略、CI 流水线。
-5. **文档进阶**：为正式文档补充封面 / 页眉页脚 / 页码，输出统一版式。
+1. **小程序登录态正式接入后端鉴权**：微信 session 换 token（后端新增 `/api/auth/miniapp-login`），将 `app.security.protect-client-api` 置 `true`，把 c 端开放接口一并纳入鉴权。
+2. **业务增强**：工单状态机流转与改派、SLA 规则在线编辑、套餐上下架审批流。
+3. **交付增强**：性能监控指标细化（QPS/耗时分位）、操作日志归档策略、CI 流水线。
+4. **文档进阶**：为正式文档补充封面 / 页眉页脚 / 页码，输出统一版式。
 
 > 详细路线图与验收标准见 **《系统规划说明书》**。

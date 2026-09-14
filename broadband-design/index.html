@@ -156,7 +156,8 @@
 <header>
   <div class="wrap">
     <h1>宽带业务管理系统 · 功能页面设计稿</h1>
-    <p>微信小程序（客户端 / 安装师傅端）+ PC 后端管理系统（web-admin）· 线框原型与功能清单 v1.9</p>
+    <p>微信小程序（客户端 / 安装师傅端）+ PC 后端管理系统（web-admin）· 线框原型与功能清单 <b>v2.0</b></p>
+    <p style="color:#93c5fd;font-size:13px;margin-top:6px">v2.0 更新：与实现口径 v1.5 对齐（M9 双端登录态收口）—— 补齐登录页设计、页面清单按实际落地路由校正、新增各端落地状态总览。</p>
   </div>
 </header>
 
@@ -208,11 +209,22 @@
     <h3>角色 × 终端 × 主题色 矩阵</h3>
     <table class="matrix">
       <tr><th>角色</th><th>终端</th><th>主题色</th><th>核心诉求</th><th>页面规模</th></tr>
-      <tr><td><span class="role c-client">客户端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--client)"></span>蓝 #2563eb</td><td>便捷下单、进度透明</td><td>约 10 页</td></tr>
-      <tr><td><span class="role c-install">安装师傅端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--install)"></span>橙 #ea580c</td><td>工单清晰、操作简便</td><td>约 8 页</td></tr>
-      <tr><td><span class="role c-admin">管理员 / 运营</span></td><td>PC web-admin</td><td><span class="theme-chip" style="background:var(--admin)"></span>靛 #4f46e5</td><td>全局管控、权限与监控</td><td>约 12 模块</td></tr>
+      <tr><td><span class="role c-client">客户端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--client)"></span>蓝 #2563eb</td><td>便捷下单、进度透明</td><td><b>20 页</b>（已全量落地）</td></tr>
+      <tr><td><span class="role c-install">安装师傅端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--install)"></span>橙 #ea580c</td><td>工单清晰、操作简便</td><td><b>8 页</b>（已全量落地）</td></tr>
+      <tr><td><span class="role c-admin">管理员 / 运营</span></td><td>PC web-admin</td><td><span class="theme-chip" style="background:var(--admin)"></span>靛 #4f46e5</td><td>全局管控、权限与监控</td><td><b>22 模块 / 25 页</b>（已全量落地）</td></tr>
     </table>
     <div class="note">说明：原「销售端」小程序已移除，销售拓客/录单/业绩等功能统一由 PC 后台「销售管理」模块承接（管理员或指定销售岗在后台操作）。</div>
+
+    <h3>落地状态总览（对齐实现口径 v1.5 · 2026-09-14）</h3>
+    <table class="matrix">
+      <tr><th>端 / 层</th><th>设计稿规划</th><th>已落地</th><th>状态</th><th>关键说明</th></tr>
+      <tr><td>客户端小程序</td><td>20 页</td><td>20 页</td><td>✅ 100%</td><td>登录走真实 <code>POST /api/auth/miniapp-login</code>，401 自动跳登录页</td></tr>
+      <tr><td>安装师傅端小程序</td><td>8 页</td><td>8 页</td><td>✅ 100%</td><td>登录走真实 <code>POST /api/auth/worker-login</code>（按 <code>worker.phone</code> 签发令牌）</td></tr>
+      <tr><td>PC 后台 web-admin</td><td>16 模块</td><td>22 模块 / 25 页</td><td>✅ 100%</td><td>菜单由后端 <code>/api/auth/me</code> 动态渲染，与 <code>@PreAuthorize</code> 权限码同源</td></tr>
+      <tr><td>后端服务</td><td>4 模块 + 公共层</td><td>56 接口（GET36/POST15/PUT5）</td><td>✅ 100%</td><td>三类令牌：SYS / CUSTOMER / WORKER；C 端强制鉴权；师傅端 <code>/api/worker/*</code> 按 token 隔离工单</td></tr>
+      <tr><td>数据库</td><td>25 张表</td><td>25 张表 + 种子数据</td><td>✅ 100%</td><td>幂等初始化；v1.5 增列 <code>customer.openid</code> / <code>worker.phone</code></td></tr>
+    </table>
+    <div class="note"><b>待办（见第六章后续计划）：</b>微信真实凭证接入、师傅端数据全绑定与视觉验收、业务闭环联调、监控与配置治理、CI/CD。</div>
   </div>
 </section>
 
@@ -299,6 +311,26 @@
               </div>
               <div class="scr-tab">
                 <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 登录（v2.0 新增） -->
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">登录</div>
+              <div class="scr-body">
+                <div class="blk" style="text-align:center;padding:8px 0">
+                  <div style="font-size:24px">📶</div>
+                  <b style="font-size:14px">宽带管家</b>
+                  <div class="mini">登录后办理业务、查询订单与流量</div>
+                </div>
+                <div class="blk"><div class="mini">手机号</div><b>138****0000</b></div>
+                <div class="blk"><div class="mini">验证码</div><b>1234</b> <span class="pill">获取验证码</span></div>
+                <div class="blk tone" style="text-align:center;margin-top:6px">登录 / 注册</div>
+                <div class="blk"><div class="mini">🔑 微信一键登录（code2Session 换 openid，未配凭证时走演示码回退）</div></div>
+                <div class="blk"><div class="mini">未登录访问受保护页 → 自动跳本页；接口返回 401 时清除登录态并重登</div></div>
               </div>
             </div>
           </div>
@@ -453,6 +485,26 @@
               </div>
               <div class="scr-tab">
                 <div><b>📋</b>工单</div><div><b>🛠</b>任务</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 登录（v2.0 新增） -->
+          <div class="phone install">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">师傅登录</div>
+              <div class="scr-body">
+                <div class="blk" style="text-align:center;padding:8px 0">
+                  <div style="font-size:24px">🛠</div>
+                  <b style="font-size:14px">装维助手</b>
+                  <div class="mini">按师傅手机号登录，领取今日工单</div>
+                </div>
+                <div class="blk"><div class="mini">手机号</div><b>135****1234</b></div>
+                <div class="blk"><div class="mini">验证码</div><b>1234</b> <span class="pill">获取验证码</span></div>
+                <div class="blk tone" style="text-align:center;margin-top:6px">登录</div>
+                <div class="blk"><div class="mini">🔑 后端按 <code>worker.phone</code> 查表签发 WORKER 令牌（原本地 mock 已废弃）</div></div>
+                <div class="blk"><div class="mini">令牌携带 ROLE_WORKER + workorder:view + sla:view，仅可访问工单与 SLA 接口</div></div>
               </div>
             </div>
           </div>
@@ -959,43 +1011,45 @@
     <h2><span class="tag">05</span>功能页面清单总表</h2>
     <p class="lead">汇总两端小程序与 PC 后台的全部页面/模块，含建议路由与核心功能，便于后续排期与代码骨架生成。</p>
 
-    <h3><span class="badge b-client">客户端</span> 微信小程序（约 20 页）</h3>
+    <h3><span class="badge b-client">客户端</span> 微信小程序（20 页 · 已全量落地）</h3>
     <table class="inv">
-      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th></tr>
-      <tr><td>首页</td><td><code>pages/index</code></td><td>套餐推荐、快捷入口、订单进度、Banner</td></tr>
-      <tr><td>套餐列表</td><td><code>pages/package/list</code></td><td>套餐筛选、分类（家庭/企业）、对比</td></tr>
-      <tr><td>套餐详情</td><td><code>pages/package/detail</code></td><td>资费、带宽、合约、办理须知</td></tr>
-      <tr><td>下单确认</td><td><code>pages/order/confirm</code></td><td>地址、联系人、预约时间、实名、支付</td></tr>
-      <tr><td>订单列表</td><td><code>pages/order/list</code></td><td>全部/进行中/已完成、状态跟踪</td></tr>
-      <tr><td>订单详情</td><td><code>pages/order/detail</code></td><td>进度时间轴、安装师傅信息、续费</td></tr>
-      <tr><td>安装预约</td><td><code>pages/install/appoint</code></td><td>改约时间、师傅联系</td></tr>
-      <tr><td>续费缴费</td><td><code>pages/pay/renew</code></td><td>账单、微信支付、电子发票</td></tr>
-      <tr><td>故障报修</td><td><code>pages/repair</code></td><td>报修表单、进度查询</td></tr>
-      <tr><td>个人中心</td><td><code>pages/profile</code></td><td>资料、实名、优惠券、客服</td></tr>
-      <tr><td>可安装小区查询</td><td><code>pages/community/query</code></td><td>输入小区名查询是否可上门安装，返回可装状态/端口余量/可办套餐，支持需求登记与热门小区</td></tr>
-      <tr><td>服务聚合页</td><td><code>pages/service</code></td><td>业务类型统一入口：新装/移机/续费/提速/报障/智慧家庭/自助</td></tr>
-      <tr><td>宽带移机</td><td><code>pages/move</code></td><td>同址/跨址移机，地址校验、改约、原设备回退</td></tr>
-      <tr><td>续费 / 提速</td><td><code>pages/upgrade</code></td><td>续约原套餐、升级变更、提速包加购</td></tr>
-      <tr><td>融合套餐详情（增强）</td><td><code>pages/package/detail</code></td><td>套餐组成（宽带+手机+IPTV+副卡）、合约期、调测费、设备租赁</td></tr>
-      <tr><td>智慧家庭增值</td><td><code>pages/smart</code></td><td>FTTR/全屋WiFi/看家/家庭云/电视会员 加装与续费</td></tr>
-      <tr><td>自助服务</td><td><code>pages/self</code></td><td>在线测速、账单查询、电子发票、密码重置、设备解绑</td></tr>
-      <tr><td>评价与投诉</td><td><code>pages/review</code></td><td>服务评分、评价标签、投诉提交与进度</td></tr>
-      <tr><td>套餐升级</td><td><code>pages/package/upgrade</code></td><td>当前套餐→目标套餐升档（带宽/增值服务），补差价实时算、生效方式（立即/次月），合约剩余折算一次性补差</td></tr>
-      <tr><td>流量监控</td><td><code>pages/traffic</code></td><td>融合套餐手机流量（已用/剩余/日趋势）、宽带使用时长与峰值、超额预警、流量包加购</td></tr>
+      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th><th>落地</th></tr>
+      <tr><td>首页</td><td><code>pages/index</code></td><td>套餐推荐、快捷入口、订单进度、Banner</td><td>✅</td></tr>
+      <tr><td>服务聚合页</td><td><code>pages/service</code></td><td>业务类型统一入口：新装/移机/续费/提速/报障/智慧家庭/自助</td><td>✅</td></tr>
+      <tr><td>套餐列表</td><td><code>pages/package/list</code></td><td>在售套餐卡片列表（<code>GET /api/package/list</code>，含主图）</td><td>✅</td></tr>
+      <tr><td>融合套餐详情</td><td><code>pages/package/detail</code></td><td>套餐组成（宽带+手机+IPTV+副卡）、合约期、调测费、设备租赁、实时算价</td><td>✅</td></tr>
+      <tr><td>套餐升级</td><td><code>pages/package/upgrade</code></td><td>升档单选 / 加购多选 / 补差预览（补差 = 月差 × 合约剩余月数）</td><td>✅</td></tr>
+      <tr><td>续费 / 提速</td><td><code>pages/upgrade</code></td><td>续约原套餐、升级变更、提速包加购</td><td>✅</td></tr>
+      <tr><td>流量监控</td><td><code>pages/traffic</code></td><td>手机流量（已用/剩余/7日趋势）、宽带时长与峰值、超额预警、流量包加购</td><td>✅</td></tr>
+      <tr><td>可安装小区查询</td><td><code>pages/community/query</code></td><td>输入小区名查询，返回可装状态/端口余量/可办套餐，支持需求登记与热门小区</td><td>✅</td></tr>
+      <tr><td>安装地址填写</td><td><code>pages/order/address</code></td><td>复用覆盖校验实时联动，不可装即拦截并推荐换小区</td><td>✅</td></tr>
+      <tr><td>下单确认</td><td><code>pages/order/confirm</code></td><td>地址、联系人、预约时间、费用确认后提交</td><td>✅</td></tr>
+      <tr><td>我的订单</td><td><code>pages/order/list</code></td><td>按状态 Tab 筛选（<code>GET /api/order/my</code>，仅本人订单）</td><td>✅</td></tr>
+      <tr><td>订单详情</td><td><code>pages/order/detail</code></td><td>进度时间轴、安装师傅信息、小区与套餐信息</td><td>✅</td></tr>
+      <tr><td>宽带移机</td><td><code>pages/move</code></td><td>同址/跨址移机，地址校验、改约、原设备回退</td><td>✅</td></tr>
+      <tr><td>自助服务</td><td><code>pages/self</code></td><td>续费 / 提速 / 报修 / 电子发票 等自助入口聚合</td><td>✅</td></tr>
+      <tr><td>智慧家庭增值</td><td><code>pages/smart</code></td><td>FTTR/全屋WiFi/看家/家庭云/电视会员 加装与续费</td><td>✅</td></tr>
+      <tr><td>评价与投诉</td><td><code>pages/review</code></td><td>工单评价、服务评分、投诉提交与进度</td><td>✅</td></tr>
+      <tr><td>地址管理</td><td><code>pages/address</code></td><td>安装/收货地址簿，新增、编辑与默认地址设置</td><td>✅</td></tr>
+      <tr><td>个人中心</td><td><code>pages/profile</code></td><td>客户信息 + 功能菜单（含 <code>onShow</code> 登录门禁）</td><td>✅</td></tr>
+      <tr><td>设置</td><td><code>pages/settings</code></td><td>登录态、消息通知、关于与退出登录</td><td>✅</td></tr>
+      <tr><td><b>登录</b></td><td><code>pages/login</code></td><td><b>v2.0 新增</b>：手机号 + 验证码（微信 code 直登 / 演示码 1234 回退）→ 真实 JWT，401 自动跳登录页</td><td>✅</td></tr>
     </table>
 
-    <h3><span class="badge b-install">安装师傅端</span> 微信小程序（约 6 页）</h3>
+    <h3><span class="badge b-install">安装师傅端</span> 微信小程序（8 页 · 已全量落地）</h3>
     <table class="inv">
-      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th></tr>
-      <tr><td>工单首页</td><td><code>pages/worker/home</code></td><td>待上门/施工/完工统计、工单列表</td></tr>
-      <tr><td>工单详情</td><td><code>pages/worker/detail</code></td><td>客户、地址导航、套餐、操作</td></tr>
-      <tr><td>上门签到</td><td><code>pages/worker/checkin</code></td><td>定位签到、到场时间</td></tr>
-      <tr><td>施工上报</td><td><code>pages/worker/report</code></td><td>照片、光猫激活、测速</td></tr>
-      <tr><td>完工验收</td><td><code>pages/worker/complete</code></td><td>客户签名、完工提交</td></tr>
-      <tr><td>个人中心</td><td><code>pages/worker/profile</code></td><td>资料、薪资、退出</td></tr>
+      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th><th>落地</th></tr>
+      <tr><td>师傅首页</td><td><code>pages/index</code></td><td>今日工单概览、容量与排班快捷入口</td><td>✅</td></tr>
+      <tr><td>我的工单</td><td><code>pages/order</code></td><td>待接 / 进行中 / 已完成 三态列表</td><td>✅</td></tr>
+      <tr><td>工单详情</td><td><code>pages/order-detail</code></td><td>客户、地址导航、套餐、施工操作、客户评价星级</td><td>✅</td></tr>
+      <tr><td>完工确认</td><td><code>pages/confirm</code></td><td>完工拍照、测速结果录入与提交</td><td>✅</td></tr>
+      <tr><td>排班与容量</td><td><code>pages/capacity</code></td><td>时段容量热力图、个人容量配置</td><td>✅</td></tr>
+      <tr><td>工单路线</td><td><code>pages/schedule</code></td><td>当日工单路线与顺序规划（相邻优先）</td><td>✅</td></tr>
+      <tr><td>个人中心</td><td><code>pages/profile</code></td><td>师傅信息、完工统计、登录门禁 <code>onShow</code></td><td>✅</td></tr>
+      <tr><td><b>登录</b></td><td><code>pages/login</code></td><td><b>v2.0 新增</b>：手机号 + 验证码 → <code>POST /api/auth/worker-login</code> 签发 WORKER 令牌</td><td>✅</td></tr>
     </table>
 
-    <h3><span class="badge b-admin">PC 后端管理</span> web-admin（Vue3 · 约 14 模块）</h3>
+    <h3><span class="badge b-admin">PC 后端管理</span> web-admin（Vue3 · 22 模块 / 25 页 · 已全量落地）</h3>
     <table class="inv">
       <tr><th>模块</th><th>路由</th><th>核心功能</th></tr>
       <tr><td>数据看板</td><td><code>/dashboard</code></td><td>KPI、订单趋势、待办</td></tr>
@@ -1012,10 +1066,14 @@
       <tr><td>数据统计</td><td><code>/report</code></td><td>多维报表、导出</td></tr>
       <tr><td><b>流量监控</b></td><td><code>/traffic</code></td><td>客户流量总览、手机流量/宽带用量明细、日趋势、超额阈值告警、流量包配置（参考运营商流量查询与超出提醒）</td></tr>
       <tr><td><b>套餐升级管理</b></td><td><code>/package/upgrade</code></td><td>套餐升档工单、补差规则（按剩余合约天数比例）、生效策略、进度跟踪（参考运营商套餐变更）</td></tr>
+      <tr><td><b>装维 SLA 与赔付</b></td><td><code>/sla</code></td><td><b>v2.0 新增</b>：SLA 看板、时限/速率规则、赔付明细、<code>POST /sla/evaluate</code> 手动评估</td></tr>
+      <tr><td><b>派单调度 / 容量配置</b></td><td><code>/workorder/dispatch</code> <code>/workorder/capacity</code> <code>/workorder/rules</code></td><td><b>v2.0 新增</b>：手工/自动派单、师傅容量配置、调度规则说明（相邻 3-4 / 非相邻 1-2）</td></tr>
+      <tr><td><b>投诉与评价</b></td><td><code>/review</code></td><td><b>v2.0 新增</b>：评价列表、星级分布、投诉关闭 <code>PUT /admin/reviews/{id}/close</code></td></tr>
+      <tr><td><b>登录</b></td><td><code>/login</code></td><td><b>v2.0 新增</b>：<code>POST /auth/login</code> → JWT；路由守卫 + 菜单按权限动态渲染，配 403 / 404 兜底页</td></tr>
     </table>
 
     <div class="note">
-      <b>下一步建议：</b>① 确认各端页面优先级与本期范围；② 输出 DB Schema（用户/角色/权限/订单/套餐/工单等表，权限表采用 RBAC 五表模型）；③ 后端 RBAC（Spring Security 6 + JWT）与前端路由守卫、权限指令对齐；④ 接入监控（如 Spring Boot Actuator + Prometheus + Grafana，或轻量自建看板）；⑤ 按「角色视觉主题」生成小程序与 web-admin 代码骨架。需要我继续推进哪一步？
+      <b>后续计划（M10–M13）：</b>① M10 师傅端数据全绑定与页面视觉验收；② M11 业务闭环联调（下单 → 派单 → 装机 → SLA 赔付 → 评价，支付可后置）；③ M12 监控深化（metrics / 日志聚合 / 告警）与多环境 profile 配置治理；④ M13 CI/CD 流水线、生产 Nginx 部署与文档收尾；⑤ 微信真实凭证（AppID/Secret）接入后，小程序登录由演示码自动切换为 <code>code2Session</code> 真实登录。
     </div>
   </div>
 </section>

@@ -26,12 +26,13 @@ const api = {
   getWorkOrder(id) { return request('/api/admin/work-orders/' + (id || ''), 'GET'); },
   evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); },
   getCapacity(timeSlot) { return request('/api/dispatch/capacity?timeSlot=' + encodeURIComponent(timeSlot || ''), 'GET'); },
-  // 修复：原先是本地 mock 返回假 token；现调 POST /api/auth/miniapp-login 换取真实 JWT
+  // 修复：原先误调 /api/auth/miniapp-login（签发的是 CUSTOMER 令牌，调 /api/admin/* 过不了 RBAC）；
+  // 现调专用 POST /api/auth/worker-login 换取 dept=WORKER 的真实 JWT
   workerLogin(phone, code) {
-    return request('/api/auth/miniapp-login', 'POST', { phone: phone, code: code })
+    return request('/api/auth/worker-login', 'POST', { phone: phone, code: code })
       .then(r => ({
         token: r.token,
-        worker: { name: r.customer.name, no: r.customer.id, phone: phone, star: 4.8, level: r.customer.level }
+        worker: { name: r.worker.name, no: r.worker.id, phone: r.worker.phone, star: 4.8 }
       }));
   }
 };

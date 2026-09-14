@@ -83,7 +83,7 @@ public class SecurityConfig {
             .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers))
             .authorizeHttpRequests(reg -> {
                 reg.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                reg.requestMatchers("/api/auth/login", "/api/auth/miniapp-login", "/error").permitAll();
+                reg.requestMatchers("/api/auth/login", "/api/auth/miniapp-login", "/api/auth/worker-login", "/error").permitAll();
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }

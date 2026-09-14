@@ -85,6 +85,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             return;
         }
+        // 师傅端登录主体（dept=WORKER）：worker 不在 sys_user，仅以师傅身份通过「已认证」关卡，
+        // 并附带师傅端所需权限码（工单查看 / SLA 评估），使其能访问 /api/admin/work-orders、
+        // /api/dispatch/capacity、/api/sla/evaluate，但拿不到后台管理权限（dispatch:run / capacity:config）。
+        if ("WORKER".equals(dept)) {
+            String uid = str(claims.get("uid"));
+            String name = str(claims.get("name"));
+            WorkerPrincipal principal = new WorkerPrincipal(uid, username, name);
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            authorities.add(new SimpleGrantedAuthority("ROLE_WORKER"));
+            authorities.add(new SimpleGrantedAuthority("workorder:view"));
+            authorities.add(new SimpleGrantedAuthority("sla:view"));
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(principal, null, authorities);
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            return;
+        }
         // 后台用户：按 sys_user 实时查角色/权限码
         SysUser user = userMapper.selectByUsername(username);
         if (user == null || !"ENABLED".equals(user.status)) return;

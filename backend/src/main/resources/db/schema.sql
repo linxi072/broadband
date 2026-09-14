@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS community (
 CREATE TABLE IF NOT EXISTS worker (
   id          VARCHAR(32)  NOT NULL COMMENT '师傅ID',
   name        VARCHAR(64)  NOT NULL COMMENT '姓名',
+  phone       VARCHAR(32)           COMMENT '登录手机号（师傅端 worker-login 凭此校验）',
   region      VARCHAR(64)           COMMENT '负责片区',
   skill_level INT          NOT NULL DEFAULT 1 COMMENT '技能等级（可用于容量微调）',
   PRIMARY KEY (id),

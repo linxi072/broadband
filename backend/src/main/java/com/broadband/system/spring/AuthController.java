@@ -3,6 +3,8 @@ package com.broadband.system.spring;
 import com.broadband.common.Ids;
 import com.broadband.product.mapper.CustomerMapper;
 import com.broadband.product.model.Customer;
+import com.broadband.install.mapper.WorkerMapper;
+import com.broadband.install.model.Worker;
 import com.broadband.system.mapper.SysMenuMapper;
 import com.broadband.system.wechat.WechatMiniAppService;
 import com.broadband.system.mapper.SysUserMapper;
@@ -48,6 +50,7 @@ public class AuthController {
     @Autowired private OperLogService operLogService;
     @Autowired private CustomerMapper customerMapper;
     @Autowired private WechatMiniAppService wechatService;
+    @Autowired private WorkerMapper workerMapper;
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> req, HttpServletRequest http) {
@@ -160,6 +163,46 @@ public class AuthController {
         resp.put("expiresIn", jwtUtil.getTtlSeconds());
         resp.put("wechatBound", wechatService.configured());
         resp.put("customer", customer);
+        return resp;
+    }
+
+    /**
+     * 师傅端登录：手机号 + 短信验证码（演示验证码 {@code 1234}）。
+     *
+     * <p>按手机号查 {@code worker} 表，签发 JWT（dept=WORKER，uid=worker.id）。
+     * JwtAuthFilter 对 WORKER 建立师傅身份 Authentication（ROLE_WORKER + workorder:view + sla:view），
+     * 使其能访问工单、容量看板、SLA 评估等师傅端接口，但拿不到后台管理权限。</p>
+     */
+    @PostMapping("/worker-login")
+    public Map<String, Object> workerLogin(@RequestBody Map<String, String> req) {
+        String phone = req.get("phone");
+        String code = req.get("code");
+        if (phone == null || !phone.matches("^1\\d{10}$")) {
+            throw new BadCredentials("请输入正确的手机号");
+        }
+        if (code == null || !code.equals("1234")) {
+            throw new BadCredentials("验证码错误（演示验证码：1234）");
+        }
+        Worker w = workerMapper.selectOne(
+                new QueryWrapper<Worker>().eq("phone", phone).last("limit 1"));
+        if (w == null) {
+            throw new BadCredentials("未找到该师傅账号，请联系管理员");
+        }
+
+        String token = jwtUtil.issue(phone, w.id, w.name, "WORKER");
+
+        Map<String, Object> worker = new LinkedHashMap<>();
+        worker.put("id", w.id);
+        worker.put("name", w.name);
+        worker.put("phone", w.phone);
+        worker.put("region", w.region);
+        worker.put("skillLevel", w.skillLevel);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("token", token);
+        resp.put("expiresIn", jwtUtil.getTtlSeconds());
+        resp.put("wechatBound", false);
+        resp.put("worker", worker);
         return resp;
     }
 

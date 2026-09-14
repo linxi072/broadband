@@ -6,6 +6,7 @@ package com.broadband.install.model;
 public class Worker {
     public String id;
     public String name;
+    public String phone;       // 登录手机号（师傅端 worker-login 凭此校验）
     public String region;     // 负责片区，如 "南山"
     public int skillLevel = 1;
 

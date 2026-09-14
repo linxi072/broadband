@@ -54,7 +54,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 log.debug("[jwt] verified sub={} preAuth={}", username,
                         SecurityContextHolder.getContext().getAuthentication() != null);
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    authenticate(username, request);
+                    authenticate(username, claims, request);
                     log.debug("[jwt] authenticated={}",
                             SecurityContextHolder.getContext().getAuthentication() != null);
                 }
@@ -70,7 +70,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private void authenticate(String username, HttpServletRequest request) {
+    private void authenticate(String username, Map<String, Object> claims, HttpServletRequest request) {
+        String dept = str(claims.get("dept"));
+        // 小程序客户 token（dept=CUSTOMER）：customer 表无对应 sys_user，
+        // 仅以客户身份通过「已认证」关卡，使其能访问 C 端开放接口（这些接口无角色/权限码约束）。
+        if ("CUSTOMER".equals(dept)) {
+            String uid = str(claims.get("uid"));
+            String name = str(claims.get("name"));
+            CustomerPrincipal principal = new CustomerPrincipal(uid, username, name);
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(principal, null, authorities);
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            return;
+        }
+        // 后台用户：按 sys_user 实时查角色/权限码
         SysUser user = userMapper.selectByUsername(username);
         if (user == null || !"ENABLED".equals(user.status)) return;
 

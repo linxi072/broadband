@@ -1,8 +1,10 @@
 package com.broadband.system.spring;
 
+import com.broadband.common.Ids;
 import com.broadband.product.mapper.CustomerMapper;
 import com.broadband.product.model.Customer;
 import com.broadband.system.mapper.SysMenuMapper;
+import com.broadband.system.wechat.WechatMiniAppService;
 import com.broadband.system.mapper.SysUserMapper;
 import com.broadband.system.model.LoginUser;
 import com.broadband.system.model.SysMenu;
@@ -45,6 +47,7 @@ public class AuthController {
     @Autowired private JwtUtil jwtUtil;
     @Autowired private OperLogService operLogService;
     @Autowired private CustomerMapper customerMapper;
+    @Autowired private WechatMiniAppService wechatService;
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> req, HttpServletRequest http) {
@@ -84,42 +87,78 @@ public class AuthController {
     }
 
     /**
-     * 小程序登录（C 端客户 / 师傅端通用）：手机号 + 短信验证码。
+     * 小程序登录（C 端客户 / 师傅端通用）：手机号 + 短信验证码 或 微信 code。
      *
-     * <p>演示实现：验证码固定为 {@code 1234}；按手机号查客户档案，未注册则回退到演示档案
-     * （customerId=demo）。签发 JWT（dept=CUSTOMER），该 token 由于没有对应 sys_user，
-     * 在 JwtAuthFilter 中不会映射到后台权限，仅用于标识客户身份（c 端开放层本就无需鉴权）。
-     * 小程序侧把 {@code app.security.protect-client-api} 置 true 后，开放层转为强制鉴权，
-     * 届时需在此做「微信 code → openid → 绑定客户」的真实换取。</p>
+     * <ul>
+     *   <li>当微信小程序 appid/secret 已配置（{@code WECHAT_APPID}/{@code WECHAT_SECRET}）时，
+     *       走真实路径：用 {@code code}（wx.login 换取的临时凭证）调 code2Session 拿 openid，
+     *       按 openid 查/绑客户，签发 JWT（dept=CUSTOMER）。</li>
+     *   <li>未配置微信凭证时回退演示分支：手机号 + 固定验证码 {@code 1234}，签发演示 JWT，
+     *       保证本地无真实凭证亦可联调。</li>
+     * </ul>
+     *
+     * <p>配合 {@code app.security.protect-client-api=true}，C 端开放接口现已强制鉴权，
+     * 该 token 即小程序访问开放层的凭证（JwtAuthFilter 对 CUSTOMER 建立客户身份 Authentication）。</p>
      */
     @PostMapping("/miniapp-login")
     public Map<String, Object> miniappLogin(@RequestBody Map<String, String> req) {
         String phone = req.get("phone");
         String code = req.get("code");
-        if (phone == null || !phone.matches("^1\\d{10}$")) {
-            throw new BadCredentials("请输入正确的手机号");
-        }
-        if (code == null || !code.equals("1234")) {
-            throw new BadCredentials("验证码错误（演示验证码：1234）");
+
+        Customer c;
+        if (wechatService.configured()) {
+            // 真实微信小程序登录：code 为 wx.login 换取的临时登录凭证
+            WechatMiniAppService.SessionResult s;
+            try {
+                s = wechatService.code2Session(code);
+            } catch (RuntimeException e) {
+                throw new BadCredentials("微信登录失败：" + e.getMessage());
+            }
+            c = customerMapper.selectByOpenid(s.openid);
+            if (c == null) {
+                c = new Customer();
+                c.id = Ids.next();
+                c.openid = s.openid;
+                c.name = "微信用户" + (s.openid.length() >= 6 ? s.openid.substring(0, 6) : s.openid);
+                c.level = "GOLD";
+                c.createdTime = System.currentTimeMillis();
+                customerMapper.insert(c);
+            }
+        } else {
+            // 演示分支（未配置微信凭证）：手机号 + 固定验证码 1234
+            if (phone == null || !phone.matches("^1\\d{10}$")) {
+                throw new BadCredentials("请输入正确的手机号");
+            }
+            if (code == null || !code.equals("1234")) {
+                throw new BadCredentials("验证码错误（演示验证码：1234）");
+            }
+            c = customerMapper.selectOne(
+                    new QueryWrapper<Customer>().eq("phone", phone).last("limit 1"));
+            if (c == null) {
+                // 演示态：返回合成客户，不落库（避免污染种子数据）
+                c = new Customer();
+                c.id = "demo";
+                c.phone = phone;
+                c.name = "演示客户";
+                c.level = "GOLD";
+                c.createdTime = System.currentTimeMillis();
+            }
         }
 
-        Customer c = customerMapper.selectOne(
-                new QueryWrapper<Customer>().eq("phone", phone).last("limit 1"));
-        String customerId = c == null ? "demo" : c.id;
-        String customerName = c == null ? "演示客户" : c.name;
-        String level = c == null ? "GOLD" : c.level;
-
-        String token = jwtUtil.issue(phone, customerId, customerName, "CUSTOMER");
+        String subject = (c.phone != null && !c.phone.isEmpty()) ? c.phone : c.openid;
+        String token = jwtUtil.issue(subject, c.id, c.name, "CUSTOMER");
 
         Map<String, Object> customer = new LinkedHashMap<>();
-        customer.put("id", customerId);
-        customer.put("name", customerName);
-        customer.put("phone", phone);
-        customer.put("level", level);
+        customer.put("id", c.id);
+        customer.put("name", c.name);
+        customer.put("phone", c.phone);
+        customer.put("level", c.level);
+        customer.put("openid", c.openid);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("token", token);
         resp.put("expiresIn", jwtUtil.getTtlSeconds());
+        resp.put("wechatBound", wechatService.configured());
         resp.put("customer", customer);
         return resp;
     }

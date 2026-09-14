@@ -8,6 +8,7 @@ public class Customer {
     public String id;
     public String name;
     public String phone;
+    public String openid;         // 微信 openid（小程序真实登录绑定，演示态为空）
     public String level = "NORMAL";
     public String packageId;      // 当前套餐
     public String communityId;    // 所属小区

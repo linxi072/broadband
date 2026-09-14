@@ -247,6 +247,7 @@ CREATE TABLE IF NOT EXISTS customer (
   id           VARCHAR(32)  NOT NULL COMMENT '客户ID',
   name         VARCHAR(64)  NOT NULL COMMENT '客户姓名',
   phone        VARCHAR(32)           COMMENT '联系电话',
+  openid       VARCHAR(64)  DEFAULT NULL COMMENT '微信 openid（小程序登录绑定）',
   level        VARCHAR(16)  NOT NULL DEFAULT 'NORMAL' COMMENT '客户分层 NORMAL/SILVER/GOLD/VIP',
   package_id   VARCHAR(32)           COMMENT '当前套餐ID',
   community_id VARCHAR(32)           COMMENT '所属小区ID',

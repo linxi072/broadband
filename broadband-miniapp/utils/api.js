@@ -13,7 +13,15 @@ function request(path, method, data) {
       // 真实缺陷修复：非 2xx 必须 reject，否则 401/403/404 会被当成成功、页面静默无数据
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
-        else reject(res.data || { message: '请求失败(' + res.statusCode + ')' });
+        else {
+          // M9 登录态收口：401 表示 token 失效/缺失，清空登录态并跳登录页重新鉴权
+          if (res.statusCode === 401) {
+            const app = getApp();
+            if (app && typeof app.logout === 'function') app.logout();
+            wx.reLaunch({ url: '/pages/login/login' });
+          }
+          reject(res.data || { message: '请求失败(' + res.statusCode + ')' });
+        }
       },
       fail: (err) => reject(err)
     });

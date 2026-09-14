@@ -63,7 +63,7 @@ Page({
   },
 
   onLoad(options) {
-    const id = options.id || 'demo';
+    const id = options.id || 'pkg500';
     const community = decodeURIComponent(options.community || '');
     this.setData({ community });
     this.loadDetail(id);
@@ -71,13 +71,21 @@ Page({
 
   loadDetail(id) {
     api.getPackageDetail(id).then((res) => {
-      const pkg = (res && res.id) ? res : MOCK;
+      const pkg = (res && res.id) ? this.normalize(res) : MOCK;
       this.initSelected(pkg);
       this.setData({ pkg });
     }).catch(() => {
       this.initSelected(MOCK);
       this.setData({ pkg: MOCK });
     });
+  },
+
+  // 后端 package_param.type 为 SINGLE/MULTI，页面按 single/multi 渲染，统一为小写
+  normalize(pkg) {
+    (pkg.params || []).forEach((g) => {
+      g.type = String(g.type || '').toLowerCase();
+    });
+    return pkg;
   },
 
   initSelected(pkg) {

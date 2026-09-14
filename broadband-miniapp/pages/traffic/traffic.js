@@ -19,13 +19,16 @@ Page({
   loadUsage() {
     api.getTrafficUsage({ customerId: 'demo' }).then(res => {
       const d = (res && res.data) ? res.data : res;
-      if (!d) { this.fallback(); return; }
-      const pct = d.mobile && d.mobile.total
-        ? Math.min(100, Math.round(d.mobile.used / d.mobile.total * 100)) : 0;
+      // 后端 TrafficUsageVO 为扁平字段，这里映射为页面需要的嵌套结构
+      if (!d || !d.pkgName) { this.fallback(); return; }
+      const mobile = { total: d.mobileTotal, used: d.mobileUsed, unit: d.unit || 'G' };
+      const broadband = { hours: d.broadbandHours, peak: d.broadbandPeak };
+      const pct = mobile.total
+        ? Math.min(100, Math.round(mobile.used / mobile.total * 100)) : 0;
       this.setData({
         pkgName: d.pkgName,
-        mobile: d.mobile,
-        broadband: d.broadband,
+        mobile,
+        broadband,
         trend: d.trend || [],
         pct,
         warn: d.warn,

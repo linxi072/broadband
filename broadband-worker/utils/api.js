@@ -12,19 +12,36 @@ function request(path, method, data) {
       header: header,
       // 修复：非 2xx 必须 reject，否则 401/403 被当成成功、页面静默无数据
       success: (res) => {
-        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
-        else reject(res.data || { message: '请求失败(' + res.statusCode + ')' });
+        if (res.statusCode >= 200 && res.statusCode < 300) { resolve(res.data); return; }
+        // 401 门禁：登录态失效统一清 token 并跳登录页，避免停在空白页
+        if (res.statusCode === 401) {
+          const app = getApp();
+          if (app && app.setWorkerLogin) app.setWorkerLogin(null, null);
+          wx.removeStorageSync('token');
+          wx.redirectTo({ url: '/pages/login/login' });
+        }
+        reject(res.data || { message: '请求失败(' + res.statusCode + ')' });
       },
       fail: (err) => reject(err)
     });
   });
 }
 const api = {
-  // 工单池（管理端接口，需 order:view 权限；师傅端正式接入需配套 worker 角色授权，见 README M8）
-  getWorkOrders(status) { return request('/api/admin/work-orders?status=' + (status || ''), 'GET'); },
-  // 修复：原先指向 /api/admin/work-orders/{id}（后端无该单条接口 → 404）；后端已新增 GET /api/admin/work-orders/{id}
-  getWorkOrder(id) { return request('/api/admin/work-orders/' + (id || ''), 'GET'); },
+  // 本人的工单（师傅端专用，服务端按 token 隔离，只返回本人工单）
+  getWorkOrders(status) { return request('/api/worker/work-orders?status=' + (status || ''), 'GET'); },
+  // 工单详情（师傅端专用，服务端校验归属，非本人工单返回空）
+  getWorkOrder(id) { return request('/api/worker/work-orders/' + (id || ''), 'GET'); },
   evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); },
+  // 首页统计 + 今日工单（GET /api/worker/summary?date=）
+  getSummary(date) { return request('/api/worker/summary?date=' + (date || ''), 'GET'); },
+  // 本人时段容量占用（GET /api/worker/capacity?date=）
+  getMyCapacity(date) { return request('/api/worker/capacity?date=' + (date || ''), 'GET'); },
+  // 未来 7 天排班（GET /api/worker/schedule）
+  getSchedule() { return request('/api/worker/schedule', 'GET'); },
+  // 完工提交：测速/签名/服务项落库并置 DONE
+  completeWorkOrder(id, payload) {
+    return request('/api/worker/work-orders/' + id + '/complete', 'POST', payload || {});
+  },
   getCapacity(timeSlot) { return request('/api/dispatch/capacity?timeSlot=' + encodeURIComponent(timeSlot || ''), 'GET'); },
   // 修复：原先误调 /api/auth/miniapp-login（签发的是 CUSTOMER 令牌，调 /api/admin/* 过不了 RBAC）；
   // 现调专用 POST /api/auth/worker-login 换取 dept=WORKER 的真实 JWT

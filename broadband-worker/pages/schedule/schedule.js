@@ -1,16 +1,25 @@
 const api = require('../../utils/api.js');
 const auth = require('../../utils/auth.js');
-Page({
-  data: { shifts: [
-      { day: '周一', am: '08:00-12:00', pm: '13:00-18:00', rest: false },
-      { day: '周二', am: '休息', pm: '休息', rest: true },
-      { day: '周三', am: '08:00-12:00', pm: '13:00-18:00', rest: false },
-      { day: '周四', am: '08:00-12:00', pm: '13:00-18:00', rest: false },
-      { day: '周五', am: '08:00-12:00', pm: '13:00-18:00', rest: false },
-      { day: '周六', am: '09:00-12:00', pm: '休息', rest: false },
-      { day: '周日', am: '休息', pm: '休息', rest: true }
-    ] },
-  onLoad(options) {
 
+Page({
+  data: { shifts: [], empty: false },
+
+  onLoad() {
+    if (!auth.isLogin()) { wx.redirectTo({ url: '/pages/login/login' }); return; }
+    this.load();
+  },
+
+  onShow() { if (auth.isLogin()) this.load(); },
+
+  load() {
+    api.getSchedule()
+      .then(r => {
+        const shifts = r.shifts || [];
+        this.setData({ shifts: shifts, empty: shifts.length === 0 });
+      })
+      .catch(err => {
+        console.error('[schedule] 加载失败', err);
+        wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      });
   }
 });

@@ -1,14 +1,45 @@
 const api = require('../../utils/api.js');
-const auth = require('../../utils/auth.js');
-Page({
-  data: { tabs: ['全部','待接单','施工中','已完成'], active: 0, list: [
-      { id: 'B001', cust: '陈先生', addr: '保利花园 1-2-302', statusText: '待上门', badge: '待接单' },
-      { id: 'B003', cust: '张先生', addr: '锦绣华庭 3-8-1202', statusText: '施工中', badge: '施工中' },
-      { id: 'B004', cust: '赵女士', addr: '中央公馆 2-3-501', statusText: '已完成', badge: '已完成' }
-    ] },
-  onLoad(options) {
 
+// 页签 → 后端工单状态（全部为空，不传 status 即不过滤）
+const STATUS_TABS = ['', 'ASSIGNED', 'INSTALLING', 'DONE'];
+const STATUS_TEXT = {
+  PENDING: '待派单',
+  ASSIGNED: '待上门',
+  INSTALLING: '施工中',
+  DONE: '已完成',
+  CANCELLED: '已取消'
+};
+
+Page({
+  data: {
+    tabs: ['全部', '待接单', '施工中', '已完成'],
+    active: 0,
+    list: [],
+    loading: false
   },
-  switchTab(e) { this.setData({ active: e.currentTarget.dataset.i }); },
-  goDetail(e) { wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + e.currentTarget.dataset.id }); }
+  onLoad() { this.load(); },
+  onShow() { this.load(); },
+  switchTab(e) {
+    this.setData({ active: e.currentTarget.dataset.i }, () => this.load());
+  },
+  load() {
+    const status = STATUS_TABS[this.data.active] || '';
+    this.setData({ loading: true });
+    // 真实数据：GET /api/worker/work-orders（服务端按 token 隔离，只返回本人工单）
+    api.getWorkOrders(status).then(list => {
+      const items = (list || []).map(o => ({
+        id: o.id,
+        cust: o.customer || '—',
+        addr: ((o.community || '') + ' ' + (o.address || '')).trim(),
+        statusText: STATUS_TEXT[o.status] || o.status || '—'
+      }));
+      this.setData({ list: items, loading: false });
+    }).catch(err => {
+      this.setData({ loading: false });
+      wx.showToast({ title: (err && err.message) || '加载工单失败', icon: 'none' });
+    });
+  },
+  goDetail(e) {
+    wx.navigateTo({ url: '/pages/order-detail/order-detail?id=' + e.currentTarget.dataset.id });
+  }
 });

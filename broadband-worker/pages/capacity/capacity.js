@@ -1,12 +1,25 @@
 const api = require('../../utils/api.js');
 const auth = require('../../utils/auth.js');
-Page({
-  data: { date: '今日', slots: [
-      { time: '08:00-12:00', used: 2, max: 4, pct: 50 },
-      { time: '12:00-16:00', used: 4, max: 4, pct: 100 },
-      { time: '16:00-20:00', used: 1, max: 4, pct: 25 }
-    ] },
-  onLoad(options) {
 
+Page({
+  data: { date: '', slots: [], empty: false },
+
+  onLoad() {
+    if (!auth.isLogin()) { wx.redirectTo({ url: '/pages/login/login' }); return; }
+    this.load();
+  },
+
+  onShow() { if (auth.isLogin()) this.load(); },
+
+  load() {
+    api.getMyCapacity()
+      .then(r => {
+        const slots = r.slots || [];
+        this.setData({ date: r.date || '', slots: slots, empty: slots.length === 0 });
+      })
+      .catch(err => {
+        console.error('[capacity] 加载失败', err);
+        wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      });
   }
 });

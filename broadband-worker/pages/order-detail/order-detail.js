@@ -1,11 +1,53 @@
 const api = require('../../utils/api.js');
-const auth = require('../../utils/auth.js');
-Page({
-  data: { order: { id: 'B001', cust: '陈先生', phone: '138****0001', addr: '保利花园 1-2-302', pkg: '1000M 融合', slot: '今日 14:00-16:00', statusText: '待上门', items: ['组网设计','终端调测','线路整理'] } },
-  onLoad(options) {
 
+const STATUS_TEXT = {
+  PENDING: '待派单',
+  ASSIGNED: '待上门',
+  INSTALLING: '施工中',
+  DONE: '已完成',
+  CANCELLED: '已取消'
+};
+
+Page({
+  data: { order: null },
+  onLoad(options) {
+    if (!options || !options.id) {
+      wx.showToast({ title: '缺少工单号', icon: 'none' });
+      return;
+    }
+    // 真实数据：GET /api/worker/work-orders/{id}（服务端校验归属，非本人工单返回空）
+    api.getWorkOrder(options.id).then(o => {
+      if (!o || !o.id) {
+        wx.showToast({ title: '工单不存在或无权限查看', icon: 'none' });
+        return;
+      }
+      this.setData({
+        order: {
+          id: o.id,
+          cust: o.customer || '—',
+          phone: o.phone || '—',
+          addr: ((o.community || '') + ' ' + (o.address || '')).trim(),
+          pkg: o.pkgDesc || '—',
+          slot: o.timeSlot || '—',
+          statusText: STATUS_TEXT[o.status] || o.status || '—',
+          items: ['组网设计', '终端调测', '线路整理']
+        }
+      });
+    }).catch(err => {
+      wx.showToast({ title: (err && err.message) || '加载工单失败', icon: 'none' });
+    });
   },
   navigate() { wx.showToast({ title: '调起地图导航（演示）', icon: 'none' }); },
-  call() { wx.makePhoneCall({ phoneNumber: '13800000001' }); },
-  start() { wx.navigateTo({ url: '/pages/confirm/confirm?id=' + this.data.order.id }); }
+  call() {
+    const p = (this.data.order && this.data.order.phone) || '';
+    if (!/^1\d{10}$/.test(p)) {
+      wx.showToast({ title: '该工单未登记联系电话', icon: 'none' });
+      return;
+    }
+    wx.makePhoneCall({ phoneNumber: p });
+  },
+  start() {
+    const id = (this.data.order && this.data.order.id) || '';
+    wx.navigateTo({ url: '/pages/confirm/confirm?id=' + id });
+  }
 });

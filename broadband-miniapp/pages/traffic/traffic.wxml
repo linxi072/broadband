@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="topbar">流量监控</view>
+  <view class="body" wx:if="{{!loading}}">
+    <view class="card tone">
+      <view class="t">{{pkgName}} · 含手机 {{mobile.total}}{{mobile.unit}}</view>
+      <view class="mini">本月</view>
+    </view>
+
+    <view class="card">
+      <view class="mini">手机流量</view>
+      <view class="row-between">
+        <text>已用 {{mobile.used}}{{mobile.unit}} / {{mobile.total}}{{mobile.unit}}</text>
+        <text class="bold">剩余 {{mobile.total - mobile.used}}{{mobile.unit}}</text>
+      </view>
+      <view class="bar"><view class="bar-in" style="width:{{pct}}%"></view></view>
+      <view class="mini {{warn?'warn':''}}">{{warn ? '⚠ 已超阈值，建议加购流量包' : '日环比 +0.8G · 预计本月不超'}}</view>
+    </view>
+
+    <view class="card">
+      <view class="mini">宽带使用</view>
+      <view class="line">本月上网时长 {{broadband.hours}}h · 峰值速率 {{broadband.peak}}</view>
+    </view>
+
+    <view class="card">
+      <view class="mini">近 7 日流量趋势</view>
+      <view class="trend">
+        <view wx:for="{{trend}}" wx:key="*this" class="bar-col" style="height:{{item}}%"></view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="mini">流量包加购</view>
+      <view class="chips">
+        <view class="chip on" data-g="10" bindtap="buyPack">+10G ¥10</view>
+        <view class="chip on" data-g="30" bindtap="buyPack">+30G ¥25</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/service/service",
+    "pages/package/detail/detail",
+    "pages/package/upgrade/upgrade",
+    "pages/community/query/query",
+    "pages/order/address/address",
+    "pages/traffic/traffic"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#2563eb",
+    "navigationBarTitleText": "宽带办理",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f7fb"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

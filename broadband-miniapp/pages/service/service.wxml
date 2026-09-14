@@ -1,0 +1,23 @@
+<!-- pages/service/service.wxml -->
+<view class="container">
+  <view class="hero">
+    <view class="hero-title">服务大厅</view>
+    <view class="hero-sub">选择您要办理的业务</view>
+  </view>
+
+  <view class="grid">
+    <view class="cell" wx:for="{{services}}" wx:key="key"
+          data-item="{{item}}" bindtap="onTap">
+      <view class="cell-icon">{{item.icon}}</view>
+      <view class="cell-name">{{item.name}}</view>
+      <view class="cell-desc">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">办理须知</view>
+    <view class="muted">· 城区「当日装当日修」，16 点前受理当日竣工</view>
+    <view class="muted">· 超时赔付：装机/修复超时、网速不达标自动补偿</view>
+    <view class="muted">· 融合套餐含宽带+手机+IPTV+副卡，合约期内享优惠</view>
+  </view>
+</view>

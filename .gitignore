@@ -1,0 +1,22 @@
+# 项目私有数据（含记忆/上下文，不入库）
+.workbuddy/
+
+# Java / Maven
+*.class
+target/
+*.jar
+*.war
+*.log
+
+# Node / 前端
+node_modules/
+dist/
+.idea/
+.vscode/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时构建产物
+/tmp/

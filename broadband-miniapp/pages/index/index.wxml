@@ -1,0 +1,11 @@
+<!-- pages/index/index.wxml -->
+<view class="container">
+  <view class="hero">
+    <view class="hero-title">宽带办理</view>
+    <view class="hero-sub">新装 · 移机 · 续费 · 报修，一站式服务</view>
+  </view>
+  <view class="card">
+    <view class="card-title">快捷入口</view>
+    <button class="btn-primary" bindtap="goService">进入服务大厅</button>
+  </view>
+</view>

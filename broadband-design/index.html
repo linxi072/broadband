@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宽带业务管理系统 · 功能页面设计稿</title>
+<style>
+  :root{
+    --client:#2563eb; --client-bg:#eff6ff;
+    --sales:#16a34a; --sales-bg:#f0fdf4;
+    --install:#ea580c; --install-bg:#fff7ed;
+    --admin:#4f46e5; --admin-bg:#eef2ff;
+    --ink:#0f172a; --sub:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  header{background:linear-gradient(120deg,#1e293b,#334155);color:#fff;padding:38px 0 30px}
+  header h1{font-size:26px;font-weight:700;letter-spacing:.5px}
+  header p{color:#cbd5e1;margin-top:6px;font-size:14px}
+  nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  nav .wrap{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px}
+  nav a{font-size:13.5px;padding:6px 12px;border-radius:8px;color:var(--sub);transition:.15s}
+  nav a:hover{background:#f1f5f9;color:var(--ink)}
+  section{padding:34px 0}
+  h2{font-size:21px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  h2 .tag{font-size:12px;font-weight:600;color:#fff;background:var(--admin);padding:3px 10px;border-radius:20px}
+  h3{font-size:16px;font-weight:700;margin:26px 0 12px}
+  .lead{color:var(--sub);font-size:14px;margin-bottom:14px}
+  .arch{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+  .arch .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .arch .box h4{font-size:14px;margin-bottom:8px}
+  .arch .box p{font-size:12.5px;color:var(--sub)}
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .flow .step{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600}
+  .flow .arrow{color:var(--sub);font-weight:700}
+  .matrix{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .matrix th,.matrix td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  .matrix th{background:#f1f5f9;font-weight:700}
+  .matrix td .role{font-weight:700}
+  .c-client{color:var(--client)} .c-sales{color:var(--sales)} .c-install{color:var(--install)} .c-admin{color:var(--admin)}
+  .role-block{margin-top:30px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+  .role-head{padding:14px 18px;display:flex;align-items:center;gap:12px;color:#fff}
+  .role-head.client{background:var(--client)} .role-head.install{background:var(--install)}
+  .role-head .dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.7)}
+  .role-head h3{margin:0;color:#fff;font-size:17px}
+  .role-head span{font-size:13px;opacity:.9}
+  .role-body{padding:20px}
+  .pages-grid{display:flex;flex-wrap:wrap;gap:22px}
+  .phone{width:240px;flex:0 0 auto;border:8px solid #111;border-radius:30px;background:#fff;padding:0;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .phone .notch{height:22px;background:#111;display:flex;justify-content:center;align-items:flex-end;padding-bottom:6px}
+  .phone .notch i{width:60px;height:6px;border-radius:6px;background:#333;display:block}
+  .screen{height:430px;overflow:hidden;display:flex;flex-direction:column;font-size:12px}
+  .scr-top{padding:10px 12px;color:#fff;font-weight:700}
+  .client .scr-top{background:var(--client)} .install .scr-top{background:var(--install)}
+  .scr-body{flex:1;padding:10px 12px;background:#fafafa;overflow:hidden}
+  .scr-tab{height:42px;display:flex;border-top:1px solid var(--line);background:#fff}
+  .scr-tab div{flex:1;text-align:center;font-size:10px;color:var(--sub);display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .scr-tab div b{font-size:15px;line-height:1}
+  .blk{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px}
+  .blk.tone{color:#fff;border:none}
+  .client .blk.tone{background:var(--client)} .install .blk.tone{background:var(--install)}
+  .row{display:flex;gap:8px;margin-bottom:8px}
+  .row .blk{flex:1;margin-bottom:0}
+  .mini{font-size:11px;color:var(--sub)}
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:#eef2ff;color:var(--admin);margin:2px 3px 0 0}
+  .bar{height:8px;border-radius:6px;background:#e2e8f0;margin:6px 0}
+  .bar.f{background:var(--client)} .install .bar.f{background:var(--install)}
+  .pc{margin-top:18px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  .pc-bar{height:38px;background:#f1f5f9;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:8px}
+  .pc-bar .dot3{display:flex;gap:6px}.pc-bar .dot3 i{width:11px;height:11px;border-radius:50%}
+  .pc-bar .url{flex:1;background:#fff;border:1px solid var(--line);border-radius:6px;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--sub)}
+  .pc-shell{display:flex;min-height:300px}
+  .pc-side{width:200px;background:#1e293b;color:#cbd5e1;padding:14px 0;font-size:12.5px}
+  .pc-side .logo{padding:0 16px 12px;color:#fff;font-weight:700;font-size:14px;border-bottom:1px solid #334155;margin-bottom:8px}
+  .pc-side .m{padding:8px 16px;display:flex;gap:8px;align-items:center}
+  .pc-side .m.active{background:var(--admin);color:#fff}
+  .pc-side .m .ic{width:8px;height:8px;border-radius:2px;background:#64748b}
+  .pc-side .m.active .ic{background:#fff}
+  .pc-main{flex:1;padding:16px;overflow:auto}
+  .pc-main .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .pc-main .ph h4{font-size:16px}
+  .pc-main .ph .btn{background:var(--admin);color:#fff;font-size:11px;padding:6px 12px;border-radius:7px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .kpi .n{font-size:20px;font-weight:800;color:var(--admin)}
+  .kpi .t{font-size:11px;color:var(--sub)}
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px}
+  table.tbl th,table.tbl td{border:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.tbl th{background:#f1f5f9;font-weight:700}
+  .stat{font-size:10px;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#15803d}
+  .stat.w{background:#fef9c3;color:#a16207}
+  .stat.r{background:#fee2e2;color:#b91c1c}
+  .stat.b{background:#dbeafe;color:#1d4ed8}
+  /* permission refined */
+  .perm-wrap{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+  .tree{font-size:12px;border:1px solid var(--line);border-radius:9px;padding:10px;background:#fff}
+  .tree .lv1{font-weight:700;padding:5px 0 2px}
+  .tree .lv2{padding:3px 0 3px 18px;color:var(--sub)}
+  .chk{display:inline-block;width:13px;height:13px;border:1.5px solid var(--admin);border-radius:3px;margin-right:6px;vertical-align:middle}
+  .chk.on{background:var(--admin)}
+  .log{font-size:11px;color:var(--sub)}
+  .log div{padding:5px 0;border-bottom:1px dashed var(--line)}
+  .tag-r{font-size:10px;padding:1px 7px;border-radius:12px;background:#e0e7ff;color:#3730a3;margin-left:4px}
+  /* monitoring */
+  .metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+  .metric{background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:9px;text-align:center}
+  .metric .v{font-size:15px;font-weight:800;color:var(--admin)}
+  .metric .l{font-size:10px;color:var(--sub)}
+  .metric .v.warn{color:#d97706} .metric .v.bad{color:#dc2626} .metric .v.ok{color:#16a34a}
+  .chart{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
+  .chart .ct{font-size:12px;font-weight:700;margin-bottom:6px}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:48px}
+  .spark i{flex:1;background:var(--admin);border-radius:3px 3px 0 0;opacity:.85}
+  .node{display:flex;justify-content:space-between;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;margin-bottom:6px;background:#fff}
+  .node .ok{color:#16a34a;font-weight:700} .node .bad{color:#dc2626;font-weight:700}
+  /* package mgmt */
+  .img-box{width:100%;height:92px;border:1.5px dashed #cbd5e1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--sub);font-size:11px;background:#f8fafc;text-align:center;line-height:1.4}
+  .img-box.sm{height:60px;width:60px;flex:0 0 auto}
+  .caro{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .param{border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:8px;background:#fff}
+  .param .ph{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:6px}
+  .param .opts{display:flex;flex-wrap:wrap;gap:6px}
+  .opt{border:1px solid var(--admin);color:var(--admin);border-radius:14px;padding:2px 11px;font-size:11px}
+  .opt.multi{background:#eef2ff}
+  .plus{display:inline-block;font-size:11px;color:var(--admin);border:1px dashed var(--admin);border-radius:14px;padding:3px 12px;margin-top:2px}
+  .inv{width:100%;border-collapse:collapse;margin-top:12px;font-size:12.5px;background:#fff}
+  .inv th,.inv td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  .inv th{background:#f1f5f9;font-weight:700;position:sticky;top:50px}
+  .inv td code{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:11.5px}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;color:#fff}
+  .b-client{background:var(--client)} .b-install{background:var(--install)} .b-admin{background:var(--admin)}
+  .note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:16px}
+  .foot{text-align:center;color:var(--sub);font-size:12px;padding:30px 0 50px}
+  .theme-chip{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  /* 师傅端：排班与容量可视化 */
+  .capbar{height:8px;background:#f1f5f9;border-radius:6px;overflow:hidden;margin:4px 0}
+  .capbar span{display:block;height:100%;background:var(--install)}
+  .capbar.alt span{background:#f59e0b}
+  .slot{flex:1;text-align:center;border-radius:8px;padding:8px 4px;font-size:12px;background:#f8fafc;border:1px solid var(--line)}
+  .slot.ok{background:#ecfdf5;border-color:#a7f3d0;color:#047857}
+  .slot.warn{background:#fff7ed;border-color:#fdba74;color:#c2410c}
+  .week{display:flex;gap:4px;margin-top:4px}
+  .week i{flex:1;text-align:center;font-style:normal;font-size:11px;padding:6px 0;border-radius:6px;background:#f1f5f9;color:#475569}
+  .week i.ok{background:#ecfdf5;color:#047857}
+  .week i.warn{background:#fff7ed;color:#c2410c}
+  .route{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:12px}
+  .dotc,.dotn{display:inline-flex;width:18px;height:18px;border-radius:50%;color:#fff;font-size:10px;align-items:center;justify-content:center;margin-right:2px}
+  .dotc{background:#16a34a} .dotn{background:var(--install)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>宽带业务管理系统 · 功能页面设计稿</h1>
+    <p>微信小程序（客户端 / 安装师傅端）+ PC 后端管理系统（web-admin）· 线框原型与功能清单 v1.9</p>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#overview">一、系统总览</a>
+    <a href="#ministore">二、小程序 · 客户端</a>
+    <a href="#client-order-flow">下单流程联动</a>
+    <a href="#install">三、小程序 · 安装师傅端</a>
+    <a href="#admin">四、PC 后端管理</a>
+    <a href="#dispatch-rule">派单调度规则</a>
+    <a href="#inventory">五、功能页面清单</a>
+    <a href="#refine">六、运营商实践细化</a>
+    <a href="#upgrade-traffic">七、套餐升级与流量监控</a>
+  </div>
+</nav>
+
+<!-- ============ 一、总览 ============ -->
+<section id="overview">
+  <div class="wrap">
+    <h2><span class="tag">01</span>系统总览</h2>
+    <p class="lead">系统围绕「宽带办理」业务，串起 客户下单 → 受理派单 → 安装施工 → 售后运维 全链路。两端小程序面向客户与装维，PC 后台统一管控（含销售管理、权限与监控）。</p>
+
+    <div class="arch">
+      <div class="box">
+        <h4><span class="theme-chip" style="background:var(--client)"></span>客户端（微信小程序）</h4>
+        <p>面向宽带用户：浏览套餐、在线下单、预约安装、续费报修、查订单进度。</p>
+      </div>
+      <div class="box">
+        <h4><span class="theme-chip" style="background:var(--install)"></span>安装师傅端（微信小程序）</h4>
+        <p>面向装维人员：接收工单、上门签到、施工上报、完工验收。</p>
+      </div>
+      <div class="box">
+        <h4><span class="theme-chip" style="background:var(--admin)"></span>PC 后端管理（web-admin）</h4>
+        <p>面向运营/管理员：订单、客户、套餐、财务、工单、销售管理，以及权限管理（RBAC）与性能监控。</p>
+      </div>
+    </div>
+
+    <h3>核心业务流</h3>
+    <div class="flow">
+      <span class="step">① 客户浏览套餐</span><span class="arrow">→</span>
+      <span class="step">② 在线下单/支付</span><span class="arrow">→</span>
+      <span class="step">③ 后台受理派单</span><span class="arrow">→</span>
+      <span class="step">④ 师傅安装施工</span><span class="arrow">→</span>
+      <span class="step">⑤ 完工验收</span><span class="arrow">→</span>
+      <span class="step">⑥ 续费/报修售后</span>
+    </div>
+
+    <h3>角色 × 终端 × 主题色 矩阵</h3>
+    <table class="matrix">
+      <tr><th>角色</th><th>终端</th><th>主题色</th><th>核心诉求</th><th>页面规模</th></tr>
+      <tr><td><span class="role c-client">客户端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--client)"></span>蓝 #2563eb</td><td>便捷下单、进度透明</td><td>约 10 页</td></tr>
+      <tr><td><span class="role c-install">安装师傅端</span></td><td>微信小程序</td><td><span class="theme-chip" style="background:var(--install)"></span>橙 #ea580c</td><td>工单清晰、操作简便</td><td>约 8 页</td></tr>
+      <tr><td><span class="role c-admin">管理员 / 运营</span></td><td>PC web-admin</td><td><span class="theme-chip" style="background:var(--admin)"></span>靛 #4f46e5</td><td>全局管控、权限与监控</td><td>约 12 模块</td></tr>
+    </table>
+    <div class="note">说明：原「销售端」小程序已移除，销售拓客/录单/业绩等功能统一由 PC 后台「销售管理」模块承接（管理员或指定销售岗在后台操作）。</div>
+  </div>
+</section>
+
+<!-- ============ 二、客户端 ============ -->
+<section id="ministore">
+  <div class="wrap">
+    <h2><span class="tag">02</span>小程序 · 客户端（蓝色主题）</h2>
+    <p class="lead">底部 TabBar 建议 4 项：首页 / 套餐 / 订单 / 我的。以下为核心页面线框。</p>
+
+    <div class="role-block client">
+      <div class="role-head client"><span class="dot"></span><h3>客户端</h3><span>用户：宽带办理与售后</span></div>
+      <div class="role-body">
+        <div class="pages-grid">
+
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">宽带管家</div>
+              <div class="scr-body">
+                <div class="blk tone">🔍 搜索套餐 / 地址</div>
+                <div class="blk"><b>新人专享 300M</b><div class="mini">首年月租 ¥39 起</div></div>
+                <div class="row">
+                  <div class="blk"><div class="mini">报装</div><div style="font-size:18px">📡</div></div>
+                  <div class="blk"><div class="mini">续费</div><div style="font-size:18px">💳</div></div>
+                  <div class="blk"><div class="mini">报修</div><div style="font-size:18px">🔧</div></div>
+                </div>
+                <div class="blk"><b>我的订单</b><div class="mini">安装中 · 预计 9/16 上门</div></div>
+                <div class="blk"><div class="mini">热门套餐</div><div class="bar f" style="width:80%"></div><div class="bar f" style="width:60%"></div></div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">宽带套餐</div>
+              <div class="scr-body">
+                <div class="row">
+                  <div class="blk" style="flex:1">全部</div><div class="blk" style="flex:1">家庭</div><div class="blk" style="flex:1">企业</div>
+                </div>
+                <div class="blk tone"><b>300M 家庭宽带</b><div>¥39/月 · 送 IPTV</div></div>
+                <div class="blk tone"><b>500M 融合套餐</b><div>¥79/月 · 含手机卡</div></div>
+                <div class="blk tone"><b>1000M 极速宽带</b><div>¥129/月 · 电竞优选</div></div>
+                <div class="blk"><div class="mini">筛选：带宽 / 价格 / 合约</div></div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">确认订单</div>
+              <div class="scr-body">
+                <div class="blk"><b>套餐</b><div class="mini">500M 融合套餐 ¥79/月</div></div>
+                <div class="blk"><b>安装地址</b><div class="mini">深圳市南山区… ▸</div></div>
+                <div class="blk"><b>联系人</b><div class="mini">刘伟 138****0000</div></div>
+                <div class="blk"><b>预约时间</b><div class="mini">9/16 上午 ▸</div></div>
+                <div class="blk"><span class="pill">身份证认证</span><span class="pill">电子协议</span></div>
+                <div class="blk tone" style="text-align:center;margin-top:6px">应付 ¥79 · 提交订单</div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">个人中心</div>
+              <div class="scr-body">
+                <div class="blk"><b>刘伟</b><div class="mini">138****0000 ▸ 实名已认证</div></div>
+                <div class="blk"><div class="row" style="margin:0"><div class="blk" style="flex:1;text-align:center"><div style="font-size:16px">2</div><div class="mini">订单</div></div><div class="blk" style="flex:1;text-align:center"><div style="font-size:16px">1</div><div class="mini">报修</div></div><div class="blk" style="flex:1;text-align:center"><div style="font-size:16px">3</div><div class="mini">优惠券</div></div></div></div>
+                <div class="blk"><div class="mini">📋 我的订单</div></div>
+                <div class="blk"><div class="mini">💳 续费缴费</div></div>
+                <div class="blk"><div class="mini">🔧 故障报修</div></div>
+                <div class="blk"><div class="mini">📞 客服</div></div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 可安装小区查询 -->
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">可安装小区查询</div>
+              <div class="scr-body">
+                <div class="blk tone">📍 输入小区名称，查询能否上门安装</div>
+                <div class="blk"><div class="mini">🔍 如：南山科技园 / 保利花园</div></div>
+                <div class="blk" style="border:1.5px solid var(--client)">
+                  <b>保利花园</b>
+                  <div class="mini">南山区 · 科技园街道</div>
+                  <div style="margin-top:6px"><span class="stat">✓ 可安装</span> <span class="stat b">端口充足</span></div>
+                  <div class="mini" style="margin-top:6px">可办套餐：300M / 500M / 1000M</div>
+                  <div class="blk tone" style="text-align:center;margin-top:6px">立即办理</div>
+                </div>
+                <div class="blk"><div class="mini">❌ 阳光新村 · 暂未覆盖，可登记需求</div></div>
+                <div class="blk"><span class="pill">热门：科技园</span><span class="pill">海岸城</span><span class="pill">保利</span></div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 填写安装地址：可装态联动 -->
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">填写安装地址</div>
+              <div class="scr-body">
+                <div class="blk tone">🏘️ 输入小区，自动校验是否可装</div>
+                <div class="blk" style="border:1.5px solid var(--client)">
+                  <div class="mini">🔍 保利花园</div>
+                  <div style="margin-top:4px"><span class="stat">✓ 可安装</span> <span class="stat b">端口充足</span></div>
+                  <div class="mini" style="margin-top:4px">可办：300M / 500M / 1000M</div>
+                </div>
+                <div class="blk"><b>详细地址</b><div class="mini">3 栋 2 单元 1501 ▸</div></div>
+                <div class="blk"><b>联系人</b><div class="mini">刘伟 138****0000</div></div>
+                <div class="blk tone" style="text-align:center;margin-top:6px">下一步：确认订单</div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 填写安装地址：不可装拦截态 -->
+          <div class="phone client">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">填写安装地址</div>
+              <div class="scr-body">
+                <div class="blk tone">🏘️ 输入小区，自动校验是否可装</div>
+                <div class="blk" style="border:1.5px solid #dc2626">
+                  <div class="mini">🔍 阳光新村</div>
+                  <div style="margin-top:4px"><span class="stat r">❌ 暂未覆盖</span></div>
+                  <div class="mini" style="margin-top:4px">该小区暂未开通宽带安装</div>
+                  <div class="blk" style="text-align:center;margin-top:4px;border:1px dashed #dc2626;color:#dc2626">登记安装需求，覆盖后通知</div>
+                </div>
+                <div class="blk mini">建议：换个小区或先查可装小区</div>
+                <div class="blk" style="text-align:center;margin-top:6px;background:#e2e8f0;color:#94a3b8">下一步（不可装已拦截）</div>
+              </div>
+              <div class="scr-tab">
+                <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 下单流程与小区查询联动 -->
+    <h3 id="client-order-flow"><span class="badge b-client">下单联动</span> 下单流程与小区查询联动</h3>
+    <p class="lead">客户从选套餐到提交订单，<b>安装地址的「可装性」全程联动小区覆盖库实时校验</b>：可装 → 放行并预填套餐；紧张 → 放行但提示；未覆盖 → 拦截下单并引导登记。查询页与下单页共用同一套小区搜索组件与可装性判定接口。</p>
+
+    <h4 style="margin:14px 0 8px;font-size:14px">① 下单流程（地址可装性联动）</h4>
+    <div class="flow">
+      <div class="step">① 选套餐</div><span class="arrow">→</span>
+      <div class="step" style="border-color:var(--client);color:var(--client)">② 填安装地址（实时校验）</div><span class="arrow">→</span>
+      <div class="step">③ 确认订单</div><span class="arrow">→</span>
+      <div class="step">④ 提交 / 支付</div>
+    </div>
+
+    <h4 style="margin:14px 0 8px;font-size:14px">② 可装性三态联动规则</h4>
+    <table class="inv">
+      <tr><th>校验状态</th><th>判定条件</th><th>对下单的影响</th><th>界面表现</th></tr>
+      <tr><td><span class="stat">✓ 可安装</span></td><td>小区在覆盖库且端口余量 &gt; 阈值</td><td>正常放行，预填可办套餐与运营商</td><td>绿色徽章 + 端口余量 + 「下一步」高亮</td></tr>
+      <tr><td><span class="stat w">⚠ 端口紧张</span></td><td>端口余量 ≤ 阈值（如 ≤5）</td><td>放行，但强提示尽快办理</td><td>黄色徽章 + 「名额紧张，建议尽快」</td></tr>
+      <tr><td><span class="stat r">❌ 暂未覆盖</span></td><td>小区不在覆盖库或运营商未开通</td><td><b>拦截</b>，禁止进入确认订单</td><td>红色徽章 + 「登记安装需求」入口 + 下一步置灰</td></tr>
+    </table>
+
+    <h4 style="margin:14px 0 8px;font-size:14px">③ 与「可安装小区查询页」双向联动</h4>
+    <table class="inv">
+      <tr><th>来源</th><th>行为</th><th>目标</th></tr>
+      <tr><td>可安装小区查询页「立即办理」</td><td>携带已校验小区 + 可办套餐跳转</td><td>下单确认 / 地址页（跳过重复校验）</td></tr>
+      <tr><td>填写安装地址页「换个小区 / 去查询」</td><td>回填当前输入</td><td>可安装小区查询页</td></tr>
+      <tr><td>共用能力</td><td colspan="2">小区模糊搜索组件 + 可装性判定接口 <code>GET /api/community/check?name=</code>，返回状态 / 端口余量 / 可办运营商与套餐</td></tr>
+    </table>
+    <div class="note">数据一致性：地址校验结果以 PC 后台「小区覆盖管理」为准；下单成功或安装完工后，对应小区端口余量实时扣减，避免超卖。</div>
+
+  </div>
+</section>
+
+<!-- ============ 三、安装师傅端 ============ -->
+<section id="install">
+  <div class="wrap">
+    <h2><span class="tag">03</span>小程序 · 安装师傅端（橙色主题）</h2>
+    <p class="lead">面向装维人员，强调工单清晰、现场操作简便。底部 TabBar：工单 / 任务 / 我的。</p>
+
+    <div class="role-block install">
+      <div class="role-head install"><span class="dot"></span><h3>安装师傅端</h3><span>用户：装维施工</span></div>
+      <div class="role-body">
+        <div class="pages-grid">
+
+          <div class="phone install">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">我的工单</div>
+              <div class="scr-body">
+                <div class="row">
+                  <div class="blk" style="flex:1;text-align:center"><div style="font-size:18px">3</div><div class="mini">待上门</div></div>
+                  <div class="blk" style="flex:1;text-align:center"><div style="font-size:18px">2</div><div class="mini">施工中</div></div>
+                  <div class="blk" style="flex:1;text-align:center"><div style="font-size:18px">28</div><div class="mini">本月完工</div></div>
+                </div>
+                <div class="blk" style="background:#fff7ed;border-color:#fed7aa"><b>本时段派单容量</b><div class="mini">相邻小区 3-4 单 · 非相邻 1-2 单（系统按相邻性合并派单）</div></div>
+                <div class="blk tone"><b>#B…001 陈先生</b><div class="mini">500M · 09:30 南山科技园</div></div>
+                <div class="blk"><b>#B…002 李女士</b><div class="mini">300M · 14:00 福田</div></div>
+                <div class="blk"><div class="mini">📍 导航 · ☎ 联系客户</div></div>
+              </div>
+              <div class="scr-tab">
+                <div><b>📋</b>工单</div><div><b>🛠</b>任务</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone install">
+            <div class="notch"><i></i></div>
+            <div class="screen">
+              <div class="scr-top">工单详情</div>
+              <div class="scr-body">
+                <div class="blk"><b>客户</b><div class="mini">陈先生 138****0000</div></div>
+                <div class="blk"><b>地址</b><div class="mini">南山区科技园路 1 号 ▸导航</div></div>
+                <div class="blk"><b>套餐</b><div class="mini">500M 融合 · 含 IPTV</div></div>
+                <div class="blk tone" style="text-align:center">📍 上门签到</div>
+                <div class="blk"><span class="pill">施工照片</span><span class="pill">光猫激活</span><span class="pill">测速</span></div>
+                <div class="blk tone" style="text-align:center;margin-top:4px">✔ 完工上报</div>
+              </div>
+              <div class="scr-tab">
+                <div><b>📋</b>工单</div><div><b>🛠</b>任务</div><div><b>👤</b>我的</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 四、PC 后端管理 ============ -->
+<section id="admin">
+  <div class="wrap">
+    <h2><span class="tag">04</span>PC 后端管理系统（web-admin · Vue3）</h2>
+    <p class="lead">左侧菜单 + 顶部面包屑 + 内容区。首页路由 <code>/dashboard</code>。以下为核心模块线框，重点细化<b>权限管理</b>与<b>性能监控</b>。</p>
+
+    <!-- Dashboard -->
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /dashboard</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">宽带运营后台</div>
+          <div class="m active"><span class="ic"></span>数据看板</div>
+          <div class="m"><span class="ic"></span>订单管理</div>
+          <div class="m"><span class="ic"></span>客户管理</div>
+          <div class="m"><span class="ic"></span>套餐管理</div>
+          <div class="m"><span class="ic"></span>安装工单</div>
+          <div class="m"><span class="ic"></span>销售管理</div>
+          <div class="m"><span class="ic"></span>财务管理</div>
+          <div class="m"><span class="ic"></span>权限管理</div>
+          <div class="m"><span class="ic"></span>性能监控</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>数据看板</h4><div class="btn">+ 新建</div></div>
+          <div class="kpis">
+            <div class="kpi"><div class="n">1,286</div><div class="t">本月订单</div></div>
+            <div class="kpi"><div class="n">¥86.4w</div><div class="t">营收</div></div>
+            <div class="kpi"><div class="n">342</div><div class="t">待安装</div></div>
+            <div class="kpi"><div class="n">98.2%</div><div class="t">履约率</div></div>
+          </div>
+          <table class="tbl">
+            <tr><th>最近订单</th><th>客户</th><th>套餐</th><th>状态</th></tr>
+            <tr><td>#B20260914001</td><td>陈先生</td><td>500M 融合</td><td><span class="stat">已支付</span></td></tr>
+            <tr><td>#B20260914002</td><td>李女士</td><td>300M</td><td><span class="stat w">安装中</span></td></tr>
+            <tr><td>#B20260914003</td><td>王先生</td><td>1000M</td><td><span class="stat r">待受理</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 订单管理 -->
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /order</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">宽带运营后台</div>
+          <div class="m"><span class="ic"></span>数据看板</div>
+          <div class="m active"><span class="ic"></span>订单管理</div>
+          <div class="m"><span class="ic"></span>客户管理</div>
+          <div class="m"><span class="ic"></span>套餐管理</div>
+          <div class="m"><span class="ic"></span>安装工单</div>
+          <div class="m"><span class="ic"></span>销售管理</div>
+          <div class="m"><span class="ic"></span>财务管理</div>
+          <div class="m"><span class="ic"></span>权限管理</div>
+          <div class="m"><span class="ic"></span>性能监控</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>订单管理</h4><div class="btn">导出</div></div>
+          <div class="row" style="margin-bottom:10px">
+            <div class="blk" style="flex:2"><div class="mini">🔍 订单号 / 手机号</div></div>
+            <div class="blk" style="flex:1"><div class="mini">状态筛选 ▾</div></div>
+            <div class="blk" style="flex:1"><div class="mini">日期 ▾</div></div>
+          </div>
+          <table class="tbl">
+            <tr><th>订单号</th><th>客户</th><th>套餐</th><th>销售</th><th>状态</th><th>操作</th></tr>
+            <tr><td>#B…001</td><td>陈先生</td><td>500M</td><td>刘伟</td><td><span class="stat">已支付</span></td><td>详情/派单</td></tr>
+            <tr><td>#B…002</td><td>李女士</td><td>300M</td><td>—</td><td><span class="stat w">安装中</span></td><td>详情</td></tr>
+            <tr><td>#B…003</td><td>王先生</td><td>1000M</td><td>赵敏</td><td><span class="stat r">待受理</span></td><td>受理</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 套餐管理：列表 -->
+    <h3><span class="badge b-admin">套餐管理</span> 套餐列表</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /package</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">宽带运营后台</div>
+          <div class="m"><span class="ic"></span>数据看板</div>
+          <div class="m"><span class="ic"></span>订单管理</div>
+          <div class="m"><span class="ic"></span>客户管理</div>
+          <div class="m active"><span class="ic"></span>套餐管理</div>
+          <div class="m"><span class="ic"></span>安装工单</div>
+          <div class="m"><span class="ic"></span>销售管理</div>
+          <div class="m"><span class="ic"></span>财务管理</div>
+          <div class="m"><span class="ic"></span>权限管理</div>
+          <div class="m"><span class="ic"></span>性能监控</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>套餐管理</h4><div class="btn">+ 新增套餐</div></div>
+          <div class="row" style="margin-bottom:10px">
+            <div class="blk" style="flex:2"><div class="mini">🔍 套餐名 / 编码</div></div>
+            <div class="blk" style="flex:1"><div class="mini">分类 ▾</div></div>
+            <div class="blk" style="flex:1"><div class="mini">状态 ▾</div></div>
+          </div>
+          <table class="tbl">
+            <tr><th>主图</th><th>套餐</th><th>分类</th><th>月租</th><th>状态</th><th>操作</th></tr>
+            <tr><td><div class="img-box sm" style="height:48px;width:48px">图</div></td><td>300M 家庭宽带</td><td>家庭</td><td>¥39</td><td><span class="stat">上架</span></td><td>编辑/下架</td></tr>
+            <tr><td><div class="img-box sm" style="height:48px;width:48px">图</div></td><td>500M 融合套餐</td><td>家庭</td><td>¥79</td><td><span class="stat">上架</span></td><td>编辑/下架</td></tr>
+            <tr><td><div class="img-box sm" style="height:48px;width:48px">图</div></td><td>1000M 极速宽带</td><td>企业</td><td>¥129</td><td><span class="stat w">下架</span></td><td>编辑/上架</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 套餐管理：编辑 -->
+    <h3><span class="badge b-admin">套餐管理</span> 新增 / 编辑套餐（主图 · 轮播图 · 动态参数）</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /package/edit</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">套餐管理</div>
+          <div class="m"><span class="ic"></span>套餐列表</div>
+          <div class="m active"><span class="ic"></span>新增套餐</div>
+          <div class="m"><span class="ic"></span>分类管理</div>
+          <div class="m"><span class="ic"></span>资费模板</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>新增套餐</h4><div class="btn">保存</div></div>
+          <div class="perm-wrap">
+            <div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">基础信息</div>
+              <div class="blk"><div class="mini">套餐名称</div></div>
+              <div class="row">
+                <div class="blk" style="flex:1"><div class="mini">分类 ▾</div></div>
+                <div class="blk" style="flex:1"><div class="mini">状态 ▾</div></div>
+              </div>
+              <div class="row">
+                <div class="blk" style="flex:1"><div class="mini">月租 ¥</div></div>
+                <div class="blk" style="flex:1"><div class="mini">原价 ¥</div></div>
+                <div class="blk" style="flex:1"><div class="mini">合约期</div></div>
+              </div>
+              <div style="font-size:12px;font-weight:700;margin:10px 0 6px">动态参数（下单时客户可选项）</div>
+              <div class="param">
+                <div class="ph"><span>带宽（单选）</span><span class="mini">必选</span></div>
+                <div class="opts"><span class="opt">300M</span><span class="opt">500M</span><span class="opt">1000M</span></div>
+              </div>
+              <div class="param">
+                <div class="ph"><span>合约期（单选）</span><span class="mini">必选</span></div>
+                <div class="opts"><span class="opt">12 个月</span><span class="opt">24 个月</span></div>
+              </div>
+              <div class="param">
+                <div class="ph"><span>增值服务（多选）</span><span class="mini">可选</span></div>
+                <div class="opts"><span class="opt multi">IPTV</span><span class="opt multi">手机卡</span><span class="opt multi">提速包</span></div>
+              </div>
+              <span class="plus">＋ 添加参数组</span>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">主图（封面 · 1 张）</div>
+              <div class="img-box">🖼️ 点击上传主图<br>建议 750×420</div>
+              <div style="font-size:12px;font-weight:700;margin:12px 0 6px">轮播图（多张 · 可排序）</div>
+              <div class="caro">
+                <div class="img-box sm">图1</div>
+                <div class="img-box sm">图2</div>
+                <div class="img-box sm">图3</div>
+                <div class="img-box sm" style="border-style:solid;border-color:var(--admin);color:var(--admin)">＋</div>
+              </div>
+              <div style="font-size:12px;font-weight:700;margin:12px 0 6px">详情图文</div>
+              <div class="img-box" style="height:70px">📝 富文本 / 图文详情</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 小区覆盖管理：列表 -->
+    <h3><span class="badge b-admin">小区覆盖管理</span> 可安装小区列表</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /community</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">小区覆盖管理</div>
+          <div class="m active"><span class="ic"></span>小区列表</div>
+          <div class="m"><span class="ic"></span>新增小区</div>
+          <div class="m"><span class="ic"></span>批量导入</div>
+          <div class="m"><span class="ic"></span>区域管理</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>小区覆盖管理</h4><div class="btn">+ 新增小区</div></div>
+          <div class="row" style="margin-bottom:10px">
+            <div class="blk" style="flex:2"><div class="mini">🔍 小区名 / 区域</div></div>
+            <div class="blk" style="flex:1"><div class="mini">状态 ▾</div></div>
+            <div class="blk" style="flex:1"><div class="mini">运营商 ▾</div></div>
+          </div>
+          <table class="tbl">
+            <tr><th>小区名称</th><th>区域</th><th>覆盖运营商</th><th>端口余量</th><th>状态</th><th>操作</th></tr>
+            <tr><td>保利花园</td><td>南山区/科技园</td><td>电信·联通</td><td>32/64</td><td><span class="stat">可安装</span></td><td>编辑</td></tr>
+            <tr><td>海岸城公寓</td><td>南山区/粤海</td><td>电信</td><td>8/48</td><td><span class="stat w">紧张</span></td><td>编辑</td></tr>
+            <tr><td>阳光新村</td><td>宝安区/新安</td><td>—</td><td>0</td><td><span class="stat r">不可安装</span></td><td>编辑</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 小区覆盖管理：编辑 -->
+    <h3><span class="badge b-admin">小区覆盖管理</span> 新增 / 编辑小区覆盖</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /community/edit</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">小区覆盖管理</div>
+          <div class="m"><span class="ic"></span>小区列表</div>
+          <div class="m active"><span class="ic"></span>新增小区</div>
+          <div class="m"><span class="ic"></span>批量导入</div>
+          <div class="m"><span class="ic"></span>区域管理</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>新增小区覆盖</h4><div class="btn">保存</div></div>
+          <div class="perm-wrap">
+            <div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">基础信息</div>
+              <div class="blk"><div class="mini">小区名称</div></div>
+              <div class="row">
+                <div class="blk" style="flex:1"><div class="mini">所属区域 ▾</div></div>
+                <div class="blk" style="flex:1"><div class="mini">街道</div></div>
+              </div>
+              <div class="blk"><div class="mini">详细地址 / 经纬度</div></div>
+              <div style="font-size:12px;font-weight:700;margin:10px 0 6px">覆盖与容量</div>
+              <div class="param">
+                <div class="ph"><span>覆盖运营商（多选）</span></div>
+                <div class="opts"><span class="opt multi">电信</span><span class="opt multi">联通</span><span class="opt multi">移动</span></div>
+              </div>
+              <div class="row">
+                <div class="blk" style="flex:1"><div class="mini">端口总数</div></div>
+                <div class="blk" style="flex:1"><div class="mini">已用端口</div></div>
+              </div>
+              <div class="row">
+                <div class="blk" style="flex:1"><div class="mini">是否可安装 ▾</div></div>
+                <div class="blk" style="flex:1"><div class="mini">上线状态 ▾</div></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">批量导入</div>
+              <div class="img-box" style="height:70px">⬆️ 下载模板 / 上传 Excel<br>支持小区名·区域·端口批量维护</div>
+              <div style="font-size:12px;font-weight:700;margin:12px 0 6px">备注</div>
+              <div class="img-box" style="height:70px">📝 覆盖说明 / 施工备注</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 权限管理：用户与角色 -->
+    <h3><span class="badge b-admin">权限管理</span> 用户与角色</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /system/user</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">权限管理</div>
+          <div class="m active"><span class="ic"></span>用户管理</div>
+          <div class="m"><span class="ic"></span>角色管理</div>
+          <div class="m"><span class="ic"></span>菜单权限</div>
+          <div class="m"><span class="ic"></span>操作日志</div>
+          <div class="m"><span class="ic"></span>数据字典</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>用户管理</h4><div class="btn">+ 新增用户</div></div>
+          <table class="tbl">
+            <tr><th>账号</th><th>姓名</th><th>角色</th><th>状态</th><th>操作</th></tr>
+            <tr><td>admin</td><td>超级管理员</td><td><span class="tag-r">超级管理员</span></td><td><span class="stat">启用</span></td><td>改密/禁用</td></tr>
+            <tr><td>liuwei</td><td>刘伟</td><td><span class="tag-r">运营专员</span></td><td><span class="stat">启用</span></td><td>编辑/角色</td></tr>
+            <tr><td>zhaomin</td><td>赵敏</td><td><span class="tag-r">财务</span></td><td><span class="stat w">受限</span></td><td>编辑/角色</td></tr>
+            <tr><td>wangfang</td><td>王芳</td><td><span class="tag-r">客服</span></td><td><span class="stat">启用</span></td><td>编辑/角色</td></tr>
+          </table>
+          <div class="note" style="margin-top:12px">角色分配遵循 RBAC：用户(User) ↔ 角色(Role) ↔ 权限(Permission)。与后端 Spring Security 6 + JWT 的 <code>@PreAuthorize("hasRole('OPERATOR')")</code> 及接口级权限注解一一对应。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 权限管理：菜单权限树 -->
+    <h3><span class="badge b-admin">权限管理</span> 菜单权限树 & 操作日志</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /system/role/edit</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">权限管理</div>
+          <div class="m"><span class="ic"></span>用户管理</div>
+          <div class="m active"><span class="ic"></span>角色管理</div>
+          <div class="m"><span class="ic"></span>菜单权限</div>
+          <div class="m"><span class="ic"></span>操作日志</div>
+          <div class="m"><span class="ic"></span>数据字典</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>编辑角色权限：运营专员</h4><div class="btn">保存</div></div>
+          <div class="perm-wrap">
+            <div class="tree">
+              <div class="lv1"><span class="chk on"></span>订单管理</div>
+              <div class="lv2"><span class="chk on"></span>订单查询　<span class="chk on"></span>订单派单　<span class="chk"></span>订单删除</div>
+              <div class="lv1"><span class="chk on"></span>客户管理</div>
+              <div class="lv2"><span class="chk on"></span>客户查询　<span class="chk on"></span>客户编辑　<span class="chk"></span>客户导出</div>
+              <div class="lv1"><span class="chk on"></span>套餐管理</div>
+              <div class="lv2"><span class="chk on"></span>套餐查询　<span class="chk"></span>套餐上下架</div>
+              <div class="lv1"><span class="chk"></span>财务管理</div>
+              <div class="lv2"><span class="chk"></span>账单查看　<span class="chk"></span>对账</div>
+              <div class="lv1"><span class="chk"></span>系统设置</div>
+              <div class="lv2"><span class="chk"></span>用户/角色　<span class="chk"></span>操作日志</div>
+            </div>
+            <div>
+              <div class="ct" style="font-size:12px;font-weight:700;margin-bottom:6px">操作日志</div>
+              <div class="log">
+                <div>09-14 10:02 刘伟 编辑角色「运营专员」权限</div>
+                <div>09-14 09:41 王芳 处理报修单 #R20260913</div>
+                <div>09-13 18:20 赵敏 导出财务对账表</div>
+                <div>09-13 15:03 admin 新增用户 wangfang</div>
+                <div>09-13 11:12 刘伟 派单 #B20260914→师傅</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 性能监控 -->
+    <h3><span class="badge b-admin">性能监控</span> 系统与应用指标</h3>
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /monitor</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">性能监控</div>
+          <div class="m active"><span class="ic"></span>应用概览</div>
+          <div class="m"><span class="ic"></span>接口监控</div>
+          <div class="m"><span class="ic"></span>JVM / 数据库</div>
+          <div class="m"><span class="ic"></span>服务节点</div>
+          <div class="m"><span class="ic"></span>告警规则</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>应用概览</h4><div class="btn">刷新</div></div>
+          <div class="metric-grid">
+            <div class="metric"><div class="v ok">健康</div><div class="l">应用状态</div></div>
+            <div class="metric"><div class="v">38%</div><div class="l">CPU</div></div>
+            <div class="metric"><div class="v warn">71%</div><div class="l">内存</div></div>
+            <div class="metric"><div class="v">126ms</div><div class="l">平均响应</div></div>
+            <div class="metric"><div class="v ok">0.02%</div><div class="l">错误率</div></div>
+            <div class="metric"><div class="v">842</div><div class="l">QPS</div></div>
+          </div>
+          <div class="chart">
+            <div class="ct">QPS / 响应时间趋势（近 1h）</div>
+            <div class="spark">
+              <i style="height:30%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:70%"></i><i style="height:48%"></i><i style="height:64%"></i><i style="height:55%"></i><i style="height:80%"></i><i style="height:58%"></i><i style="height:66%"></i>
+            </div>
+          </div>
+          <div class="chart">
+            <div class="ct">慢接口 TOP5</div>
+            <table class="tbl">
+              <tr><th>接口</th><th>调用次数</th><th>平均耗时</th><th>状态</th></tr>
+              <tr><td>POST /api/order/create</td><td>1,204</td><td>312ms</td><td><span class="stat w">偏慢</span></td></tr>
+              <tr><td>GET /api/package/list</td><td>8,910</td><td>88ms</td><td><span class="stat">正常</span></td></tr>
+              <tr><td>POST /api/pay/callback</td><td>642</td><td>256ms</td><td><span class="stat w">偏慢</span></td></tr>
+              <tr><td>GET /api/report/export</td><td>53</td><td>1.8s</td><td><span class="stat r">超时</span></td></tr>
+            </table>
+          </div>
+          <div class="chart">
+            <div class="ct">服务节点</div>
+            <div class="node"><span>gateway-01 :8080</span><span class="ok">● 在线</span></div>
+            <div class="node"><span>order-svc-02 :8082</span><span class="ok">● 在线</span></div>
+            <div class="node"><span>mysql-master :3306</span><span class="ok">● 在线</span></div>
+            <div class="node"><span>redis-01 :6379</span><span class="bad">● 高负载</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 安装工单：派单调度规则（相邻性容量） -->
+    <h3 id="dispatch-rule"><span class="badge b-admin">安装工单</span> 派单调度规则（相邻性容量）</h3>
+    <p class="lead">派单时依据<b>安装小区地理相邻性</b>决定单个师傅在「同一时间段」内的可接单量：相邻小区可合并路线、批量施工，容量更高；非相邻小区往返成本高，容量更低。系统应在派单时自动按相邻性聚类，辅助调度员合并派单、避免超容。</p>
+
+    <table class="inv">
+      <tr><th>小区关系</th><th>同一时间段可接单量</th><th>调度策略</th><th>说明</th></tr>
+      <tr><td>相邻小区（同片区 / 步行可达）</td><td><b>3 - 4 单</b></td><td>合并派单、同路线连续施工</td><td>路程短、可连续上门，单位时间效率最高</td></tr>
+      <tr><td>非相邻小区（跨片区 / 需驾车）</td><td><b>1 - 2 单</b></td><td>独立派单、单独排程</td><td>往返耗时高，单时段仅排少量，防超时</td></tr>
+    </table>
+
+    <h4 style="margin:14px 0 8px;font-size:14px">① 派单调度判定流程</h4>
+    <div class="flow">
+      <div class="step">工单池按小区归集</div><span class="arrow">→</span>
+      <div class="step">计算相邻性（同街道 / 距离阈值）</div><span class="arrow">→</span>
+      <div class="step">相邻工单聚簇</div><span class="arrow">→</span>
+      <div class="step">按容量 3-4 / 1-2 派给师傅</div>
+    </div>
+
+    <h4 style="margin:14px 0 8px;font-size:14px">② 师傅「时间段容量」看板（派单页）</h4>
+    <table class="inv">
+      <tr><th>师傅</th><th>时间段</th><th>相邻小区工单</th><th>非相邻工单</th><th>容量状态</th></tr>
+      <tr><td>张师傅</td><td>09:00-12:00</td><td>3 单（保利/科技园/海岸城）</td><td>1 单</td><td><span class="stat">已满</span></td></tr>
+      <tr><td>李师傅</td><td>14:00-17:00</td><td>1 单（阳光小区）</td><td>0 单</td><td><span class="stat b">余 1-3 单</span></td></tr>
+      <tr><td>王师傅</td><td>09:00-12:00</td><td>4 单（相邻已满）</td><td>—</td><td><span class="stat r">超容拦截</span></td></tr>
+    </table>
+    <div class="note">相邻性判定：以 PC 后台「小区覆盖管理」中的区域 / 街道 / 经纬度字段计算距离阈值（如 ≤800m 视为相邻）；容量上限可在「安装工单」配置中按师傅技能分级微调。派单后实时占用时段容量，超过即拦截改派。</div>
+
+    <h4 style="margin:18px 0 8px;font-size:14px">③ 师傅容量配置（worker_capacity）</h4>
+    <p class="lead">在「安装工单」模块内提供<b>容量配置页</b>，支持两级配置：<b>全局默认容量</b>（未单独配置的师傅套用）与<b>每师傅 / 每时间段</b>的单独上限覆盖。配置值即派单算法 <code>CapacityPolicy</code> 的可用工单上限，派单时按「相邻 / 非相邻」分别校验，超容即拦截。</p>
+
+    <div class="pc">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /workorder/capacity</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">安装工单</div>
+          <div class="m"><span class="ic"></span>工单池</div>
+          <div class="m"><span class="ic"></span>派单调度</div>
+          <div class="m active"><span class="ic"></span>容量配置</div>
+          <div class="m"><span class="ic"></span>调度规则</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>师傅容量配置</h4><div class="btn">＋ 批量设置</div></div>
+
+          <div class="chart">
+            <div class="ct">全局默认容量（未单独配置的师傅套用此值）</div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <div class="metric" style="flex:1"><div class="v">3 - 4 单</div><div class="l">相邻小区 / 时段</div></div>
+              <div class="metric" style="flex:1"><div class="v">1 - 2 单</div><div class="l">非相邻 / 时段</div></div>
+              <div class="metric" style="flex:1"><div class="v">3 段</div><div class="l">每日时段数</div></div>
+              <div class="metric" style="flex:1"><div class="v ok">已生效</div><div class="l">配置状态</div></div>
+            </div>
+          </div>
+
+          <div class="chart">
+            <div class="ct">师傅容量明细（每师傅 × 时段上限）</div>
+            <table class="tbl">
+              <tr><th>师傅</th><th>技能等级</th><th>时段</th><th>相邻上限</th><th>非相邻上限</th><th>配置方式</th><th>操作</th></tr>
+              <tr><td>张师傅</td><td>高级</td><td>09:00-12:00</td><td><span class="stat b">4</span></td><td><span class="stat b">2</span></td><td>单独配置</td><td><span style="color:var(--admin);cursor:pointer">编辑</span></td></tr>
+              <tr><td>张师傅</td><td>高级</td><td>14:00-17:00</td><td><span class="stat b">4</span></td><td><span class="stat b">2</span></td><td>单独配置</td><td><span style="color:var(--admin);cursor:pointer">编辑</span></td></tr>
+              <tr><td>李师傅</td><td>中级</td><td>全天</td><td>3</td><td>1</td><td>继承默认</td><td><span style="color:var(--admin);cursor:pointer">覆盖</span></td></tr>
+              <tr><td>王师傅</td><td>初级</td><td>全天</td><td><span class="stat w">2</span></td><td>1</td><td>单独配置</td><td><span style="color:var(--admin);cursor:pointer">编辑</span></td></tr>
+            </table>
+            <div class="mini" style="margin-top:6px">提示：初级师傅相邻上限下调为 2，防止新人工单过载；同师傅多时段可在「编辑」抽屉中批量设置。</div>
+          </div>
+
+          <div class="chart">
+            <div class="ct">编辑抽屉 · 张师傅容量（按时段设置）</div>
+            <table class="tbl">
+              <tr><th>时间段</th><th>相邻上限</th><th>非相邻上限</th><th>是否启用</th></tr>
+              <tr><td>09:00-12:00</td><td><span class="stat b">4</span></td><td><span class="stat b">2</span></td><td><span class="stat">启用</span></td></tr>
+              <tr><td>14:00-17:00</td><td><span class="stat b">4</span></td><td><span class="stat b">2</span></td><td><span class="stat">启用</span></td></tr>
+              <tr><td>18:00-21:00</td><td><span class="stat w">3</span></td><td>1</td><td><span class="stat">启用</span></td></tr>
+            </table>
+            <div class="row" style="margin-top:10px;justify-content:flex-end">
+              <div class="btn" style="background:#e2e8f0;color:#334155">取消</div>
+              <div class="btn">保存配置</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin:16px 0 8px;font-size:14px">④ 配置项与算法映射</h4>
+    <table class="inv">
+      <tr><th>配置项</th><th>取值说明</th><th>对应算法 / 数据</th></tr>
+      <tr><td>相邻小区 / 时段上限</td><td>整数，默认 3-4；可逐师傅下调（如初级 2）</td><td><code>CapacityPolicy.ADJ_MAX</code> / <code>worker_capacity.adj_max</code></td></tr>
+      <tr><td>非相邻小区 / 时段上限</td><td>整数，默认 1-2；可逐师傅调整</td><td><code>CapacityPolicy.NONADJ_MAX</code> / <code>worker_capacity.nonadj_max</code></td></tr>
+      <tr><td>每日时段定义</td><td>默认 3 段：09:00-12:00 / 14:00-17:00 / 18:00-21:00，可配置</td><td>派单分组键 <code>timeSlot</code></td></tr>
+      <tr><td>技能等级系数</td><td>高级=1.0、中级=0.85、初级=0.6，乘到上限做保护</td><td>写入 <code>worker_capacity</code> 作为最终上限</td></tr>
+      <tr><td>配置生效范围</td><td>全局默认 → 单师傅覆盖（覆盖优先）</td><td><code>DispatchService</code> 读取时按师傅取 override，否则取默认</td></tr>
+    </table>
+    <div class="note">优先级：<b>单师傅单独配置 &gt; 全局默认</b>。任一师傅某时段「相邻已派 + 待派」达到其 <code>adj_max</code>（或 <code>nonadj_max</code>）后，该时段该师傅即触发<b>超容拦截</b>，系统建议改派至同簇其他师傅或增派。配置变更实时生效，下一轮派单即采用新上限。</div>
+
+  </div>
+</section>
+
+<!-- ============ 五、功能页面清单 ============ -->
+<section id="inventory">
+  <div class="wrap">
+    <h2><span class="tag">05</span>功能页面清单总表</h2>
+    <p class="lead">汇总两端小程序与 PC 后台的全部页面/模块，含建议路由与核心功能，便于后续排期与代码骨架生成。</p>
+
+    <h3><span class="badge b-client">客户端</span> 微信小程序（约 20 页）</h3>
+    <table class="inv">
+      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th></tr>
+      <tr><td>首页</td><td><code>pages/index</code></td><td>套餐推荐、快捷入口、订单进度、Banner</td></tr>
+      <tr><td>套餐列表</td><td><code>pages/package/list</code></td><td>套餐筛选、分类（家庭/企业）、对比</td></tr>
+      <tr><td>套餐详情</td><td><code>pages/package/detail</code></td><td>资费、带宽、合约、办理须知</td></tr>
+      <tr><td>下单确认</td><td><code>pages/order/confirm</code></td><td>地址、联系人、预约时间、实名、支付</td></tr>
+      <tr><td>订单列表</td><td><code>pages/order/list</code></td><td>全部/进行中/已完成、状态跟踪</td></tr>
+      <tr><td>订单详情</td><td><code>pages/order/detail</code></td><td>进度时间轴、安装师傅信息、续费</td></tr>
+      <tr><td>安装预约</td><td><code>pages/install/appoint</code></td><td>改约时间、师傅联系</td></tr>
+      <tr><td>续费缴费</td><td><code>pages/pay/renew</code></td><td>账单、微信支付、电子发票</td></tr>
+      <tr><td>故障报修</td><td><code>pages/repair</code></td><td>报修表单、进度查询</td></tr>
+      <tr><td>个人中心</td><td><code>pages/profile</code></td><td>资料、实名、优惠券、客服</td></tr>
+      <tr><td>可安装小区查询</td><td><code>pages/community/query</code></td><td>输入小区名查询是否可上门安装，返回可装状态/端口余量/可办套餐，支持需求登记与热门小区</td></tr>
+      <tr><td>服务聚合页</td><td><code>pages/service</code></td><td>业务类型统一入口：新装/移机/续费/提速/报障/智慧家庭/自助</td></tr>
+      <tr><td>宽带移机</td><td><code>pages/move</code></td><td>同址/跨址移机，地址校验、改约、原设备回退</td></tr>
+      <tr><td>续费 / 提速</td><td><code>pages/upgrade</code></td><td>续约原套餐、升级变更、提速包加购</td></tr>
+      <tr><td>融合套餐详情（增强）</td><td><code>pages/package/detail</code></td><td>套餐组成（宽带+手机+IPTV+副卡）、合约期、调测费、设备租赁</td></tr>
+      <tr><td>智慧家庭增值</td><td><code>pages/smart</code></td><td>FTTR/全屋WiFi/看家/家庭云/电视会员 加装与续费</td></tr>
+      <tr><td>自助服务</td><td><code>pages/self</code></td><td>在线测速、账单查询、电子发票、密码重置、设备解绑</td></tr>
+      <tr><td>评价与投诉</td><td><code>pages/review</code></td><td>服务评分、评价标签、投诉提交与进度</td></tr>
+      <tr><td>套餐升级</td><td><code>pages/package/upgrade</code></td><td>当前套餐→目标套餐升档（带宽/增值服务），补差价实时算、生效方式（立即/次月），合约剩余折算一次性补差</td></tr>
+      <tr><td>流量监控</td><td><code>pages/traffic</code></td><td>融合套餐手机流量（已用/剩余/日趋势）、宽带使用时长与峰值、超额预警、流量包加购</td></tr>
+    </table>
+
+    <h3><span class="badge b-install">安装师傅端</span> 微信小程序（约 6 页）</h3>
+    <table class="inv">
+      <tr><th>页面</th><th>路由/文件</th><th>核心功能</th></tr>
+      <tr><td>工单首页</td><td><code>pages/worker/home</code></td><td>待上门/施工/完工统计、工单列表</td></tr>
+      <tr><td>工单详情</td><td><code>pages/worker/detail</code></td><td>客户、地址导航、套餐、操作</td></tr>
+      <tr><td>上门签到</td><td><code>pages/worker/checkin</code></td><td>定位签到、到场时间</td></tr>
+      <tr><td>施工上报</td><td><code>pages/worker/report</code></td><td>照片、光猫激活、测速</td></tr>
+      <tr><td>完工验收</td><td><code>pages/worker/complete</code></td><td>客户签名、完工提交</td></tr>
+      <tr><td>个人中心</td><td><code>pages/worker/profile</code></td><td>资料、薪资、退出</td></tr>
+    </table>
+
+    <h3><span class="badge b-admin">PC 后端管理</span> web-admin（Vue3 · 约 14 模块）</h3>
+    <table class="inv">
+      <tr><th>模块</th><th>路由</th><th>核心功能</th></tr>
+      <tr><td>数据看板</td><td><code>/dashboard</code></td><td>KPI、订单趋势、待办</td></tr>
+      <tr><td>订单管理</td><td><code>/order</code></td><td>列表、筛选、详情、派单、导出</td></tr>
+      <tr><td>客户管理</td><td><code>/customer</code></td><td>客户档案、标签、来源</td></tr>
+      <tr><td>套餐管理</td><td><code>/package</code> <code>/package/edit</code></td><td>套餐 CRUD、上下架、主图/轮播图上传、<b>动态可选参数</b>（带宽/合约期/增值服务，支持单选·多选·可增删参数组）、资费配置、详情图文</td></tr>
+      <tr><td>小区覆盖管理</td><td><code>/community</code> <code>/community/edit</code></td><td>可安装小区列表、可安装状态、端口余量、覆盖运营商（多选）、区域管理、批量 Excel 导入</td></tr>
+      <tr><td>安装工单</td><td><code>/workorder</code> <code>/workorder/capacity</code></td><td>工单池、派单、师傅负载；<b>派单调度规则</b>：相邻小区同时间段 3-4 单、非相邻 1-2 单，按相邻性聚类合并派单，分时段容量看板防超派；<b>师傅容量配置（worker_capacity）</b>：全局默认 + 每师傅/每时段上限覆盖、技能等级系数、实时生效</td></tr>
+      <tr><td>销售管理</td><td><code>/sales</code></td><td>销售员、业绩、提成（承接原销售端功能）</td></tr>
+      <tr><td>财务管理</td><td><code>/finance</code></td><td>账单、对账、发票、报表</td></tr>
+      <tr><td>报修管理</td><td><code>/repair</code></td><td>报修工单、处理、闭环</td></tr>
+      <tr><td><b>权限管理</b></td><td><code>/system/user</code> <code>/system/role</code> <code>/system/menu</code> <code>/system/log</code></td><td>用户管理、角色管理、菜单权限树、操作日志、数据字典（RBAC）</td></tr>
+      <tr><td><b>性能监控</b></td><td><code>/monitor</code></td><td>应用概览、接口监控、慢接口 TOP、JVM/DB、服务节点、告警规则</td></tr>
+      <tr><td>数据统计</td><td><code>/report</code></td><td>多维报表、导出</td></tr>
+      <tr><td><b>流量监控</b></td><td><code>/traffic</code></td><td>客户流量总览、手机流量/宽带用量明细、日趋势、超额阈值告警、流量包配置（参考运营商流量查询与超出提醒）</td></tr>
+      <tr><td><b>套餐升级管理</b></td><td><code>/package/upgrade</code></td><td>套餐升档工单、补差规则（按剩余合约天数比例）、生效策略、进度跟踪（参考运营商套餐变更）</td></tr>
+    </table>
+
+    <div class="note">
+      <b>下一步建议：</b>① 确认各端页面优先级与本期范围；② 输出 DB Schema（用户/角色/权限/订单/套餐/工单等表，权限表采用 RBAC 五表模型）；③ 后端 RBAC（Spring Security 6 + JWT）与前端路由守卫、权限指令对齐；④ 接入监控（如 Spring Boot Actuator + Prometheus + Grafana，或轻量自建看板）；⑤ 按「角色视觉主题」生成小程序与 web-admin 代码骨架。需要我继续推进哪一步？
+    </div>
+  </div>
+</section>
+
+<!-- ============ 六、参考运营商实践的功能细化 ============ -->
+<section id="refine">
+  <div class="wrap">
+    <h2><span class="tag">06</span>参考中国电信 / 中国移动实践 · 功能细化</h2>
+    <p class="lead">结合中国电信（天翼宽带 /「美好家」融合 / FTTR + 家庭云 + 看家）与中国移动（「和家庭」融合 / 承诺消费送宽带 / 爱家光网 + 移动看家 + 魔百和）的真实业务实践，对现有功能做进一步细化：扩展业务类型、增强套餐模型、落地装维 SLA 与赔付、补充智慧家庭增值与客户分层。</p>
+
+    <h3>① 运营商实践对比与借鉴</h3>
+    <table class="inv">
+      <tr><th>维度</th><th>中国电信实践</th><th>中国移动实践</th><th>本系统对应细化</th></tr>
+      <tr><td>套餐形态</td><td>「美好家」融合（宽带+手机+IPTV+副卡）；单宽带包年</td><td>「和家庭」融合；承诺消费送宽带（免费宽带）</td><td>融合套餐 + 单宽带 双形态；动态参数含手机/副卡/IPTV</td></tr>
+      <tr><td>速率档位</td><td>100M~2000M（2000M 需地址支持）</td><td>20M~1000M，承诺消费达标赠送</td><td>套餐参数支持多速率 + 地址能力校验（对接小区覆盖）</td></tr>
+      <tr><td>合约期</td><td>12/24/36 月（FTTR 常 36 月）</td><td>多为 24 月，提前解约违约金（剩余 30%）</td><td>合约期配置 + 违约金规则 + 解约校验</td></tr>
+      <tr><td>安装 SLA</td><td>城区「当日装当日修」（16 点前受理当日竣工）</td><td>城镇 2 日 / 农村更长；高品质客户更短</td><td>装维 SLA 与时段承诺（当日装 / 预约日）</td></tr>
+      <tr><td>超时赔付</td><td>慢必赔（超时赔流量）、断网无忧</td><td>装机/修复超时赔 20 元、网速不达标赔 20 元</td><td>赔付规则引擎 + 慢必赔 / 断网无忧统计</td></tr>
+      <tr><td>智慧家庭</td><td>FTTR + 家庭云 + 看家监控</td><td>爱家光网 / 全屋 WiFi + 移动看家 + 魔百和 IPTV</td><td>增值服务：FTTR / 全屋WiFi / 看家 / 家庭云 / 电视会员</td></tr>
+      <tr><td>装维透明</td><td>1 次上门 6 项服务（组网设计/检测/调测/线路整理/保养/质量报告）+ 装机测速报告</td><td>装维全流程自助查询、慢必赔主动补偿</td><td>师傅端「服务确认+测速报告」；客户端进度透明</td></tr>
+      <tr><td>评价与投诉</td><td>一次使用一次评价；投诉满意率考核</td><td>心级服务承诺、投诉闭环</td><td>评价与投诉闭环（评分+投诉工单+进度）</td></tr>
+      <tr><td>办理渠道</td><td>电信 APP / 网厅 / 营业厅 / 10000</td><td>移动 APP / 10086 小程序 / 营业厅 / 10086</td><td>多渠道：小程序 + PC 后台 +（线下营业厅预留对接）</td></tr>
+    </table>
+
+    <h3>② 功能细化总览（新增 / 增强）</h3>
+
+    <h4 style="margin:12px 0 6px;font-size:14px">客户端（微信小程序）· 新增 / 增强页面</h4>
+    <table class="inv">
+      <tr><th>页面</th><th>路由</th><th>核心功能（参考运营实践）</th></tr>
+      <tr><td>服务聚合页</td><td><code>pages/service</code></td><td>业务类型统一入口：新装宽带 / 宽带移机 / 续费 / 提速 / 故障报修 / 智慧家庭 / 自助服务</td></tr>
+      <tr><td>宽带移机</td><td><code>pages/move</code></td><td>同址/跨址移机，地址可装校验、改约时间、原设备回退</td></tr>
+      <tr><td>续费 / 提速</td><td><code>pages/upgrade</code></td><td>续约原套餐、升级变更套餐、提速包加购（参考「宽带续约/升级」）</td></tr>
+      <tr><td>融合套餐详情（增强）</td><td><code>pages/package/detail</code></td><td>套餐组成（宽带+手机流量+通话+IPTV+副卡）、合约期、调测费、设备租赁；动态参数已支持</td></tr>
+      <tr><td>智慧家庭增值</td><td><code>pages/smart</code></td><td>FTTR / 全屋WiFi / 看家监控 / 家庭云 / 电视会员 加装与续费（参考电信/移动智慧家庭）</td></tr>
+      <tr><td>自助服务</td><td><code>pages/self</code></td><td>在线测速、账单查询、电子发票、密码重置、设备解绑（参考装维透明化自助）</td></tr>
+      <tr><td>评价与投诉</td><td><code>pages/review</code></td><td>服务评分、评价标签、投诉提交与进度查询（参考一次使用一次评价）</td></tr>
+      <tr><td>套餐升级</td><td><code>pages/package/upgrade</code></td><td>升档（带宽/增值服务）、补差价、生效方式（参考运营商套餐变更）</td></tr>
+      <tr><td>流量监控</td><td><code>pages/traffic</code></td><td>手机流量/宽带用量、超额预警、流量包加购（参考运营商流量查询）</td></tr>
+    </table>
+
+    <h4 style="margin:14px 0 6px;font-size:14px">安装师傅端（微信小程序）· 增强</h4>
+    <table class="inv">
+      <tr><th>页面</th><th>路由</th><th>核心功能</th></tr>
+      <tr><td>服务确认 + 测速报告</td><td><code>pages/worker/confirm</code></td><td>6 项服务勾选（组网设计/检测/调测/线路整理/保养/质量报告）、装机测速结果、客户签名</td></tr>
+      <tr><td>星级评价查看</td><td><code>pages/worker/profile</code></td><td>展示客户评分与标签，激励高星级师傅（参考专属客服/高星服务）</td></tr>
+    </table>
+
+    <h4 style="margin:14px 0 6px;font-size:14px">PC 后台（web-admin）· 新增模块</h4>
+    <table class="inv">
+      <tr><th>模块</th><th>路由</th><th>核心功能</th></tr>
+      <tr><td>装维 SLA 与赔付</td><td><code>/sla</code></td><td>SLA 达标率、当日装/当日修统计、慢必赔单、断网无忧统计、赔付规则配置（参考电信/移动 SLA 承诺）</td></tr>
+      <tr><td>投诉与评价管理</td><td><code>/review</code></td><td>投诉工单受理、处理闭环、满意度回访、评价分析报表</td></tr>
+      <tr><td>客户分层与权益</td><td><code>/customer</code>（扩展）</td><td>五星/千兆用户标签、专属客服分配、权益与合约状态（参考高价值客户运营）</td></tr>
+      <tr><td>融合套餐与增值管理</td><td><code>/package</code>（扩展）</td><td>融合套餐组成（宽带+手机+IPTV+副卡）、增值服务参数、设备库存与租用</td></tr>
+    </table>
+
+    <h3>③ 关键新增线框</h3>
+    <div class="pages-grid">
+
+      <div class="phone client">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">宽带服务</div>
+          <div class="scr-body">
+            <div class="blk tone">📍 当前地址：保利花园（可安装）</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <div class="blk" style="text-align:center"><div style="font-size:20px">📡</div><div class="mini">新装宽带</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">🚚</div><div class="mini">宽带移机</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">💳</div><div class="mini">续费</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">⚡</div><div class="mini">提速</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">🔧</div><div class="mini">故障报修</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">🏠</div><div class="mini">智慧家庭</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">🛠</div><div class="mini">自助服务</div></div>
+              <div class="blk" style="text-align:center"><div style="font-size:20px">⭐</div><div class="mini">评价投诉</div></div>
+            </div>
+            <div class="blk"><div class="mini">📋 我的工单 · 安装中（预计今日上门）</div></div>
+          </div>
+          <div class="scr-tab">
+            <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone client">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">套餐详情</div>
+          <div class="scr-body">
+            <div class="blk tone"><b>1000M 融合「美好家」</b><div class="mini">¥129/月 · 合约 24 个月</div></div>
+            <div class="blk"><div class="mini">套餐组成</div>
+              <div style="font-size:12px;line-height:1.7">📶 宽带 1000M<br>📱 手机 60G + 1000 分钟<br>📺 IPTV 高清电视<br>🎫 2 张副卡免月租</div>
+            </div>
+            <div class="blk"><div class="mini">费用与设备</div>
+              <div style="font-size:12px;line-height:1.7">调测费 ¥100 · 光猫免费租用<br>FTTR 全屋光纤 可选 +¥30/月<br>提前解约：剩余 30% 违约金</div>
+            </div>
+            <div class="blk"><span class="pill">带宽</span><span class="pill">副卡</span><span class="pill">IPTV</span></div>
+            <div class="blk tone" style="text-align:center;margin-top:6px">立即办理</div>
+          </div>
+          <div class="scr-tab">
+            <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone install">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">完工确认</div>
+          <div class="scr-body">
+            <div class="blk"><b>工单 #B001 陈先生</b><div class="mini">1000M · 保利花园 1-2-302</div></div>
+            <div class="blk"><div class="mini">六项服务确认</div>
+              <div style="font-size:12px;line-height:1.8">✓ 组网设计 ✓ 上门检测 ✓ 终端调测<br>✓ 线路整理 ✓ 设备保养 ✓ 质量报告</div>
+            </div>
+            <div class="blk"><div class="mini">装机测速</div>
+              <div style="font-size:12px;line-height:1.7">下行 943M / 上行 102M<br>达标（≥签约 80%）✓</div>
+            </div>
+            <div class="blk"><div class="mini">客户签名：＿＿＿＿＿</div></div>
+            <div class="blk tone" style="text-align:center;margin-top:6px">提交完工</div>
+          </div>
+          <div class="scr-tab">
+            <div><b>📋</b>工单</div><div><b>🛠</b>任务</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone client">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">评价与投诉</div>
+          <div class="scr-body">
+            <div class="blk"><b>本次安装服务</b><div style="font-size:18px;color:#f59e0b">⭐⭐⭐⭐⭐</div></div>
+            <div class="blk"><span class="pill">准时</span><span class="pill">专业</span><span class="pill">速度快</span></div>
+            <div class="blk"><div class="mini">如有问题，可提交投诉</div></div>
+            <div class="blk"><div class="mini">📝 投诉描述 / 上传照片 ▸</div></div>
+            <div class="blk"><div class="mini">📊 我的投诉进度：处理中</div></div>
+          </div>
+          <div class="scr-tab">
+            <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pc" style="margin-top:14px">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /sla</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">装维管理</div>
+          <div class="m"><span class="ic"></span>工单池</div>
+          <div class="m"><span class="ic"></span>派单调度</div>
+          <div class="m"><span class="ic"></span>容量配置</div>
+          <div class="m"><span class="ic"></span>调度规则</div>
+          <div class="m active"><span class="ic"></span>装维 SLA</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>装维 SLA 与赔付</h4><div class="btn">赔付规则</div></div>
+          <div class="metric-grid">
+            <div class="metric"><div class="v ok">98.3%</div><div class="l">SLA 达标率</div></div>
+            <div class="metric"><div class="v">1,204</div><div class="l">当日装完成</div></div>
+            <div class="metric"><div class="v warn">17</div><div class="l">慢必赔单</div></div>
+            <div class="metric"><div class="v">5</div><div class="l">断网无忧</div></div>
+            <div class="metric"><div class="v">42min</div><div class="l">平均响应</div></div>
+            <div class="metric"><div class="v">¥340</div><div class="l">本月赔付</div></div>
+          </div>
+          <div class="chart">
+            <div class="ct">慢必赔 / 断网无忧 工单</div>
+            <table class="tbl">
+              <tr><th>工单</th><th>类型</th><th>超时</th><th>赔付</th><th>状态</th></tr>
+              <tr><td>#B0421</td><td>装机超时</td><td>3.2h</td><td>20G 流量</td><td><span class="stat">已赔付</span></td></tr>
+              <tr><td>#B0433</td><td>网速不达标</td><td>—</td><td>20 元话费</td><td><span class="stat w">待核实</span></td></tr>
+              <tr><td>#B0450</td><td>断网无忧</td><td>2.5h</td><td>20G 流量</td><td><span class="stat">已赔付</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>④ 与现有设计的对齐</h3>
+    <div class="note">
+      - <b>套餐管理（/package）</b>：在「动态可选参数」基础上，增加<b>融合套餐组成</b>（宽带速率/手机流量/通话/副卡/IPTV）与<b>增值服务</b>（FTTR/全屋WiFi/看家/家庭云）参数组，支持单宽带与融合双形态。<br>
+      - <b>安装工单（/workorder）</b>：派单调度规则与 capacity 容量配置已具备；新增「装维 SLA 与赔付（/sla）」承接时效考核与慢必赔。<br>
+      - <b>报修管理（/repair）</b>：扩展为「投诉与评价管理（/review）」闭环，含评价分析与满意度回访。<br>
+      - <b>客户管理（/customer）</b>：扩展客户分层（五星/千兆）、合约与权益标签，支撑差异化服务。<br>
+      - <b>小区覆盖管理（/community）</b>：地址能力校验（如 2000M 需地址支持）已在可装性判定中复用。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 七、套餐升级与流量监控 ============ -->
+<section id="upgrade-traffic">
+  <div class="wrap">
+    <h2><span class="tag">07</span>套餐升级与流量监控</h2>
+    <p class="lead">参考中国电信 / 中国移动的「套餐变更（升档/降档/换套餐）」与「流量查询 / 超出提醒 / 流量包加购」实践，新增两类能力：① 套餐升级（客户端自助升档 + PC 升级工单管理）；② 流量监控（融合套餐手机流量 + 宽带用量可视化 + 超额预警）。</p>
+
+    <h3>① 运营商实践借鉴</h3>
+    <table class="inv">
+      <tr><th>能力</th><th>电信 / 移动实践</th><th>本系统细化</th></tr>
+      <tr><td>套餐变更</td><td>APP 内「套餐变更」：升档/降档/换套餐，可选当月或次月生效，补差价；宽带提速包（按月/按次）</td><td>客户端 <code>pages/package/upgrade</code> 自助升档（带宽/增值服务），补差价实时计算；PC <code>/package/upgrade</code> 升档工单与补差规则</td></tr>
+      <tr><td>流量查询</td><td>手机套餐流量剩余/已用/日租提醒；宽带侧更多关注速率与稳定性</td><td>客户端 <code>pages/traffic</code> 融合套餐手机流量（已用/剩余/日趋势）+ 宽带使用时长与峰值</td></tr>
+      <tr><td>超出提醒</td><td>流量用尽前短信/APP 预警，可一键加购流量包</td><td>超额预警 + 流量包加购入口；PC <code>/traffic</code> 阈值告警规则</td></tr>
+    </table>
+
+    <h3>② 客户端线框（微信小程序）</h3>
+    <div class="pages-grid">
+
+      <!-- 套餐升级 -->
+      <div class="phone client">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">套餐升级</div>
+          <div class="scr-body">
+            <div class="blk tone"><b>当前套餐：500M 融合</b><div class="mini">¥99/月 · 合约剩 18 个月</div></div>
+            <div class="blk"><div class="mini">带宽升级（单选）</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                <span class="opt" style="border-color:#cbd5e1;color:#475569">维持 500M</span>
+                <span class="opt" style="background:#2563eb;color:#fff">1000M +¥40/月</span>
+                <span class="opt" style="border-color:#cbd5e1;color:#475569">2000M +¥90/月</span>
+              </div>
+            </div>
+            <div class="blk"><div class="mini">增值服务加购（多选）</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                <span class="opt" style="background:#2563eb;color:#fff">FTTR +¥30</span>
+                <span class="opt" style="border-color:#cbd5e1;color:#475569">全屋WiFi +¥15</span>
+                <span class="opt" style="border-color:#cbd5e1;color:#475569">看家 +¥10</span>
+              </div>
+            </div>
+            <div class="blk"><div class="mini">生效方式</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="opt" style="background:#2563eb;color:#fff">立即生效</span>
+                <span class="opt" style="border-color:#cbd5e1;color:#475569">次月生效</span>
+              </div>
+            </div>
+            <div class="blk"><div class="mini">费用预览</div>
+              <div style="font-size:12px;line-height:1.7">原 ¥99 + 补差 ¥40 = <b>¥139/月</b><br>合约剩余折算一次性补差 ¥720</div>
+            </div>
+            <div class="blk tone" style="text-align:center;margin-top:6px">提交升级申请</div>
+          </div>
+          <div class="scr-tab">
+            <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 流量监控 -->
+      <div class="phone client">
+        <div class="notch"><i></i></div>
+        <div class="screen">
+          <div class="scr-top">流量监控</div>
+          <div class="scr-body">
+            <div class="blk tone"><b>1000M 融合 · 含手机 60G</b><div class="mini">本月 9 月</div></div>
+            <div class="blk">
+              <div class="mini">手机流量</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin:4px 0"><span>已用 48G / 60G</span><span>剩余 <b>12G</b></span></div>
+              <div class="capbar"><span style="width:80%"></span></div>
+              <div class="mini" style="color:#16a34a">日环比 +0.8G · 预计本月不超</div>
+            </div>
+            <div class="blk"><div class="mini">宽带使用</div>
+              <div style="font-size:12px;line-height:1.6">本月上网时长 286h · 峰值速率 943M</div>
+            </div>
+            <div class="blk"><div class="mini">近 7 日流量趋势</div>
+              <div style="display:flex;align-items:flex-end;gap:5px;height:46px;margin-top:4px">
+                <i style="flex:1;background:#2563eb;height:40%"></i>
+                <i style="flex:1;background:#2563eb;height:55%"></i>
+                <i style="flex:1;background:#2563eb;height:48%"></i>
+                <i style="flex:1;background:#2563eb;height:70%"></i>
+                <i style="flex:1;background:#2563eb;height:62%"></i>
+                <i style="flex:1;background:#2563eb;height:85%"></i>
+                <i style="flex:1;background:#2563eb;height:73%"></i>
+              </div>
+            </div>
+            <div class="blk"><div style="display:flex;gap:6px">
+              <span class="opt" style="border-color:#2563eb;color:#2563eb">+10G ¥10</span>
+              <span class="opt" style="border-color:#2563eb;color:#2563eb">+30G ¥25</span>
+            </div></div>
+          </div>
+          <div class="scr-tab">
+            <div><b>🏠</b>首页</div><div><b>📦</b>套餐</div><div><b>📋</b>订单</div><div><b>👤</b>我的</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <h3>③ PC 后台线框（web-admin）</h3>
+    <div class="pc" style="margin-top:12px">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /traffic</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">运营后台</div>
+          <div class="m"><span class="ic"></span>数据看板</div>
+          <div class="m"><span class="ic"></span>订单管理</div>
+          <div class="m"><span class="ic"></span>套餐管理</div>
+          <div class="m active"><span class="ic"></span>流量监控</div>
+          <div class="m"><span class="ic"></span>套餐升级</div>
+          <div class="m"><span class="ic"></span>客户管理</div>
+          <div class="m"><span class="ic"></span>权限管理</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>流量监控</h4><div class="btn">阈值规则</div></div>
+          <div class="metric-grid">
+            <div class="metric"><div class="v">12,860</div><div class="l">活跃客户</div></div>
+            <div class="metric"><div class="v">4.2 PB</div><div class="l">本月流量池</div></div>
+            <div class="metric"><div class="v warn">86</div><div class="l">超额客户</div></div>
+            <div class="metric"><div class="v">12</div><div class="l">告警中</div></div>
+          </div>
+          <div class="chart">
+            <div class="ct">客户用量明细（Top）</div>
+            <table class="tbl">
+              <tr><th>客户</th><th>套餐</th><th>本月用量</th><th>剩余</th><th>状态</th></tr>
+              <tr><td>陈先生</td><td>1000M 融合 60G</td><td>58G</td><td>2G</td><td><span class="stat r">预警</span></td></tr>
+              <tr><td>李女士</td><td>500M 融合 40G</td><td>22G</td><td>18G</td><td><span class="stat">正常</span></td></tr>
+              <tr><td>王先生</td><td>2000M 融合 100G</td><td>61G</td><td>39G</td><td><span class="stat">正常</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pc" style="margin-top:14px">
+      <div class="pc-bar">
+        <div class="dot3"><i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#22c55e"></i></div>
+        <div class="url">broadband-admin /package/upgrade</div>
+      </div>
+      <div class="pc-shell">
+        <div class="pc-side">
+          <div class="logo">运营后台</div>
+          <div class="m"><span class="ic"></span>套餐管理</div>
+          <div class="m active"><span class="ic"></span>套餐升级</div>
+          <div class="m"><span class="ic"></span>升级配置</div>
+          <div class="m"><span class="ic"></span>进度跟踪</div>
+        </div>
+        <div class="pc-main">
+          <div class="ph"><h4>套餐升级管理</h4><div class="btn">+ 新建</div></div>
+          <table class="tbl">
+            <tr><th>客户</th><th>原套餐→新套餐</th><th>补差</th><th>生效</th><th>状态</th></tr>
+            <tr><td>陈先生</td><td>500M → 1000M</td><td>¥720</td><td>立即</td><td><span class="stat w">待审核</span></td></tr>
+            <tr><td>李女士</td><td>500M → 2000M +FTTR</td><td>¥1,620</td><td>次月</td><td><span class="stat">已生效</span></td></tr>
+          </table>
+          <div class="note">补差规则：一次性补差 = 月差 ×（剩余合约天数 ÷ 30），按天折算；降档/换套餐同口径。生效策略支持「立即/次月」，次月生效于账单日切换。</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>④ 与现有设计对齐 & 数据来源</h3>
+    <div class="note">
+      - <b>套餐管理（/package）</b>：升级目标复用「动态可选参数」（带宽/增值服务），补差金额由 <code>PackageUpgradeEngine</code> 计算（月差 + 合约剩余折算）。<br>
+      - <b>融合套餐（/package/detail）</b>：流量监控读取其「手机流量」组成项，作为流量池口径。<br>
+      - <b>小区覆盖（/community）</b>：升 2000M 时复用地址能力校验（需地址支持 2000M）。<br>
+      - <b>后端接口</b>：<code>GET /api/package/upgrade-options</code>（升档选项+补差预览）、<code>POST /api/package/upgrade</code>（提交升档）、<code>GET /api/traffic/usage</code>（客户流量用量）。详见 <code>backend/PKG_TRAFFIC.md</code>。
+    </div>
+  </div>
+</section>
+
+<div class="foot">宽带业务管理系统 · 功能页面设计稿 v1.9 · 设计稿仅供评审，落地以最终实现为准</div>
+
+</body>
+
+</body>
+</html>

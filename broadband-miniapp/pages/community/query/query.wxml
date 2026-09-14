@@ -1,0 +1,48 @@
+<!-- pages/community/query/query.wxml -->
+<view class="container">
+
+  <!-- 搜索区 -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="输入小区名，如 南山科技园" value="{{keyword}}"
+           bindinput="onInput" confirm-type="search" bindconfirm="onSearch" />
+    <view class="search-btn" bindtap="onSearch">查询</view>
+  </view>
+
+  <!-- 热门小区 -->
+  <view class="hot-row">
+    <text class="hot-label">热门：</text>
+    <view class="hot-tag" wx:for="{{hot}}" wx:key="*this" data-name="{{item}}" bindtap="onHot">{{item}}</view>
+  </view>
+
+  <!-- 查询结果 -->
+  <view class="card result" wx:if="{{result}}">
+    <view class="res-head">
+      <view class="res-name">{{result.name}}</view>
+      <view class="badge {{result.portStatus === 'AVAILABLE' ? 'ok' : (result.portStatus === 'TIGHT' ? 'warn' : 'bad')}}">
+        {{result.portStatus === 'AVAILABLE' ? '✓ 可安装' : (result.portStatus === 'TIGHT' ? '⚠ 端口紧张' : '✕ 暂未覆盖')}}
+      </view>
+    </view>
+    <view class="res-msg">{{result.message}}</view>
+
+    <view class="res-meta" wx:if="{{result.installable}}">
+      <text>片区：{{result.region || '—'}}</text>
+      <text>端口余量：{{result.portRemaining}}</text>
+    </view>
+
+    <!-- 可办套餐 -->
+    <view class="pkg-list" wx:if="{{result.installable && result.packages.length}}">
+      <view class="pkg-item" wx:for="{{result.packages}}" wx:key="id"
+            data-id="{{item.id}}" bindtap="goPackage">
+        <text>{{item.name}}</text>
+        <text class="arrow">立即办理 ›</text>
+      </view>
+    </view>
+
+    <!-- 未覆盖：登记需求 -->
+    <view class="register" wx:if="{{!result.installable}}" bindtap="register">
+      该小区暂未覆盖，点此登记安装需求，覆盖后第一时间通知您
+    </view>
+  </view>
+
+  <view class="card muted" wx:if="{{loading}}">查询中…</view>
+</view>

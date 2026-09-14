@@ -1,0 +1,80 @@
+<!-- pages/package/detail/detail.wxml -->
+<view class="container" wx:if="{{pkg}}">
+
+  <!-- 主图 + 轮播图（后端返回 url，mock 返回 color 兜底） -->
+  <swiper class="swiper" indicator-dots="{{true}}" autoplay="{{true}}" interval="3500"
+          bindchange="onSwiperChange">
+    <swiper-item wx:for="{{pkg.images}}" wx:key="index">
+      <image wx:if="{{item.url}}" class="slide-img" src="{{item.url}}" mode="aspectFill" />
+      <view wx:else class="slide" style="background:{{item.color}}">
+        <text class="slide-label">{{item.label}}</text>
+      </view>
+    </swiper-item>
+  </swiper>
+  <view class="swiper-idx">{{swiperIndex + 1}}/{{pkg.images.length}}</view>
+
+  <!-- 价格与标题 -->
+  <view class="card">
+    <view class="pkg-name">{{pkg.name}}</view>
+    <view class="price-row">
+      <text class="price">¥{{totalFee}}</text>
+      <text class="price-unit">/月</text>
+      <text class="price-old" wx:if="{{pkg.originalFee}}">原价¥{{pkg.originalFee}}</text>
+    </view>
+    <view class="muted">含宽带+手机+IPTV+副卡，融合一站式</view>
+  </view>
+
+  <!-- 套餐组成（融合） -->
+  <view class="card">
+    <view class="card-title">套餐组成</view>
+    <view class="converge" wx:for="{{pkg.converge}}" wx:key="label">
+      <text class="c-label">{{item.label}}</text>
+      <text class="c-desc">{{item.desc}}</text>
+    </view>
+  </view>
+
+  <!-- 动态可选参数 -->
+  <view class="card" wx:for="{{pkg.params}}" wx:for-item="g" wx:key="key">
+    <view class="card-title">
+      {{g.name}}
+      <text class="tag" wx:if="{{g.required}}">必选</text>
+      <text class="tag opt" wx:else>可选</text>
+    </view>
+
+    <!-- 单选 -->
+    <view wx:if="{{g.type === 'single'}}" class="opts">
+      <view wx:for="{{g.options}}" wx:for-item="o" wx:key="value"
+            class="opt {{selected[g.key] === o.value ? 'on' : ''}}"
+            data-group="{{g.key}}" data-value="{{o.value}}" bindtap="onSelectSingle">
+        {{o.value}}
+        <text wx:if="{{o.extraFee > 0}}" class="fee">+{{o.extraFee}}元/月</text>
+      </view>
+    </view>
+
+    <!-- 多选 -->
+    <view wx:else class="opts">
+      <view wx:for="{{g.options}}" wx:for-item="o" wx:key="value"
+            class="opt {{selected[g.key].indexOf(o.value) >= 0 ? 'on' : ''}}"
+            data-group="{{g.key}}" data-value="{{o.value}}" bindtap="onToggleMulti">
+        {{o.value}}
+        <text wx:if="{{o.extraFee > 0}}" class="fee">+{{o.extraFee}}元/月</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 费用说明 -->
+  <view class="card">
+    <view class="card-title">费用说明</view>
+    <view class="muted">· 调测费：¥{{pkg.deposit}}</view>
+    <view class="muted">· 设备租赁：¥{{pkg.deviceRent}}/月</view>
+    <view class="muted">· 违约金：{{pkg.penalty}}</view>
+  </view>
+
+  <view class="card link" bindtap="goCommunity">🔍 先查询能否安装（小区覆盖）</view>
+</view>
+
+<!-- 底部办理栏 -->
+<view class="footer" wx:if="{{pkg}}">
+  <view class="foot-price">¥{{totalFee}}<text class="muted">/月</text></view>
+  <view class="btn-primary foot-btn" bindtap="submit">立即办理</view>
+</view>

@@ -73,10 +73,12 @@ CREATE TABLE IF NOT EXISTS work_order (
   sign_name      VARCHAR(64)           COMMENT '客户签名（完工回填）',
   service_items  VARCHAR(255)          COMMENT '六项服务确认结果（完工回填）',
   complete_time  DATETIME              COMMENT '完工时间',
+  biz_order_id   VARCHAR(32)           COMMENT '关联业务订单 biz_order.id（业务闭环：下单→支付→派单→装机→赔付→评价）',
   PRIMARY KEY (id),
   KEY idx_wo_status_slot (status, time_slot),
   KEY idx_wo_community (community_id),
-  KEY idx_wo_worker (worker_id)
+  KEY idx_wo_worker (worker_id),
+  KEY idx_wo_biz_order (biz_order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='安装工单';
 
 -- ---------------------------------------------------------------------------
@@ -316,6 +318,20 @@ SET @add_carrier := (
 PREPARE stmt_carrier FROM @add_carrier;
 EXECUTE stmt_carrier;
 DEALLOCATE PREPARE stmt_carrier;
+
+-- ---------------------------------------------------------------------------
+-- 20b. 安装工单补列：关联业务订单 biz_order_id（业务闭环追溯用）
+-- ---------------------------------------------------------------------------
+SET @add_wo_biz := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN biz_order_id VARCHAR(32) NULL COMMENT ''关联业务订单 biz_order.id''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'biz_order_id'
+);
+PREPARE stmt_wo_biz FROM @add_wo_biz;
+EXECUTE stmt_wo_biz;
+DEALLOCATE PREPARE stmt_wo_biz;
 
 -- ---------------------------------------------------------------------------
 -- 19. 业务订单（PC 后台 订单管理 / 销售 / 财务 / 看板 数据源）

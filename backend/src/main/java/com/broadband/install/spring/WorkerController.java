@@ -1,5 +1,7 @@
 package com.broadband.install.spring;
 
+import com.broadband.install.model.SlaEnums;
+import com.broadband.install.model.SlaRecord;
 import com.broadband.system.security.WorkerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,6 +42,7 @@ import java.util.Map;
 public class WorkerController {
 
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private SlaServiceApi slaService;
 
     private static final String ORDER_SELECT = """
             SELECT w.id,
@@ -48,7 +51,7 @@ public class WorkerController {
                    c.name          AS community,
                    w.address, w.time_slot AS timeSlot,
                    COALESCE(k.name, '—') AS worker,
-                   w.status, w.cluster_id AS clusterId,
+                   w.status, w.worker_id AS workerId, w.cluster_id AS clusterId,
                    w.adjacent_route AS adjacent,
                    w.down_speed AS downSpeed, w.up_speed AS upSpeed,
                    w.sign_name AS signName, w.complete_time AS completeTime
@@ -297,6 +300,13 @@ public class WorkerController {
                 + "sign_name = ?, service_items = ?, complete_time = NOW() WHERE id = ?",
                 down, up, sign, services, id);
 
+        // 业务闭环：完工自动触发 SLA 评估（时限类 + 速率类），并同步业务订单为 DONE
+        evaluateSlaOnComplete(id);
+        String bizId = jdbc.queryForObject("SELECT biz_order_id FROM work_order WHERE id = ?", String.class, id);
+        if (bizId != null) {
+            jdbc.update("UPDATE biz_order SET status = 'DONE' WHERE id = ?", bizId);
+        }
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
         resp.put("id", id);
@@ -307,6 +317,112 @@ public class WorkerController {
         resp.put("completeTime", jdbc.queryForObject(
                 "SELECT complete_time FROM work_order WHERE id = ?", String.class, id));
         return resp;
+    }
+
+    /**
+     * 开始施工：ASSIGNED -> INSTALLING，并同步业务订单状态。
+     * 入参无；返回 {@code {ok, id, status}}。
+     */
+    @PostMapping("/work-orders/{id}/start")
+    @PreAuthorize("hasAnyRole('WORKER','ADMIN','OPERATOR')")
+    public Map<String, Object> start(@PathVariable String id) {
+        Map<String, Object> order = queryScoped(id);
+        if (order == null) {
+            throw new IllegalArgumentException("工单不存在或无权操作");
+        }
+        if (!"ASSIGNED".equals(order.get("status"))) {
+            throw new IllegalStateException("仅「待上门(ASSIGNED)」工单可开始施工，当前：" + order.get("status"));
+        }
+        jdbc.update("UPDATE work_order SET status = 'INSTALLING' WHERE id = ?", id);
+        String bizId = jdbc.queryForObject("SELECT biz_order_id FROM work_order WHERE id = ?", String.class, id);
+        if (bizId != null) {
+            jdbc.update("UPDATE biz_order SET status = 'INSTALLING' WHERE id = ?", bizId);
+        }
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", id);
+        resp.put("status", "INSTALLING");
+        return resp;
+    }
+
+    // ---------------------------------------------------------------- SLA 自动评估
+
+    /**
+     * 完工时按工单生成 SLA 评估记录：
+     * <ul>
+     *   <li>时限类：受理时间（业务订单创建时间）+ 承诺小时 - 宽限 → 与完工时间比，判超时（慢必赔）；</li>
+     *   <li>速率类：装机测速下行速率 ≥ 规则最低速率 → 达标，否则触发赔付。</li>
+     * </ul>
+     * 评估结果由 {@link SlaServiceApi#evaluate(SlaRecord)} 落库 sla_record / compensation。
+     */
+    private void evaluateSlaOnComplete(String workOrderId) {
+        Map<String, Object> wo = one("SELECT biz_order_id, customer_name, time_slot, complete_time "
+                + "FROM work_order WHERE id = ?", workOrderId);
+        if (wo == null) return;
+        String bizId = (String) wo.get("biz_order_id");
+        if (isBlank(bizId)) return;
+        Map<String, Object> bo = one("SELECT order_type, created_time FROM biz_order WHERE id = ?", bizId);
+        if (bo == null) return;
+
+        SlaEnums.OrderType orderType = parseOrderType(String.valueOf(bo.get("order_type")));
+        long acceptTime = ((Number) bo.get("created_time")).longValue();
+        long appointed = parseSlot(String.valueOf(wo.get("time_slot")));
+        long completeTime = wo.get("complete_time") instanceof java.sql.Timestamp ts
+                ? ts.getTime() : System.currentTimeMillis();
+        String custName = String.valueOf(wo.get("customer_name"));
+        Integer down = jdbc.queryForObject("SELECT down_speed FROM work_order WHERE id = ?", Integer.class, workOrderId);
+
+        SlaRecord t = new SlaRecord();
+        t.orderId = workOrderId;
+        t.orderType = orderType;
+        t.custName = custName;
+        t.acceptTime = acceptTime;
+        t.appointedTime = appointed;
+        t.completeTime = completeTime;
+        slaService.evaluate(t);
+
+        if (down != null) {
+            SlaRecord s = new SlaRecord();
+            s.orderId = workOrderId;
+            s.orderType = orderType;
+            s.custName = custName;
+            s.acceptTime = acceptTime;
+            s.appointedTime = appointed;
+            s.completeTime = completeTime;
+            s.speedTestMbps = down.doubleValue();
+            slaService.evaluate(s);
+        }
+    }
+
+    private Map<String, Object> one(String sql, Object... args) {
+        List<Map<String, Object>> l = jdbc.queryForList(sql, args);
+        return l.isEmpty() ? null : l.get(0);
+    }
+
+    private static SlaEnums.OrderType parseOrderType(String s) {
+        try {
+            return SlaEnums.OrderType.valueOf(s);
+        } catch (Exception e) {
+            return SlaEnums.OrderType.NEW_INSTALL;
+        }
+    }
+
+    /** {@code 2026-09-15#AM -> 当天 12:00 的毫秒时间戳}（PM -> 18:00）。 */
+    private static long parseSlot(String slot) {
+        if (slot == null) return 0;
+        String[] p = slot.split("#");
+        if (p.length < 2) return 0;
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(p[0]);
+            int hour = switch (p[1]) {
+                case "AM" -> 12;
+                case "PM" -> 18;
+                default -> 12;
+            };
+            return d.atTime(hour, 0).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     // ---------------------------------------------------------------- 内部工具
@@ -351,6 +467,10 @@ public class WorkerController {
             case "CANCELLED" -> "已取消";
             default -> status;
         };
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     /** {@code 2026-09-15#AM -> 2026-09-15 上午} */

@@ -18,6 +18,8 @@ public class WorkOrder {
     public String clusterId;       // 相邻聚类簇 ID
     public Boolean adjacentRoute;  // 是否走相邻合并路线（true=合并；false=非相邻独立）
 
+    public String bizOrderId;      // 关联业务订单 biz_order.id（业务闭环追溯）
+
     public WorkOrder() {}
 
     public WorkOrder(String id, String communityId, String timeSlot, String customerName) {

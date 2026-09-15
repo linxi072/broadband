@@ -39,7 +39,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    /** C 端开放接口（小程序使用） */
+    /** C 端开放接口（小程序使用，需 CUSTOMER 令牌） */
     private static final String[] CLIENT_API = {
             "/api/package/list",
             "/api/package/detail",
@@ -48,6 +48,11 @@ public class SecurityConfig {
             "/api/community/check",
             "/api/community/demand",
             "/api/order/my",
+            "/api/order/create",
+            "/api/order/pay",
+            "/api/order/tracking",
+            "/api/review/create",
+            "/api/review/my",
             "/api/traffic/usage"
     };
 

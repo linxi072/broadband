@@ -1,1 +1,13 @@
-
+/* pages/confirm/confirm.wxss —— 师傅端完工确认 */
+.svc {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22rpx 8rpx; border-bottom: 1rpx solid var(--border); transition: background .12s;
+}
+.svc:last-child { border-bottom: none; }
+.svc:active { background: var(--bg); }
+.svc-name { font-size: 29rpx; }
+.svc-state { font-size: 26rpx; color: var(--text-mute); }
+.svc-state.on { color: var(--c); font-weight: 600; }
+.measure { display: flex; gap: 20rpx; }
+.measure-item { flex: 1; }
+.measure-item .muted { display: block; margin-bottom: 8rpx; }

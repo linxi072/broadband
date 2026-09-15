@@ -1,1 +1,4 @@
-
+/* pages/capacity/capacity.wxss —— 师傅端容量看板 */
+.slot { margin: 22rpx 0; }
+.slot-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10rpx; }
+.slot-time { font-size: 28rpx; font-weight: 600; }

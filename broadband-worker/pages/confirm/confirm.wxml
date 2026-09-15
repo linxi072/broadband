@@ -1,20 +1,39 @@
-<view class="container">
-  <view class="nav-bar">完工确认</view>
-  <view class="card"><view class="card-title">工单 #{{order.id}} · {{order.cust}}</view><text class="muted">{{order.addr}} · {{order.pkg}}</text></view>
+<!-- pages/confirm/confirm.wxml -->
+<view class="container safe-bottom">
+  <view class="card">
+    <view class="card-title">工单 #{{order.id}} · {{order.cust}}</view>
+    <view class="muted">{{order.addr}} · {{order.pkg}}</view>
+  </view>
+
+  <!-- 六项服务确认 -->
   <view class="card">
     <view class="card-title">六项服务确认</view>
-    <view class="row" wx:for="{{services}}" wx:key="key" data-i="{{index}}" bindtap="toggleService">
-      <text>{{item.name}}</text><text style="color:{{item.ok?'var(--c)':'#cbd5e1'}}">{{item.ok ? '✓ 已完成' : '○ 待完成'}}</text>
+    <view class="svc" wx:for="{{services}}" wx:key="key" data-i="{{index}}" bindtap="toggleService">
+      <view class="svc-name">{{item.name}}</view>
+      <view class="svc-state {{item.ok ? 'on' : ''}}">{{item.ok ? '✓ 已完成' : '○ 待完成'}}</view>
     </view>
   </view>
+
+  <!-- 装机测速 -->
   <view class="card">
     <view class="card-title">装机测速</view>
-    <input class="input" placeholder="下行速率（Mbps）" value="{{down}}" bindinput="onDown" type="digit" />
-    <input class="input" placeholder="上行速率（Mbps）" value="{{up}}" bindinput="onUp" type="digit" />
+    <view class="measure">
+      <view class="measure-item">
+        <text class="muted">下行速率</text>
+        <input class="input" placeholder="Mbps" value="{{down}}" bindinput="onDown" type="digit" />
+      </view>
+      <view class="measure-item">
+        <text class="muted">上行速率</text>
+        <input class="input" placeholder="Mbps" value="{{up}}" bindinput="onUp" type="digit" />
+      </view>
+    </view>
   </view>
+
+  <!-- 客户签名 -->
   <view class="card">
     <view class="card-title">客户签名</view>
     <input class="input" placeholder="请输入客户姓名" value="{{sign}}" bindinput="onSign" />
   </view>
+
   <view class="btn-primary" bindtap="submit">提交完工</view>
 </view>

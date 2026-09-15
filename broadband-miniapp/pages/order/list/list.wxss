@@ -1,1 +1,6 @@
-
+/* pages/order/list/list.wxss */
+.order-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; }
+.order-name { font-size: 30rpx; font-weight: 600; }
+.order-addr { max-width: 420rpx; text-align: right; }
+.order-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; }
+.order-foot .btn-ghost { margin-top: 0; width: 180rpx; padding: 16rpx 0; }

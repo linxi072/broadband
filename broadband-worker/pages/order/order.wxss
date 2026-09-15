@@ -1,1 +1,8 @@
-
+/* pages/order/order.wxss —— 师傅端工单列表 */
+.wo { padding: 24rpx; margin-bottom: 20rpx; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+.wo:active { transform: scale(.99); }
+.wo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14rpx; }
+.wo-id { font-size: 30rpx; font-weight: 600; }
+.wo-row { display: flex; align-items: center; padding: 8rpx 0; font-size: 27rpx; }
+.wo-row .muted { width: 96rpx; flex: none; }
+.wo-addr { flex: 1; text-align: right; color: var(--text); }

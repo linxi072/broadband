@@ -1,1 +1,9 @@
-
+/* pages/schedule/schedule.wxss —— 师傅端排班 */
+.shift {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border-radius: var(--radius-sm); padding: 28rpx 24rpx;
+  margin-bottom: 16rpx; box-shadow: var(--shadow-sm);
+}
+.shift-day { font-size: 28rpx; font-weight: 600; }
+.shift-val { font-size: 27rpx; color: var(--text-sub); }
+.shift-val.rest { color: var(--text-mute); }

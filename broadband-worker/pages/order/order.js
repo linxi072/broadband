@@ -9,13 +9,18 @@ const STATUS_TEXT = {
   DONE: '已完成',
   CANCELLED: '已取消'
 };
+const STATUS_CLASS = {
+  PENDING: 'tag-warning', ASSIGNED: 'tag-info', INSTALLING: 'tag-primary',
+  DONE: 'tag-success', CANCELLED: 'tag-default'
+};
 
 Page({
   data: {
     tabs: ['全部', '待接单', '施工中', '已完成'],
     active: 0,
     list: [],
-    loading: false
+    loading: false,
+    empty: false
   },
   onLoad() { this.load(); },
   onShow() { this.load(); },
@@ -31,11 +36,12 @@ Page({
         id: o.id,
         cust: o.customer || '—',
         addr: ((o.community || '') + ' ' + (o.address || '')).trim(),
-        statusText: STATUS_TEXT[o.status] || o.status || '—'
+        statusText: STATUS_TEXT[o.status] || o.status || '—',
+        statusClass: STATUS_CLASS[o.status] || 'tag-default'
       }));
-      this.setData({ list: items, loading: false });
+      this.setData({ list: items, loading: false, empty: items.length === 0 });
     }).catch(err => {
-      this.setData({ loading: false });
+      this.setData({ loading: false, empty: false });
       wx.showToast({ title: (err && err.message) || '加载工单失败', icon: 'none' });
     });
   },

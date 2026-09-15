@@ -1,18 +1,58 @@
-<view class="container">
-  <view class="nav-bar">工单首页</view>
-  <view class="grid3">
-    <view class="stat" wx:for="{{stats}}" wx:key="l"><view class="n">{{item.n}}</view><view class="l">{{item.l}}</view></view>
+<!-- pages/index/index.wxml -->
+<view class="container-lg safe-bottom">
+  <!-- 顶部欢迎 -->
+  <view class="hero">
+    <view class="hero-top">
+      <view>
+        <view class="hero-hi">{{date ? date + ' · ' : ''}}师傅辛苦了</view>
+        <view class="hero-sub2">今日工单与容量一览</view>
+      </view>
+      <view class="hero-avatar" bindtap="goProfile">👷</view>
+    </view>
   </view>
-  <view class="card-title" style="margin-top:24rpx">今日工单</view>
-  <view class="card" wx:for="{{today}}" wx:key="id">
-    <view class="card-title">工单 #{{item.id}} · {{item.cust}}</view>
-    <view class="row"><text class="muted">地址</text><text>{{item.addr}}</text></view>
-    <view class="row"><text class="muted">套餐</text><text>{{item.pkg}}</text></view>
-    <view class="row"><text class="muted">时段</text><text>{{item.time}}</text></view>
-    <view class="row"><text class="muted">状态</text><text class="pill">{{item.statusText}}</text></view>
-    <view class="grid2">
-      <view class="btn-ghost" data-id="{{item.id}}" bindtap="goDetail">查看</view>
-      <view class="btn-primary" data-id="{{item.id}}" bindtap="startComplete">开始完工</view>
+
+  <!-- 统计指标 -->
+  <view class="grid3 stats">
+    <view class="stat" wx:for="{{stats}}" wx:key="l">
+      <view class="n">{{item.n}}</view>
+      <view class="l">{{item.l}}</view>
+    </view>
+  </view>
+
+  <!-- 今日工单 -->
+  <view class="card">
+    <view class="card-head">
+      <view class="card-title" style="margin:0">今日工单</view>
+      <view class="more" bindtap="goOrder">全部 ›</view>
+    </view>
+
+    <view wx:if="{{loading}}">
+      <view class="sk sk-line" style="width:50%"></view>
+      <view class="sk sk-line"></view>
+      <view class="sk sk-line" style="width:70%"></view>
+    </view>
+
+    <view wx:elif="{{empty}}" class="empty" style="padding:48rpx 0">
+      <view class="em-ic">📋</view>
+      <view class="em-t">今日暂无工单</view>
+      <view class="em-s">新工单将由调度自动派发</view>
+    </view>
+
+    <view wx:else>
+      <view class="wo card-tap" wx:for="{{today}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+        <view class="wo-top">
+          <view class="wo-id">工单 #{{item.id}}</view>
+          <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+        <view class="wo-row"><text class="muted">客户</text><text>{{item.cust}}</text></view>
+        <view class="wo-row"><text class="muted">地址</text><text class="wo-addr">{{item.addr}}</text></view>
+        <view class="wo-row"><text class="muted">套餐</text><text>{{item.pkg}}</text></view>
+        <view class="wo-row"><text class="muted">时段</text><text>{{item.time}}</text></view>
+        <view class="wo-actions">
+          <view class="btn-ghost" data-id="{{item.id}}" catchtap="goDetail">查看</view>
+          <view class="btn-primary" data-id="{{item.id}}" catchtap="startComplete">开始完工</view>
+        </view>
+      </view>
     </view>
   </view>
 </view>

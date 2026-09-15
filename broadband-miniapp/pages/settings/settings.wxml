@@ -1,9 +1,15 @@
-<view class="container">
+<!-- pages/settings/settings.wxml -->
+<view class="container safe-bottom">
   <view class="nav-bar">设置</view>
   <view class="card">
-    <view class="row" wx:for="{{items}}" wx:key="key" data-key="{{item.key}}" data-name="{{item.name}}" bindtap="tap">
-      <view style="display:flex;align-items:center"><text style="font-size:36rpx;margin-right:16rpx">{{item.icon}}</text><text>{{item.name}}</text></view>
-      <text class="muted">{{item.desc || '›'}}</text>
+    <view class="cell" wx:for="{{items}}" wx:key="key" data-key="{{item.key}}" data-name="{{item.name}}" bindtap="tap">
+      <text class="ic">{{item.icon}}</text>
+      <view class="label">
+        <view>{{item.name}}</view>
+        <view class="cell-sub" wx:if="{{item.desc}}">{{item.desc}}</view>
+      </view>
+      <text class="arrow">›</text>
     </view>
   </view>
+  <view class="note-warn" style="margin-top:20rpx">⚠️ 当前为演示环境，部分设置项暂不可用</view>
 </view>

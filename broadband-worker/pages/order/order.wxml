@@ -1,12 +1,37 @@
-<view class="container">
-  <view class="nav-bar">工单列表</view>
-  <view class="grid2" style="margin-bottom:16rpx">
-    <view class="tile" wx:for="{{tabs}}" wx:key="*this" data-i="{{index}}" bindtap="switchTab" style="{{index===active ? 'outline:3rpx solid var(--c)' : ''}}"><view class="lb">{{item}}</view></view>
+<!-- pages/order/order.wxml -->
+<view class="container safe-bottom">
+  <view class="nav-bar">工单任务</view>
+
+  <!-- 分段筛选 -->
+  <view class="seg" style="margin-bottom:20rpx">
+    <view class="it {{index===active ? 'on' : ''}}" wx:for="{{tabs}}" wx:key="*this" data-i="{{index}}" bindtap="switchTab">{{item}}</view>
   </view>
-  <view class="card" wx:for="{{list}}" wx:key="id">
-    <view class="card-title">工单 #{{item.id}} · {{item.cust}}</view>
-    <view class="row"><text class="muted">地址</text><text>{{item.addr}}</text></view>
-    <view class="row"><text class="muted">状态</text><text class="pill">{{item.statusText}}</text></view>
-    <view class="btn-ghost" data-id="{{item.id}}" bindtap="goDetail">查看详情</view>
+
+  <!-- 骨架 -->
+  <block wx:if="{{loading}}">
+    <view class="card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="sk sk-line" style="width:55%"></view>
+      <view class="sk sk-line"></view>
+      <view class="sk sk-line" style="width:40%"></view>
+    </view>
+  </block>
+
+  <!-- 空态 -->
+  <view wx:elif="{{empty}}" class="empty">
+    <view class="em-ic">📭</view>
+    <view class="em-t">{{tabs[active]}}暂无工单</view>
+    <view class="em-s">切换上方标签查看其他状态</view>
+  </view>
+
+  <!-- 列表 -->
+  <view wx:else>
+    <view class="wo card-tap" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="wo-top">
+        <view class="wo-id">工单 #{{item.id}}</view>
+        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="wo-row"><text class="muted">客户</text><text>{{item.cust}}</text></view>
+      <view class="wo-row"><text class="muted">地址</text><text class="wo-addr">{{item.addr}}</text></view>
+    </view>
   </view>
 </view>

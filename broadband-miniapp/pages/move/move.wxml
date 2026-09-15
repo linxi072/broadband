@@ -1,12 +1,24 @@
+<!-- pages/move/move.wxml -->
 <view class="container">
   <view class="nav-bar">宽带移机</view>
   <view class="card">
     <view class="card-title">移机信息</view>
-    <view class="row"><text class="muted">原地址</text><text>{{oldAddr}}</text></view>
-    <input class="input" placeholder="请输入新安装地址" value="{{newAddr}}" bindinput="onNew" />
-    <view class="row"><text>同运营商（免改号）</text><switch checked="{{sameNet}}" bindchange="toggleSame" color="#2563eb" /></view>
+    <view class="row"><text class="muted">原安装地址</text><text>{{oldAddr}}</text></view>
+    <view class="form-item">
+      <text class="form-label">新安装地址</text>
+      <input class="input" placeholder="请输入新安装地址" value="{{newAddr}}" bindinput="onNew" />
+    </view>
+    <view class="row switch-row">
+      <text>同运营商（免改号）</text>
+      <switch checked="{{sameNet}}" bindchange="toggleSame" color="#2563eb" />
+    </view>
     <view class="btn-ghost" bindtap="check">校验新地址可装性</view>
-    <view wx:if="{{result}}" class="card" style="margin-top:16rpx;background:#f0fdf4"><text>{{result.text}}</text></view>
+    <view wx:if="{{result}}" class="result {{result.ok ? 'result-ok' : 'result-no'}}">
+      <text>{{result.ok ? '✓' : '✕'}} {{result.text}}</text>
+    </view>
   </view>
+  <view style="height:140rpx"></view>
+</view>
+<view class="action-bar">
   <view class="btn-primary" bindtap="submit">提交移机申请</view>
 </view>

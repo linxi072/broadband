@@ -1,10 +1,28 @@
-<view class="container">
+<!-- pages/package/list/list.wxml -->
+<view class="container safe-bottom">
   <view class="nav-bar">套餐广场</view>
-  <view class="card" wx:for="{{packages}}" wx:key="id">
-    <view class="card-title">{{item.name}} <text wx:if="{{item.hot}}" class="pill">热销</text></view>
-    <view class="row"><text class="muted">速率</text><text>{{item.speed}}</text></view>
-    <view class="row"><text class="muted">资费</text><text style="color:var(--c);font-weight:700">¥{{item.price}}/月</text></view>
-    <view><text wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this" class="pill">{{t}}</text></view>
-    <view class="btn-primary" data-id="{{item.id}}" bindtap="goDetail">立即办理</view>
+
+  <block wx:if="{{loading}}">
+    <view class="card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="sk sk-line" style="width:55%"></view>
+      <view class="sk sk-line"></view>
+      <view class="sk sk-line" style="width:40%"></view>
+    </view>
+  </block>
+
+  <view wx:elif="{{packages.length === 0}}" class="empty">
+    <view class="em-ic">🛰️</view>
+    <view class="em-t">暂无在售套餐</view>
+  </view>
+
+  <view wx:else>
+    <view class="card card-tap" wx:for="{{packages}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="pkg-head">
+        <view class="pkg-name">{{item.name}} <text wx:if="{{item.hot}}" class="tag tag-danger">热销</text></view>
+        <view class="price">¥{{item.price}}<text class="muted" style="font-size:22rpx">/月</text></view>
+      </view>
+      <view class="row"><text class="muted">速率</text><text>{{item.speed}}</text></view>
+      <view class="tags"><text wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this" class="pill">{{t}}</text></view>
+    </view>
   </view>
 </view>

@@ -7,6 +7,10 @@ const STATUS_TEXT = {
   DONE: '已完成',
   CANCELLED: '已取消'
 };
+const STATUS_CLASS = {
+  PENDING: 'tag-warning', ASSIGNED: 'tag-info', INSTALLING: 'tag-primary',
+  DONE: 'tag-success', CANCELLED: 'tag-default'
+};
 
 Page({
   data: { order: null },
@@ -30,6 +34,7 @@ Page({
           pkg: o.pkgDesc || '—',
           slot: o.timeSlot || '—',
           statusText: STATUS_TEXT[o.status] || o.status || '—',
+          statusClass: STATUS_CLASS[o.status] || 'tag-default',
           items: ['组网设计', '终端调测', '线路整理']
         }
       });

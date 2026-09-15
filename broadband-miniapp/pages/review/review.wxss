@@ -1,1 +1,8 @@
-
+/* pages/review/review.wxss */
+.stars { display: flex; gap: 12rpx; margin: 8rpx 0; }
+.star { font-size: 56rpx; color: #d1d5db; transition: transform .1s; }
+.star.on { color: #f59e0b; }
+.star:active { transform: scale(1.15); }
+.star-hint { font-size: 26rpx; color: var(--text-sub); margin-bottom: 16rpx; }
+.tags { display: flex; flex-wrap: wrap; gap: 8rpx; }
+.pill-on { background: var(--c); color: #fff; }

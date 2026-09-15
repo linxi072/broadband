@@ -1,8 +1,14 @@
-<view class="container">
+<!-- pages/self/self.wxml -->
+<view class="container safe-bottom">
   <view class="nav-bar">自助服务</view>
-  <view class="grid3">
-    <view class="tile" wx:for="{{items}}" wx:key="key" data-name="{{item.name}}" bindtap="tap">
-      <view class="ic">{{item.icon}}</view><view class="lb">{{item.name}}</view>
+  <view class="card">
+    <view class="card-title">常用自助</view>
+    <view class="grid3">
+      <view class="tile" wx:for="{{items}}" wx:key="key" data-name="{{item.name}}" bindtap="tap">
+        <view class="ic">{{item.icon}}</view>
+        <view class="lb">{{item.name}}</view>
+      </view>
     </view>
   </view>
+  <view class="note">🛠 在线办理常见业务，无需联系客服，7×24 小时可用</view>
 </view>

@@ -1,1 +1,5 @@
-
+/* pages/smart/smart.wxss */
+.smart-ic { font-size: 56rpx; text-align: center; }
+.smart-name { font-weight: 600; font-size: 30rpx; margin: 12rpx 0 6rpx; text-align: center; }
+.smart-desc { text-align: center; }
+.smart-price { text-align: center; margin: 12rpx 0; font-size: 32rpx; }

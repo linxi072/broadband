@@ -1,1 +1,2 @@
-
+/* pages/settings/settings.wxss */
+.cell-sub { font-size: 22rpx; color: var(--text-mute); margin-top: 4rpx; }

@@ -1,12 +1,22 @@
-<view class="container">
-  <view class="card" style="background:var(--c);color:#fff">
-    <view style="font-size:36rpx;font-weight:700">{{customer.name}}</view>
-    <view style="opacity:.9;margin-top:8rpx">{{customer.phone}} · {{customer.level}}</view>
+<!-- pages/profile/profile.wxml -->
+<view class="container safe-bottom">
+  <view class="profile-hd">
+    <view class="avatar">{{customer.name ? customer.name[0] : '客'}}</view>
+    <view class="profile-info">
+      <view class="profile-name">{{customer.name}}</view>
+      <view class="profile-sub">{{customer.phone}} · {{customer.level}}</view>
+    </view>
+    <view class="profile-edit" bindtap="goMenu" data-key="setting">设置 ›</view>
   </view>
-  <view class="grid3">
-    <view class="tile" wx:for="{{menus}}" wx:key="key" data-key="{{item.key}}" bindtap="goMenu">
-      <view class="ic">{{item.icon}}</view><view class="lb">{{item.name}}</view>
+
+  <view class="card">
+    <view class="grid3">
+      <view class="tile" wx:for="{{menus}}" wx:key="key" data-key="{{item.key}}" bindtap="goMenu">
+        <view class="ic">{{item.icon}}</view>
+        <view class="lb">{{item.name}}</view>
+      </view>
     </view>
   </view>
-  <view class="btn-ghost" style="margin-top:24rpx" bindtap="logout">退出登录</view>
+
+  <view class="btn-ghost safe-bottom" style="margin-top:8rpx" bindtap="logout">退出登录</view>
 </view>

@@ -1,1 +1,4 @@
-
+/* pages/package/list/list.wxss */
+.pkg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; }
+.pkg-name { font-size: 30rpx; font-weight: 600; }
+.tags { margin-top: 12rpx; }

@@ -1,1 +1,12 @@
-
+/* pages/order-detail/order-detail.wxss —— 师傅端工单详情 */
+.head {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, var(--c), #f97316);
+  color: #fff; border-radius: var(--radius-lg); padding: 32rpx 28rpx; margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(234, 88, 12, .25);
+}
+.head-id { font-size: 34rpx; font-weight: 700; }
+.head-tag { background: rgba(255,255,255,.22) !important; color: #fff !important; }
+.tags { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.wo-addr { text-align: right; color: var(--text); }
+.grid2 { margin-bottom: 20rpx; }

@@ -1,11 +1,13 @@
-<view class="container">
+<!-- pages/smart/smart.wxml -->
+<view class="container safe-bottom">
   <view class="nav-bar">智慧家庭增值</view>
+  <view class="note" style="margin-bottom:24rpx">🏠 在现有宽带基础上加装，立即提升家庭网络与娱乐体验</view>
   <view class="grid2">
-    <view class="card" wx:for="{{items}}" wx:key="id">
-      <view class="ic" style="font-size:46rpx">{{item.icon}}</view>
-      <view style="font-weight:600;margin:8rpx 0">{{item.name}}</view>
-      <view class="muted">{{item.desc}}</view>
-      <view style="color:var(--c);font-weight:700;margin:8rpx 0">{{item.price}}</view>
+    <view class="card card-tap" wx:for="{{items}}" wx:key="id">
+      <view class="smart-ic">{{item.icon}}</view>
+      <view class="smart-name">{{item.name}}</view>
+      <view class="muted smart-desc">{{item.desc}}</view>
+      <view class="price smart-price">{{item.price}}</view>
       <view class="btn-ghost" data-name="{{item.name}}" bindtap="add">加购</view>
     </view>
   </view>

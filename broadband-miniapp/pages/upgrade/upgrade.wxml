@@ -1,10 +1,20 @@
-<view class="container">
+<!-- pages/upgrade/upgrade.wxml -->
+<view class="container safe-bottom">
   <view class="nav-bar">续费 / 提速</view>
-  <view class="card"><view class="card-title">当前套餐</view><text>{{current}}</text></view>
-  <view class="card" wx:for="{{plans}}" wx:key="id">
-    <view class="card-title">{{item.name}}</view>
-    <view class="row"><text class="muted">说明</text><text>{{item.desc}}</text></view>
-    <view class="row"><text class="muted">资费</text><text style="color:var(--c);font-weight:700">{{item.price}}</text></view>
+
+  <view class="card cur">
+    <view class="card-title">当前套餐</view>
+    <view class="cur-name">{{current}}</view>
+    <view class="muted">合约期内，可随时续约或升级</view>
+  </view>
+
+  <view class="eyebrow">可办业务</view>
+  <view class="card card-tap" wx:for="{{plans}}" wx:key="id">
+    <view class="plan-head">
+      <view class="plan-name">{{item.name}}</view>
+      <view class="price">{{item.price}}</view>
+    </view>
+    <view class="muted plan-desc">{{item.desc}}</view>
     <view class="btn-primary" data-name="{{item.name}}" bindtap="handle">立即办理</view>
   </view>
 </view>

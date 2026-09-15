@@ -1,1 +1,21 @@
-
+/* pages/login/login.wxss —— 师傅端登录（橙色主题） */
+.login-wrap {
+  min-height: 100vh; background: linear-gradient(160deg, #fff7ed, #f5f7fb 60%);
+  padding: 120rpx 48rpx 60rpx; box-sizing: border-box;
+}
+.brand { text-align: center; margin-bottom: 64rpx; }
+.brand-logo { font-size: 96rpx; }
+.brand-title { font-size: 44rpx; font-weight: 700; color: var(--c); margin-top: 16rpx; }
+.brand-sub { font-size: 26rpx; color: var(--text-sub); margin-top: 12rpx; }
+.login-card { background: #fff; border-radius: var(--radius-lg); padding: 40rpx 32rpx; box-shadow: var(--shadow); }
+.field {
+  display: flex; align-items: center; background: var(--bg);
+  border: 1rpx solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 8rpx 20rpx; margin: 16rpx 0;
+}
+.field-ic { font-size: 32rpx; margin-right: 12rpx; }
+.field-input { flex: 1; font-size: 28rpx; }
+.code-btn { color: var(--c); font-size: 26rpx; padding: 10rpx 0 10rpx 20rpx; border-left: 1rpx solid var(--border-strong); }
+.code-btn.disabled { color: var(--text-mute); }
+.login-btn { margin-top: 24rpx; }
+.login-tip { text-align: center; margin-top: 24rpx; font-size: 24rpx; color: var(--text-mute); }

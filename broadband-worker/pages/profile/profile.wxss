@@ -1,1 +1,9 @@
-
+/* pages/profile/profile.wxss —— 师傅端个人中心 */
+.hero {
+  background: linear-gradient(160deg, #ffedd5, #fff7ed 70%);
+  border-radius: var(--radius-lg); padding: 40rpx 32rpx; margin-bottom: 24rpx; text-align: center;
+}
+.hero-name { font-size: 38rpx; font-weight: 700; color: #9a3412; }
+.hero-sub { font-size: 26rpx; color: var(--text-sub); margin-top: 10rpx; }
+.stats { margin-bottom: 24rpx; }
+.tags { display: flex; flex-wrap: wrap; gap: 12rpx; }

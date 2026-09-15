@@ -1,11 +1,89 @@
 <!-- pages/index/index.wxml -->
-<view class="container">
+<view class="container-lg safe-bottom">
+  <!-- 顶部欢迎 -->
   <view class="hero">
-    <view class="hero-title">宽带办理</view>
-    <view class="hero-sub">新装 · 移机 · 续费 · 报修，一站式服务</view>
+    <view class="hero-top">
+      <view>
+        <view class="hero-hi">{{greeting}}，{{isLogin ? customer.name : '欢迎使用'}}</view>
+        <view class="hero-sub2">{{isLogin ? (customer.level + ' · 享专属宽带服务') : '登录后即可办理业务与查看订单'}}</view>
+      </view>
+      <view class="hero-avatar" bindtap="goProfile">👤</view>
+    </view>
   </view>
+
+  <!-- 快捷办理 -->
   <view class="card">
-    <view class="card-title">快捷入口</view>
-    <button class="btn-primary" bindtap="goService">进入服务大厅</button>
+    <view class="card-head">
+      <view class="card-title" style="margin:0">快捷办理</view>
+      <view class="more" bindtap="goService">全部服务 ›</view>
+    </view>
+    <view class="grid4 quick">
+      <view class="q" bindtap="goPkg"><view class="q-ic">📦</view><view class="q-lb">办套餐</view></view>
+      <view class="q" bindtap="goMove"><view class="q-ic">🚚</view><view class="q-lb">宽带移机</view></view>
+      <view class="q" bindtap="goUpgrade"><view class="q-ic">⚡</view><view class="q-lb">续费提速</view></view>
+      <view class="q" bindtap="goCommunity"><view class="q-ic">🏘️</view><view class="q-lb">小区查询</view></view>
+    </view>
   </view>
+
+  <!-- 我的订单进度 -->
+  <view class="card">
+    <view class="card-head">
+      <view class="card-title" style="margin:0">我的订单</view>
+      <view class="more" bindtap="goOrder">全部 ›</view>
+    </view>
+
+    <view wx:if="{{loadingOrder}}">
+      <view class="sk sk-line" style="width:60%"></view>
+      <view class="sk sk-line" style="width:90%"></view>
+      <view class="sk sk-line" style="width:40%"></view>
+    </view>
+
+    <view wx:elif="{{!isLogin}}" class="empty" style="padding:48rpx 0">
+      <view class="em-ic">📭</view>
+      <view class="em-t">还没有订单</view>
+      <view class="btn-ghost" style="margin-top:24rpx" bindtap="goLogin">登录查看</view>
+    </view>
+
+    <view wx:elif="{{!recentOrder}}" class="empty" style="padding:48rpx 0">
+      <view class="em-ic">📦</view>
+      <view class="em-t">暂无进行中订单</view>
+    </view>
+
+    <view wx:else class="order-row" bindtap="goOrder">
+      <view class="order-l">
+        <view class="order-name">{{recentOrder.name}}</view>
+        <view class="muted">订单号 {{recentOrder.id}} · {{recentOrder.type}}</view>
+      </view>
+      <view class="tag tag-primary">{{recentOrder.status}}</view>
+    </view>
+  </view>
+
+  <!-- 热门套餐 -->
+  <view class="card">
+    <view class="card-head">
+      <view class="card-title" style="margin:0">热门套餐</view>
+      <view class="more" bindtap="goPkg">更多 ›</view>
+    </view>
+
+    <view wx:if="{{loadingPkg}}" class="pkg-row">
+      <view class="pkg-card"><view class="sk sk-block"></view></view>
+      <view class="pkg-card"><view class="sk sk-block"></view></view>
+    </view>
+
+    <view wx:elif="{{packages.length === 0}}" class="empty" style="padding:48rpx 0">
+      <view class="em-ic">🛰️</view>
+      <view class="em-t">暂无在售套餐</view>
+    </view>
+
+    <scroll-view wx:else scroll-x class="pkg-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="pkg-card" wx:for="{{packages}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+        <view class="pkg-name">{{item.name}}</view>
+        <view class="pkg-speed">{{item.speed}}</view>
+        <view class="pkg-price"><text class="price">¥{{item.monthlyFee}}</text><text class="muted">/月</text></view>
+        <view class="btn-ghost" style="margin-top:16rpx">查看</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="note">🎉 新装千兆宽带享 3 个月视频会员，限时优惠中</view>
 </view>

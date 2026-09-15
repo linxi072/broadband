@@ -196,7 +196,7 @@ onMounted(load)
             <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无容量配置</template>
+        <template #empty><EmptyState icon="🗓" title="暂无容量配置" desc="配置师傅时段容量后在此查看派单上限" /></template>
       </el-table>
     </div>
 

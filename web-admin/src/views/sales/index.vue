@@ -110,7 +110,7 @@ onMounted(async () => {
             <el-progress :percentage="Number(row.doneRate) || 0" :stroke-width="10" color="#4f46e5" />
           </template>
         </el-table-column>
-        <template #empty>暂无销售数据</template>
+        <template #empty><EmptyState icon="💼" title="暂无销售数据" desc="暂无销售业绩记录" /></template>
       </el-table>
     </div>
   </div>

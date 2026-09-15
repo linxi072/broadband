@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="admin">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宽带业务管理系统 · 运营概览</title>
+<style>
+  /* ===== 统一设计令牌（与 design-system.html 完全一致） ===== */
+  :root{
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+    --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px;
+    --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px; --r-full:999px;
+    --font-sans:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+    --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px;
+    --fs-xl:22px; --fs-2xl:28px; --fs-3xl:36px;
+    --ink-900:#0f172a; --ink-700:#334155; --ink-500:#64748b; --ink-400:#94a3b8;
+    --ink-300:#cbd5e1; --ink-200:#e2e8f0; --ink-100:#f1f5f9; --ink-50:#f8fafc; --surface:#fff;
+    --c-success:#16a34a; --c-success-bg:#dcfce7;
+    --c-warning:#d97706; --c-warning-bg:#fef3c7;
+    --c-danger:#dc2626;  --c-danger-bg:#fee2e2;
+    --c-info:#2563eb;    --c-info-bg:#dbeafe;
+    --sh-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+    --sh-md:0 4px 12px rgba(15,23,42,.08);
+    --sh-lg:0 12px 32px rgba(15,23,42,.12);
+    --t-fast:140ms cubic-bezier(.4,0,.2,1);
+    --t-norm:240ms cubic-bezier(.4,0,.2,1);
+    --brand-50:#eef2ff;--brand-100:#e0e7ff;--brand-300:#a5b4fc;
+    --brand-500:#4f46e5;--brand-600:#4338ca;--brand-700:#3730a3;--brand-ink:#fff;--brand-soft:#eef2ff;
+  }
+  [data-theme="admin"] {--brand-50:#eef2ff;--brand-100:#e0e7ff;--brand-300:#a5b4fc;--brand-500:#4f46e5;--brand-600:#4338ca;--brand-700:#3730a3;--brand-ink:#fff;--brand-soft:#eef2ff;}
+  [data-theme="client"]{--brand-50:#eff6ff;--brand-100:#dbeafe;--brand-300:#93c5fd;--brand-500:#2563eb;--brand-600:#1d4ed8;--brand-700:#1e40af;--brand-ink:#fff;--brand-soft:#eff6ff;}
+  [data-theme="worker"]{--brand-50:#fff7ed;--brand-100:#ffedd5;--brand-300:#fdba74;--brand-500:#ea580c;--brand-600:#c2410c;--brand-700:#9a3412;--brand-ink:#fff;--brand-soft:#fff7ed;}
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--font-sans);color:var(--ink-900);background:var(--ink-50);
+    font-size:var(--fs-base);line-height:1.6;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--brand-300);color:#fff}
+  a{color:inherit;text-decoration:none}
+
+  /* ===== 布局骨架 ===== */
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+  .side{background:var(--surface);border-right:1px solid var(--ink-200);padding:var(--sp-6) var(--sp-4);
+    position:sticky;top:0;height:100vh;overflow-y:auto;transition:transform var(--t-norm);z-index:30}
+  .brand{display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-2) var(--sp-6)}
+  .brand .logo{width:34px;height:34px;border-radius:var(--r-md);
+    background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px}
+  .brand b{font-size:var(--fs-md);letter-spacing:.2px}
+  .brand span{display:block;font-size:var(--fs-xs);color:var(--ink-500)}
+  .nav a{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3);border-radius:var(--r-md);
+    color:var(--ink-700);font-weight:500;font-size:var(--fs-base);transition:background var(--t-fast),color var(--t-fast)}
+  .nav a:hover{background:var(--ink-100)}
+  .nav a.active{background:var(--brand-soft);color:var(--brand-700);font-weight:600}
+  .nav .sec{font-size:var(--fs-xs);color:var(--ink-400);text-transform:uppercase;letter-spacing:.8px;
+    margin:var(--sp-5) var(--sp-3) var(--sp-2);font-weight:600}
+  .nav .ic{width:18px;text-align:center;opacity:.8}
+
+  .main{padding:var(--sp-6) var(--sp-8);max-width:1280px;width:100%}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);
+    margin-bottom:var(--sp-6);flex-wrap:wrap}
+  .topbar h1{font-size:var(--fs-3xl);font-weight:700;letter-spacing:-.5px}
+  .topbar .sub{color:var(--ink-500);font-size:var(--fs-md);margin-top:2px}
+  .topbar .acts{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
+  .hamb{display:none;border:1px solid var(--ink-300);background:var(--surface);border-radius:var(--r-md);
+    width:40px;height:40px;font-size:18px;cursor:pointer;color:var(--ink-700)}
+  .hamb:focus-visible{outline:3px solid var(--brand-300);outline-offset:2px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);font:inherit;font-weight:600;
+    border:1px solid transparent;cursor:pointer;border-radius:var(--r-md);padding:var(--sp-3) var(--sp-5);
+    transition:all var(--t-fast);background:var(--brand-500);color:var(--brand-ink)}
+  .btn:hover{background:var(--brand-600);transform:translateY(-1px);box-shadow:var(--sh-md)}
+  .btn:active{transform:translateY(0)}
+  .btn:focus-visible{outline:3px solid var(--brand-300);outline-offset:2px}
+  .btn.secondary{background:var(--surface);color:var(--brand-700);border-color:var(--brand-300)}
+  .btn.secondary:hover{background:var(--brand-soft)}
+  .btn.sm{padding:var(--sp-2) var(--sp-3);font-size:var(--fs-sm)}
+
+  .select{font:inherit;padding:var(--sp-2) var(--sp-3);border:1px solid var(--ink-300);border-radius:var(--r-md);
+    background:var(--surface);color:var(--ink-900);cursor:pointer}
+  .select:focus-visible{outline:3px solid var(--brand-300);outline-offset:2px}
+
+  /* 卡片 */
+  .card{background:var(--surface);border:1px solid var(--ink-200);border-radius:var(--r-lg);
+    padding:var(--sp-5);box-shadow:var(--sh-sm);transition:box-shadow var(--t-fast),transform var(--t-fast)}
+  .card:hover{box-shadow:var(--sh-md)}
+  .sec-title{font-size:var(--fs-xl);font-weight:700;margin-bottom:2px}
+  .sec-desc{color:var(--ink-500);font-size:var(--fs-sm);margin-bottom:var(--sp-4)}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-4);margin-bottom:var(--sp-6)}
+  .kpi .label{font-size:var(--fs-sm);color:var(--ink-500);font-weight:600}
+  .kpi .num{font-size:var(--fs-3xl);font-weight:700;margin:var(--sp-2) 0 4px;letter-spacing:-.5px}
+  .kpi .num.brand{color:var(--brand-600)}
+  .kpi .delta{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);font-weight:600;
+    padding:2px var(--sp-2);border-radius:var(--r-full)}
+  .kpi .delta.up{background:var(--c-success-bg);color:var(--c-success)}
+  .kpi .delta.down{background:var(--c-danger-bg);color:var(--c-danger)}
+  .kpi .delta.flat{background:var(--ink-100);color:var(--ink-500)}
+
+  /* 双栏：工单看板 + SLA */
+  .duo{display:grid;grid-template-columns:1fr;gap:var(--sp-5);margin-bottom:var(--sp-6)}
+  @media(min-width:1024px){.duo{grid-template-columns:1.4fr 1fr}}
+
+  /* 工单状态条 */
+  .bars{display:flex;flex-direction:column;gap:var(--sp-4);margin-top:var(--sp-3)}
+  .bar-row{display:grid;grid-template-columns:84px 1fr 52px;align-items:center;gap:var(--sp-3)}
+  .bar-row .name{font-size:var(--fs-sm);color:var(--ink-700);font-weight:600}
+  .bar-track{height:10px;background:var(--ink-100);border-radius:var(--r-full);overflow:hidden}
+  .bar-fill{height:100%;border-radius:var(--r-full);width:0;transition:width 700ms cubic-bezier(.4,0,.2,1)}
+  .bar-row .val{font-family:var(--font-mono);font-size:var(--fs-sm);text-align:right;color:var(--ink-900);font-weight:600}
+  .c-pending{background:var(--c-info)} .c-install{background:var(--c-warning)}
+  .c-done{background:var(--c-success)} .c-over{background:var(--c-danger)}
+
+  /* SLA 进度 */
+  .sla{margin-top:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-5)}
+  .sla-item .top{display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:6px}
+  .sla-item .top b{font-family:var(--font-mono)}
+  .sla-track{height:12px;background:var(--ink-100);border-radius:var(--r-full);overflow:hidden}
+  .sla-fill{height:100%;border-radius:var(--r-full);width:0;transition:width 800ms cubic-bezier(.4,0,.2,1)}
+  .sla-ok{background:var(--c-success)} .sla-bad{background:var(--c-danger)}
+  .sla-note{margin-top:var(--sp-4);font-size:var(--fs-xs);color:var(--c-warning);
+    background:var(--c-warning-bg);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-md)}
+
+  /* 表格 */
+  .tbl-wrap{overflow-x:auto}
+  table.tbl{width:100%;border-collapse:collapse;font-size:var(--fs-base);min-width:560px}
+  .tbl th,.tbl td{text-align:left;padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--ink-200)}
+  .tbl th{color:var(--ink-500);font-size:var(--fs-sm);font-weight:600;background:var(--ink-50);
+    position:sticky;top:0}
+  .tbl tbody tr{transition:background var(--t-fast)}
+  .tbl tbody tr:hover{background:var(--ink-50)}
+  .tbl td.mono{font-family:var(--font-mono);font-size:var(--fs-sm)}
+
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);font-weight:600;
+    padding:3px var(--sp-3);border-radius:var(--r-full)}
+  .tag.success{background:var(--c-success-bg);color:var(--c-success)}
+  .tag.warning{background:var(--c-warning-bg);color:var(--c-warning)}
+  .tag.danger{background:var(--c-danger-bg);color:var(--c-danger)}
+  .tag.info{background:var(--c-info-bg);color:var(--c-info)}
+  .tag.brand{background:var(--brand-soft);color:var(--brand-700)}
+
+  /* 评价流 */
+  .reviews{display:grid;grid-template-columns:1fr;gap:var(--sp-4);margin-top:var(--sp-3)}
+  @media(min-width:768px){.reviews{grid-template-columns:repeat(3,1fr)}}
+  .review{border:1px solid var(--ink-200);border-radius:var(--r-md);padding:var(--sp-4);background:var(--ink-50)}
+  .review .stars{color:var(--c-warning);font-size:var(--fs-sm);letter-spacing:1px}
+  .review .who{font-weight:600;font-size:var(--fs-sm);margin:6px 0 4px}
+  .review .txt{font-size:var(--fs-sm);color:var(--ink-700)}
+
+  /* 骨架屏 */
+  .skeleton{height:14px;border-radius:var(--r-sm);background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-200) 37%,var(--ink-100) 63%);
+    background-size:400% 100%;animation:sk 1.4s ease infinite}
+  @keyframes sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+  /* Toast */
+  .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink-900);color:#fff;padding:var(--sp-3) var(--sp-5);border-radius:var(--r-md);
+    box-shadow:var(--sh-lg);font-size:var(--fs-sm);display:flex;align-items:center;gap:var(--sp-2);
+    transition:all var(--t-norm);z-index:60;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .ok{color:#4ade80}
+
+  /* 移动端侧边栏抽屉 */
+  .scrim{position:fixed;inset:0;background:rgba(15,23,42,.4);opacity:0;visibility:hidden;
+    transition:opacity var(--t-norm);z-index:25}
+  .scrim.show{opacity:1;visibility:visible}
+  @media(max-width:920px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;left:0;top:0;width:248px;transform:translateX(-100%)}
+    .side.open{transform:translateX(0)}
+    .hamb{display:inline-flex;align-items:center;justify-content:center}
+    .main{padding:var(--sp-5) var(--sp-4)}
+    .topbar h1{font-size:var(--fs-2xl)}
+  }
+  @media(max-width:767px){
+    .tbl-wrap table.tbl{min-width:0}
+    /* 表格卡片化 */
+    .tbl thead{display:none}
+    .tbl,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}
+    .tbl tr{border:1px solid var(--ink-200);border-radius:var(--r-md);margin-bottom:var(--sp-3);
+      padding:var(--sp-2) var(--sp-3);background:var(--surface)}
+    .tbl td{border:0;padding:6px var(--sp-2);display:flex;justify-content:space-between;gap:var(--sp-4)}
+    .tbl td::before{content:attr(data-label);color:var(--ink-500);font-weight:600;font-size:var(--fs-xs)}
+    .tbl td.mono{font-family:var(--font-mono)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  .foot{color:var(--ink-400);font-size:var(--fs-xs);text-align:center;padding:var(--sp-6) 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="side" id="side" aria-label="主导航">
+    <div class="brand"><div class="logo">宽</div><div><b>宽带业务系统</b><span>运营后台 v1.0</span></div></div>
+    <nav class="nav">
+      <div class="sec">运营</div>
+      <a href="#" class="active"><span class="ic">▦</span>运营概览</a>
+      <a href="#"><span class="ic">📋</span>工单管理</a>
+      <a href="#"><span class="ic">🚚</span>智能派单</a>
+      <div class="sec">资源</div>
+      <a href="#"><span class="ic">🏘️</span>小区覆盖</a>
+      <a href="#"><span class="ic">👥</span>客户中心</a>
+      <a href="#"><span class="ic">⏱️</span>SLA 看板</a>
+      <div class="sec">系统</div>
+      <a href="#"><span class="ic">⚙️</span>权限与配置</a>
+    </nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main">
+    <!-- 移动端汉堡 + 顶栏 -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:var(--sp-3)">
+        <button class="hamb" id="hamb" aria-label="打开导航菜单" aria-expanded="false" aria-controls="side">☰</button>
+        <div>
+          <h1>运营概览</h1>
+          <div class="sub">实时掌握受理、安装、SLA 与客户满意度</div>
+        </div>
+      </div>
+      <div class="acts">
+        <label for="range" style="font-size:var(--fs-sm);color:var(--ink-500);font-weight:600">统计周期</label>
+        <select class="select" id="range" aria-label="统计周期">
+          <option>今日</option><option selected>本月</option><option>本季度</option>
+        </select>
+        <button class="btn sm" id="refresh">↻ 刷新</button>
+        <button class="btn secondary sm" id="export">导出</button>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <section class="kpis" id="kpis" aria-label="核心指标">
+      <div class="card kpi"><div class="label">本月受理总量</div><div class="num brand" data-kpi="1284">—</div>
+        <span class="delta up">▲ 12.4% 环比</span></div>
+      <div class="card kpi"><div class="label">安装完成率</div><div class="num" data-kpi="94.6" data-suffix="%">—</div>
+        <span class="delta up">▲ 3.1% 环比</span></div>
+      <div class="card kpi"><div class="label">SLA 达标率</div><div class="num" data-kpi="96.2" data-suffix="%">—</div>
+        <span class="delta flat">— 0.0% 持平</span></div>
+      <div class="card kpi"><div class="label">客户满意度</div><div class="num" data-kpi="4.8" data-suffix=" / 5">—</div>
+        <span class="delta up">▲ 0.2 环比</span></div>
+    </section>
+
+    <!-- 工单看板 + SLA -->
+    <section class="duo">
+      <div class="card">
+        <div class="sec-title">工单状态分布</div>
+        <div class="sec-desc">截至当前时段，各状态工单数量</div>
+        <div class="bars" id="bars">
+          <div class="bar-row"><span class="name">待派单</span><div class="bar-track"><div class="bar-fill c-pending" data-w="18"></div></div><span class="val">36</span></div>
+          <div class="bar-row"><span class="name">安装中</span><div class="bar-track"><div class="bar-fill c-install" data-w="42"></div></div><span class="val">84</span></div>
+          <div class="bar-row"><span class="name">已完成</span><div class="bar-track"><div class="bar-fill c-done" data-w="78"></div></div><span class="val">156</span></div>
+          <div class="bar-row"><span class="name">已超时</span><div class="bar-track"><div class="bar-fill c-over" data-w="9"></div></div><span class="val">18</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">SLA 监控</div>
+        <div class="sec-desc">时限类与速率类达标率</div>
+        <div class="sla">
+          <div class="sla-item"><div class="top"><span>时限类达标率</span><b>96.8%</b></div>
+            <div class="sla-track"><div class="sla-fill sla-ok" data-w="96.8"></div></div></div>
+          <div class="sla-item"><div class="top"><span>速率类达标率</span><b>93.4%</b></div>
+            <div class="sla-track"><div class="sla-fill sla-ok" data-w="93.4"></div></div></div>
+          <div class="sla-note">⚠ 本周 3 单速率类未达标，预计赔付 ¥180，已自动生成赔付单。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 近期工单 -->
+    <section class="card" style="margin-bottom:var(--sp-6)">
+      <div class="sec-title">近期工单</div>
+      <div class="sec-desc">最新报装与安装工单（点击工单号可查看详情）</div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="ordTbl">
+          <thead><tr><th>工单号</th><th>小区</th><th>师傅</th><th>状态</th><th>时限</th></tr></thead>
+          <tbody>
+            <tr><td class="mono" data-label="工单号">WO-20260915-0042</td><td data-label="小区">阳光花园</td><td data-label="师傅">王师傅</td><td data-label="状态"><span class="tag success">已完工</span></td><td data-label="时限"><span class="tag info">达标</span></td></tr>
+            <tr><td class="mono" data-label="工单号">WO-20260915-0043</td><td data-label="小区">滨江壹号</td><td data-label="师傅">李师傅</td><td data-label="状态"><span class="tag warning">安装中</span></td><td data-label="时限"><span class="tag warning">预警</span></td></tr>
+            <tr><td class="mono" data-label="工单号">WO-20260915-0044</td><td data-label="小区">翠湖天地</td><td data-label="师傅">—</td><td data-label="状态"><span class="tag danger">已超时</span></td><td data-label="时限"><span class="tag danger">超时</span></td></tr>
+            <tr><td class="mono" data-label="工单号">WO-20260915-0045</td><td data-label="小区">中央公馆</td><td data-label="师傅">赵师傅</td><td data-label="状态"><span class="tag brand">待派单</span></td><td data-label="时限"><span class="tag info">进行中</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 客户评价 -->
+    <section class="card">
+      <div class="sec-title">最新客户评价</div>
+      <div class="sec-desc">来自客户端的满意度反馈</div>
+      <div class="reviews">
+        <div class="review"><div class="stars">★★★★★</div><div class="who">陈先生 · 阳光花园</div>
+          <div class="txt">师傅准时上门，网速实测达标，讲解清晰，点赞！</div></div>
+        <div class="review"><div class="stars">★★★★☆</div><div class="who">林女士 · 滨江壹号</div>
+          <div class="txt">整体满意，希望预约时段能更精准一些。</div></div>
+        <div class="review"><div class="stars">★★★★★</div><div class="who">黄先生 · 中央公馆</div>
+          <div class="txt">报装到装机一气呵成，比预期快了一天。</div></div>
+      </div>
+    </section>
+
+    <div class="foot">UI Designer · 运营概览 v1.0 · 移动优先 · WCAG AA · 同源异色（可切换主题演示）</div>
+  </main>
+</div>
+
+<div class="toast" id="toast"><span class="ok">✓</span><span id="toastMsg">操作成功</span></div>
+
+<script>
+  // 主题切换（演示同源异色：admin / client / worker）
+  var themes=['admin','client','worker'], labels={admin:'后台靛',client:'客户端蓝',worker:'师傅端橙'};
+  function cycleTheme(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var nx=themes[(themes.indexOf(cur)+1)%themes.length];
+    document.documentElement.setAttribute('data-theme',nx);
+    showToast('已切换主题：'+labels[nx]);
+  }
+
+  // 侧边栏抽屉（移动端）
+  var side=document.getElementById('side'), scrim=document.getElementById('scrim'), hamb=document.getElementById('hamb');
+  function openSide(){side.classList.add('open');scrim.classList.add('show');hamb.setAttribute('aria-expanded','true');}
+  function closeSide(){side.classList.remove('open');scrim.classList.remove('show');hamb.setAttribute('aria-expanded','false');}
+  hamb.addEventListener('click',function(){ side.classList.contains('open')?closeSide():openSide(); });
+  scrim.addEventListener('click',closeSide);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSide();});
+
+  // Toast
+  var toast=document.getElementById('toast'), toastMsg=document.getElementById('toastMsg'), tt;
+  function showToast(m){toastMsg.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show');},2500);}
+
+  // 骨架屏 → 填充 KPI（模拟加载）
+  function fillKpis(){
+    document.querySelectorAll('#kpis [data-kpi]').forEach(function(el){
+      var v=el.getAttribute('data-kpi'), suf=el.getAttribute('data-suffix')||'';
+      el.textContent='—';
+      setTimeout(function(){ el.textContent=v+suf; }, 300+Math.random()*400);
+    });
+  }
+  // 进度条动画
+  function animateBars(){
+    document.querySelectorAll('.bar-fill,.sla-fill').forEach(function(el){
+      el.style.width='0';
+      requestAnimationFrame(function(){ setTimeout(function(){ el.style.width=el.getAttribute('data-w')+'%'; },60); });
+    });
+  }
+
+  document.getElementById('refresh').addEventListener('click',function(){
+    fillKpis(); animateBars(); showToast('数据已刷新 · '+new Date().toLocaleTimeString('zh-CN'));
+  });
+  document.getElementById('export').addEventListener('click',function(){ showToast('报表导出已生成'); });
+  // 顶栏标题双击切换主题（演示用）
+  document.querySelector('.topbar h1').addEventListener('dblclick',cycleTheme);
+
+  // 初始化
+  fillKpis(); setTimeout(animateBars,200);
+</script>
+</body>
+</html>

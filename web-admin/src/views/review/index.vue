@@ -31,9 +31,6 @@ const stats = computed(() => {
   }
 })
 
-const statusType = (s) =>
-  ({ 待处理: 'danger', 处理中: 'warning', 已回访: 'primary', 已闭环: 'success' }[s] || 'info')
-
 async function onClose(row) {
   const r = await loadResource(() => closeReview(row.id), null)
   if (r.live) {
@@ -113,7 +110,7 @@ onMounted(load)
         <el-table-column prop="content" label="内容" min-width="180" show-overflow-tooltip />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column prop="time" label="时间" width="150" />
@@ -131,7 +128,7 @@ onMounted(load)
             <span v-else class="mute">已完成</span>
           </template>
         </el-table-column>
-        <template #empty>暂无评价/投诉数据</template>
+        <template #empty><EmptyState icon="⭐" title="暂无评价/投诉数据" desc="客户评分与投诉将在此汇聚并支持闭环处理" /></template>
       </el-table>
     </div>
   </div>

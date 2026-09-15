@@ -35,13 +35,6 @@ const summary = computed(() => {
   return { total, amount, pending }
 })
 
-const statusType = (s) => {
-  if (['已支付', '已完成'].includes(s)) return 'success'
-  if (s === '安装中') return 'primary'
-  if (s === '待受理') return 'warning'
-  return 'info'
-}
-
 async function onDispatch(row) {
   try {
     await runDispatch()
@@ -116,7 +109,7 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column prop="time" label="时间" width="150" />
@@ -126,7 +119,7 @@ onMounted(async () => {
             <el-button link type="primary" size="small" @click="onCheck(row)">查覆盖</el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无订单</template>
+        <template #empty><EmptyState icon="📋" title="暂无订单" desc="暂无订单记录，可在「订单管理」受理或等待客户下单" /></template>
       </el-table>
     </div>
   </div>

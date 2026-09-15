@@ -99,7 +99,7 @@ onMounted(async () => {
             </el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无套餐</template>
+        <template #empty><EmptyState icon="📦" title="暂无套餐" desc="创建新装 / 续费 / 提速等宽带套餐" /></template>
       </el-table>
     </div>
 

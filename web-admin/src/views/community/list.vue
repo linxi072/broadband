@@ -141,7 +141,7 @@ onMounted(async () => {
             </el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无小区</template>
+        <template #empty><EmptyState icon="🏘" title="暂无小区" desc="录入可安装小区覆盖信息，支撑下单前可安装性校验" /></template>
       </el-table>
     </div>
 

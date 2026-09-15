@@ -44,9 +44,12 @@ const api = {
   // 后端已新增 GET /api/order/my?customerId=（开放层）
   getOrders(customerId) { return request('/api/order/my?customerId=' + encodeURIComponent(customerId || 'demo'), 'GET'); },
   // —— 小程序登录（真实后端鉴权）——
-  // 修复：原先是本地 mock 返回假 token；现调 POST /api/auth/miniapp-login 换取真实 JWT
-  login(phone, code) {
-    return request('/api/auth/miniapp-login', 'POST', { phone: phone, code: code })
+  // 修复：原先是本地 mock 返回假 token；现调 POST /api/auth/miniapp-login 换取真实 JWT。
+  // 真实微信环境由 wx.login() 拿到的 code 经后端 code2Session 换取 openid；
+  // 演示态（未注入 WECHAT_SECRET）后端走 smsCode(演示码 1234) 分支，code 留空即可。
+  // 前端无需感知后端处于哪种模式，两类字段一并上送。
+  login(phone, smsCode, wxCode) {
+    return request('/api/auth/miniapp-login', 'POST', { phone: phone, code: wxCode || '', smsCode: smsCode || '' })
       .then(r => ({ token: r.token, customer: r.customer }));
   },
   // —— SLA 测速（管理端接口，需登录态）——

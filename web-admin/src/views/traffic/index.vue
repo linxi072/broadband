@@ -116,7 +116,7 @@ onMounted(async () => {
               </el-tag>
             </template>
           </el-table-column>
-          <template #empty>暂无流量数据</template>
+          <template #empty><EmptyState icon="📶" title="暂无流量数据" desc="后端接通后将展示带宽与并发流量监控" /></template>
         </el-table>
       </div>
 

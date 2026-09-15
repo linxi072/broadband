@@ -96,7 +96,7 @@ onMounted(async () => {
             </el-tag>
           </template>
         </el-table-column>
-        <template #empty>暂无财务数据</template>
+        <template #empty><EmptyState icon="💰" title="暂无财务数据" desc="订单营收与对账数据将在此汇总" /></template>
       </el-table>
     </div>
 
@@ -112,7 +112,7 @@ onMounted(async () => {
           <template #default="{ row }"><b class="up">{{ row.compAmount }}</b></template>
         </el-table-column>
         <el-table-column prop="reason" label="原因" min-width="220" show-overflow-tooltip />
-        <template #empty>暂无赔付记录</template>
+        <template #empty><EmptyState icon="🛡" title="暂无赔付记录" desc="SLA 超时触发赔付后将在此留痕" /></template>
       </el-table>
     </div>
   </div>

@@ -120,7 +120,7 @@ onMounted(loadCapacity)
               </template>
             </el-table-column>
             <el-table-column prop="note" label="说明" min-width="160" show-overflow-tooltip />
-            <template #empty>本次无成功派单</template>
+            <template #empty><EmptyState compact icon="🔧" title="本次无成功派单" desc="运行派单后在此查看成功明细" /></template>
           </el-table>
 
           <h4 class="sub">超容拦截（{{ (plan.exceptions || []).length }}）</h4>
@@ -128,7 +128,7 @@ onMounted(loadCapacity)
             <el-table-column prop="workOrderId" label="工单号" min-width="120" />
             <el-table-column prop="timeSlot" label="时段" width="150" />
             <el-table-column prop="reason" label="拦截原因" min-width="280" show-overflow-tooltip />
-            <template #empty>本次无拦截</template>
+            <template #empty><EmptyState compact icon="🚫" title="本次无拦截" desc="所有订单均通过可安装性校验" /></template>
           </el-table>
 
           <el-collapse v-if="(plan.logs || []).length" style="margin-top: 14px">
@@ -182,7 +182,7 @@ onMounted(loadCapacity)
             </el-tag>
           </template>
         </el-table-column>
-        <template #empty>该时段暂无容量配置</template>
+        <template #empty><EmptyState icon="🗓" title="该时段暂无容量配置" desc="在「容量配置」中设置师傅时段接单上限" /></template>
       </el-table>
     </div>
   </div>

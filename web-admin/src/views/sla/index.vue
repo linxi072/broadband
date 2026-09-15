@@ -137,7 +137,7 @@ onMounted(async () => {
             <el-table-column label="时间" width="150">
               <template #default="{ row }">{{ fmtTime(row.createdTime) }}</template>
             </el-table-column>
-            <template #empty>暂无赔付工单（可到「评估工具」发起一次超时评估）</template>
+            <template #empty><EmptyState icon="🛡" title="暂无赔付工单" desc="可到「评估工具」发起一次超时评估" /></template>
           </el-table>
         </div>
       </el-tab-pane>
@@ -180,7 +180,7 @@ onMounted(async () => {
                 </el-tag>
               </template>
             </el-table-column>
-            <template #empty>暂无规则</template>
+            <template #empty><EmptyState icon="⚙️" title="暂无规则" desc="配置 SLA 赔付规则与触发阈值" /></template>
           </el-table>
         </div>
       </el-tab-pane>

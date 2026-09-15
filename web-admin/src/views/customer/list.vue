@@ -108,7 +108,7 @@ onMounted(async () => {
             <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无客户数据</template>
+        <template #empty><EmptyState icon="👥" title="暂无客户数据" desc="录入宽带客户档案，支撑订单与售后关联" /></template>
       </el-table>
     </div>
 

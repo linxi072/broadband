@@ -85,7 +85,7 @@ onMounted(async () => {
             <el-button link type="primary" size="small" @click="openPerm(row)">编辑权限</el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无角色</template>
+        <template #empty><EmptyState icon="🔐" title="暂无角色" desc="配置 RBAC 角色并绑定权限" /></template>
       </el-table>
     </div>
 

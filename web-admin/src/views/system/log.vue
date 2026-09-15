@@ -73,7 +73,7 @@ onMounted(load)
         <el-table-column label="时间" width="150">
           <template #default="{ row }">{{ fmtTime(row.createdTime) }}</template>
         </el-table-column>
-        <template #empty>暂无操作日志</template>
+        <template #empty><EmptyState icon="📝" title="暂无操作日志" desc="账号登录与关键操作将记录在此" /></template>
       </el-table>
     </div>
   </div>

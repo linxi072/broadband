@@ -4,11 +4,57 @@
    =========================================================================== */
 
 :root {
-  /* 品牌主色 */
-  --bd-primary: #4f46e5;
-  --bd-primary-hover: #6366f1;
-  --bd-primary-light: #eef2ff;
-  --bd-primary-border: #c7d2fe;
+  /* ============================================================
+     统一设计系统 · 规范基座（与 broadband-design/design-system.html 完全一致）
+     规范名是单一事实来源；下方 --bd-* 仅作兼容别名，供现有 25 个 .vue 页面过渡使用
+     ============================================================ */
+
+  /* 间距：4px 基准栅格 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+  /* 圆角 */
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-full: 999px;
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* 字号阶梯 */
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-md: 16px;
+  --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px; --fs-3xl: 36px;
+
+  /* 中性色（三端共用） */
+  --ink-900: #0f172a; --ink-700: #334155; --ink-500: #64748b;
+  --ink-400: #94a3b8; --ink-300: #cbd5e1; --ink-200: #e2e8f0;
+  --ink-100: #f1f5f9; --ink-50:  #f8fafc; --surface: #ffffff;
+
+  /* 语义状态色（三端共用） */
+  --c-success: #16a34a; --c-success-bg: #dcfce7;
+  --c-warning: #d97706; --c-warning-bg: #fef3c7;
+  --c-danger:  #dc2626; --c-danger-bg:  #fee2e2;
+  --c-info:    #2563eb; --c-info-bg:    #dbeafe;
+
+  /* 阴影 */
+  --sh-sm: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04);
+  --sh-md: 0 4px 12px rgba(15,23,42,.08);
+  --sh-lg: 0 12px 32px rgba(15,23,42,.12);
+
+  /* 动效 */
+  --t-fast: 140ms cubic-bezier(.4,0,.2,1);
+  --t-norm: 240ms cubic-bezier(.4,0,.2,1);
+
+  /* 品牌主色（admin 默认靛；经 [data-theme] 可切换为 client/worker） */
+  --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-300: #a5b4fc;
+  --brand-500: #4f46e5; --brand-600: #4338ca; --brand-700: #3730a3;
+  --brand-ink: #ffffff; --brand-soft: #eef2ff;
+
+  /* ---- 兼容别名：现有页面使用的 --bd-*（逐步迁移到规范名） ---- */
+  --bd-primary: var(--brand-500);
+  --bd-primary-hover: var(--brand-600);
+  --bd-primary-light: var(--brand-100);
+  --bd-primary-border: var(--brand-300);
 
   /* 覆盖 Element Plus 主题变量（无需 SCSS 编译即可换肤） */
   --el-color-primary: #4f46e5;
@@ -19,26 +65,32 @@
   --el-color-primary-light-9: #eef2ff;
   --el-color-primary-dark-2: #3f38b7;
 
-  /* 业务语义色：涨/正向红、跌/负向绿（国内口径） */
-  --bd-up: #dc2626;
-  --bd-down: #16a34a;
-  --bd-warn: #d97706;
-  --bd-danger: #dc2626;
+  /* 业务语义色：涨/正向红、跌/负向绿（国内口径，映射语义令牌） */
+  --bd-up: var(--c-danger);
+  --bd-down: var(--c-success);
+  --bd-warn: var(--c-warning);
+  --bd-danger: var(--c-danger);
 
-  /* 中性色 & 布局尺寸 */
-  --bd-bg: #f5f6fa;
-  --bd-card: #ffffff;
-  --bd-border: #e5e7eb;
-  --bd-text: #1f2937;
-  --bd-text-sub: #6b7280;
-  --bd-text-mute: #9ca3af;
+  /* 中性色 & 布局尺寸（映射中性令牌） */
+  --bd-bg: var(--ink-50);
+  --bd-card: var(--surface);
+  --bd-border: var(--ink-200);
+  --bd-text: var(--ink-900);
+  --bd-text-sub: var(--ink-500);
+  --bd-text-mute: var(--ink-400);
 
   --bd-sidebar-w: 224px;
   --bd-sidebar-collapsed-w: 64px;
   --bd-navbar-h: 56px;
-  --bd-radius: 10px;
-  --bd-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.05);
+  --bd-radius: var(--r-md);
+  --bd-shadow: var(--sh-sm);
 }
+
+/* 主题切换钩子：与 design-system.html 三端主题一致。
+   web-admin 固定 admin（靛）；保留 client/worker 以便后续多端复用同一套令牌 */
+[data-theme="admin"]  { --brand-50:#eef2ff;--brand-100:#e0e7ff;--brand-300:#a5b4fc;--brand-500:#4f46e5;--brand-600:#4338ca;--brand-700:#3730a3;--brand-ink:#fff;--brand-soft:#eef2ff; }
+[data-theme="client"] { --brand-50:#eff6ff;--brand-100:#dbeafe;--brand-300:#93c5fd;--brand-500:#2563eb;--brand-600:#1d4ed8;--brand-700:#1e40af;--brand-ink:#fff;--brand-soft:#eff6ff; }
+[data-theme="worker"] { --brand-50:#fff7ed;--brand-100:#ffedd5;--brand-300:#fdba74;--brand-500:#ea580c;--brand-600:#c2410c;--brand-700:#9a3412;--brand-ink:#fff;--brand-soft:#fff7ed; }
 
 * {
   box-sizing: border-box;
@@ -53,8 +105,7 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   color: var(--bd-text);
   background: var(--bd-bg);
@@ -240,4 +291,115 @@ a {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ---------- 全局交互与视觉打磨（三端设计系统 v2.0 对齐） ---------- */
+
+/* 表格行 hover 高亮，统一交互反馈 */
+.el-table tbody .el-table__row {
+  transition: background-color 0.15s ease;
+}
+
+.el-table tbody .el-table__row:hover > td.el-table__cell {
+  background: var(--bd-primary-light) !important;
+}
+
+/* 标签圆角统一（StatusTag 已内置，这里兜底裸 el-tag） */
+.el-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 按钮微交互：按下轻微下沉，呼应小程序 :active 微交互 */
+.el-button {
+  transition: transform 0.08s ease, box-shadow 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+
+.el-button:active:not(.is-disabled) {
+  transform: translateY(1px);
+}
+
+/* 指标卡悬浮微抬升 + 阴影，强化"可数据"的质感 */
+.stat {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.stat:hover {
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+/* 可交互卡片悬浮反馈（给需要强调的卡片加 .interactive） */
+.card {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.card.interactive:hover {
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06), 0 10px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+/* 焦点可见性（无障碍）：键盘导航时给出清晰轮廓 */
+:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 输入框/选择器的聚焦态与主题色呼应 */
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--bd-primary) inset !important;
+}
+
+/* 分页组件与主题色对齐 */
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--bd-primary);
+}
+
+/* 统一页面头部：标题 + 副标题 + 右侧操作区（多视图复用 .page-head） */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* 骨架屏脉冲块（仪表盘首屏加载占位） */
+.sk-pulse {
+  position: relative;
+  overflow: hidden;
+  background: #eef1f6 !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  color: transparent !important;
+}
+
+.sk-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: sk-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes sk-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-pulse::after {
+    animation: none;
+  }
 }

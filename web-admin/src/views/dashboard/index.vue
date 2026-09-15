@@ -84,13 +84,6 @@ const slaOption = computed(() => {
   }
 })
 
-const statusType = (s) => {
-  if (['已支付', '已完成', 'PAID', 'DONE'].includes(s)) return 'success'
-  if (['安装中', 'ASSIGNED', '处理中'].includes(s)) return 'primary'
-  if (['待受理', 'PENDING'].includes(s)) return 'warning'
-  return 'info'
-}
-
 onMounted(async () => {
   loading.value = true
 
@@ -129,6 +122,7 @@ onMounted(async () => {
       <SourceTag :live="statsLive" />
     </div>
 
+    <template v-if="!loading">
     <div class="stat-grid">
       <StatCard label="本月订单" :value="stats.monthOrders" unit=" 单" foot="含新装 / 移机 / 续费" />
       <StatCard label="本月营收" :value="money(stats.revenue)" tone="up" foot="已支付口径" />
@@ -165,6 +159,20 @@ onMounted(async () => {
       <StatCard label="慢必赔单" :value="board ? board.slowPayCount : stats.slowPay" unit=" 单" tone="warn" foot="超时触发赔付" />
       <StatCard label="本月赔付" :value="money(board ? board.monthCompAmount : stats.monthComp)" tone="up" foot="流量券 + 话费" />
     </div>
+    </template>
+
+    <template v-else>
+      <div class="stat-grid">
+        <div v-for="i in 4" :key="'sk-s' + i" class="stat sk-pulse"><div class="label">占位</div><div class="value">占位</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card sk-pulse" style="height: 320px"></div>
+        <div class="card sk-pulse" style="height: 320px"></div>
+      </div>
+      <div class="grid-3">
+        <div v-for="i in 3" :key="'sk-g' + i" class="stat sk-pulse"><div class="label">占位</div><div class="value">占位</div></div>
+      </div>
+    </template>
 
     <div class="card">
       <div class="card-head">
@@ -174,7 +182,7 @@ onMounted(async () => {
           <el-link type="primary" :underline="false" @click="router.push('/order')">全部订单 →</el-link>
         </div>
       </div>
-      <el-table :data="orders" style="width: 100%" size="default">
+      <el-table v-loading="loading" :data="orders" style="width: 100%" size="default">
         <el-table-column prop="id" label="订单号" min-width="150" />
         <el-table-column prop="customer" label="客户" width="90" />
         <el-table-column prop="pkgName" label="套餐" min-width="120" />
@@ -185,13 +193,13 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
+            <StatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column label="下单时间" width="150">
           <template #default="{ row }">{{ row.time || fmtTime(row.createTime) }}</template>
         </el-table-column>
-        <template #empty>暂无订单数据</template>
+        <template #empty><EmptyState icon="📋" title="暂无订单数据" desc="暂无近期订单，可在「订单管理」受理或等待客户下单" /></template>
       </el-table>
     </div>
   </div>

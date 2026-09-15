@@ -128,11 +128,14 @@ public class AuthController {
                 customerMapper.insert(c);
             }
         } else {
-            // 演示分支（未配置微信凭证）：手机号 + 固定验证码 1234
+            // 演示分支（未配置微信凭证）：手机号 + 固定验证码 1234。
+            // 优先取前端显式下发的 smsCode（演示短信码），兼容旧前端仍把 1234 放在 code 字段。
+            String demoCode = (req.get("smsCode") != null && !req.get("smsCode").isEmpty())
+                    ? req.get("smsCode") : code;
             if (phone == null || !phone.matches("^1\\d{10}$")) {
                 throw new BadCredentials("请输入正确的手机号");
             }
-            if (code == null || !code.equals("1234")) {
+            if (demoCode == null || !demoCode.equals("1234")) {
                 throw new BadCredentials("验证码错误（演示验证码：1234）");
             }
             c = customerMapper.selectOne(

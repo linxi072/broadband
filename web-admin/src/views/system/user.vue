@@ -163,7 +163,7 @@ onMounted(load)
             </el-button>
           </template>
         </el-table-column>
-        <template #empty>暂无用户</template>
+        <template #empty><EmptyState icon="👤" title="暂无用户" desc="新建运营 / 财务 / 客服等后台账号" /></template>
       </el-table>
     </div>
 

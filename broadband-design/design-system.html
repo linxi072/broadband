@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="admin">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宽带业务管理系统 · 统一设计系统</title>
+<style>
+  /* ============ 设计令牌 · 统一地基 ============ */
+  :root {
+    /* 间距：4px 基准栅格 */
+    --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+    --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+    /* 圆角 */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-full: 999px;
+
+    /* 字体 */
+    --font-sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+    /* 字号阶梯 */
+    --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-md: 16px;
+    --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px; --fs-3xl: 36px;
+
+    /* 中性色（三端共用） */
+    --ink-900: #0f172a; --ink-700: #334155; --ink-500: #64748b;
+    --ink-400: #94a3b8; --ink-300: #cbd5e1; --ink-200: #e2e8f0;
+    --ink-100: #f1f5f9; --ink-50:  #f8fafc; --surface: #ffffff;
+
+    /* 语义色（状态，三端共用） */
+    --c-success: #16a34a; --c-success-bg: #dcfce7;
+    --c-warning: #d97706; --c-warning-bg: #fef3c7;
+    --c-danger:  #dc2626; --c-danger-bg:  #fee2e2;
+    --c-info:    #2563eb; --c-info-bg:    #dbeafe;
+
+    /* 阴影 */
+    --sh-sm: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04);
+    --sh-md: 0 4px 12px rgba(15,23,42,.08);
+    --sh-lg: 0 12px 32px rgba(15,23,42,.12);
+
+    /* 动效 */
+    --t-fast: 140ms cubic-bezier(.4,0,.2,1);
+    --t-norm: 240ms cubic-bezier(.4,0,.2,1);
+
+    /* 品牌色占位（由主题覆盖） */
+    --brand-50: #eef2ff; --brand-100: #e0e7ff; --brand-300: #a5b4fc;
+    --brand-500: #4f46e5; --brand-600: #4338ca; --brand-700: #3730a3;
+    --brand-ink: #ffffff; --brand-soft: #eef2ff;
+  }
+
+  /* ============ 三端品牌主题 ============ */
+  [data-theme="admin"]  { --brand-50:#eef2ff;--brand-100:#e0e7ff;--brand-300:#a5b4fc;--brand-500:#4f46e5;--brand-600:#4338ca;--brand-700:#3730a3;--brand-ink:#fff;--brand-soft:#eef2ff; }
+  [data-theme="client"] { --brand-50:#eff6ff;--brand-100:#dbeafe;--brand-300:#93c5fd;--brand-500:#2563eb;--brand-600:#1d4ed8;--brand-700:#1e40af;--brand-ink:#fff;--brand-soft:#eff6ff; }
+  [data-theme="worker"] { --brand-50:#fff7ed;--brand-100:#ffedd5;--brand-300:#fdba74;--brand-500:#ea580c;--brand-600:#c2410c;--brand-700:#9a3412;--brand-ink:#fff;--brand-soft:#fff7ed; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background: var(--ink-50);
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--brand-300); color: #fff; }
+
+  /* ============ 布局骨架 ============ */
+  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+  .side {
+    background: var(--surface); border-right: 1px solid var(--ink-200);
+    padding: var(--sp-6) var(--sp-4); position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .brand { display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-2) var(--sp-6); }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: var(--r-md);
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 16px;
+  }
+  .brand b { font-size: var(--fs-md); letter-spacing: .2px; }
+  .brand span { display: block; font-size: var(--fs-xs); color: var(--ink-500); }
+  .nav a {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-3); border-radius: var(--r-md);
+    color: var(--ink-700); text-decoration: none; font-weight: 500; font-size: var(--fs-base);
+    transition: background var(--t-fast), color var(--t-fast);
+  }
+  .nav a:hover { background: var(--ink-100); }
+  .nav a.active { background: var(--brand-soft); color: var(--brand-700); }
+  .nav .sec { font-size: var(--fs-xs); color: var(--ink-400); text-transform: uppercase;
+    letter-spacing: .8px; margin: var(--sp-5) var(--sp-3) var(--sp-2); font-weight: 600; }
+
+  .main { padding: var(--sp-8) var(--sp-10); max-width: 1180px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-8); gap: var(--sp-4); flex-wrap: wrap; }
+  h1 { font-size: var(--fs-3xl); font-weight: 700; letter-spacing: -.5px; }
+  .sub { color: var(--ink-500); margin-top: var(--sp-2); font-size: var(--fs-md); }
+
+  /* 主题切换器 */
+  .themeswitch { display: inline-flex; background: var(--ink-100); padding: var(--sp-1); border-radius: var(--r-full); gap: 2px; }
+  .themeswitch button {
+    border: 0; background: transparent; font: inherit; font-size: var(--fs-sm); font-weight: 600;
+    padding: var(--sp-2) var(--sp-4); border-radius: var(--r-full); cursor: pointer; color: var(--ink-500);
+    transition: all var(--t-fast);
+  }
+  .themeswitch button.on { background: var(--surface); color: var(--ink-900); box-shadow: var(--sh-sm); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  section { margin-bottom: var(--sp-12); scroll-margin-top: var(--sp-6); }
+  .card {
+    background: var(--surface); border: 1px solid var(--ink-200);
+    border-radius: var(--r-lg); padding: var(--sp-6); box-shadow: var(--sh-sm);
+  }
+  .sec-title { font-size: var(--fs-xl); font-weight: 700; margin-bottom: var(--sp-2); }
+  .sec-desc { color: var(--ink-500); margin-bottom: var(--sp-5); }
+
+  /* ============ 令牌展示 ============ */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: var(--sp-4); }
+  .swatch { border: 1px solid var(--ink-200); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+  .swatch .chip { height: 56px; }
+  .swatch .meta { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-xs); }
+  .swatch .meta b { display: block; font-family: var(--font-mono); font-weight: 600; color: var(--ink-900); }
+  .swatch .meta span { color: var(--ink-500); }
+
+  .type-row { display: flex; align-items: baseline; gap: var(--sp-4); padding: var(--sp-3) 0; border-bottom: 1px dashed var(--ink-200); }
+  .type-row .label { width: 96px; color: var(--ink-400); font-family: var(--font-mono); font-size: var(--fs-xs); flex: none; }
+  .type-row .sample { flex: 1; }
+
+  .spacer-demo { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; }
+  .sp-box { background: var(--brand-100); border-radius: var(--r-sm); display: grid; place-items: center; color: var(--brand-700); font-size: var(--fs-xs); font-family: var(--font-mono); }
+
+  /* ============ 组件 ============ */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+    font: inherit; font-weight: 600; border: 1px solid transparent; cursor: pointer;
+    border-radius: var(--r-md); padding: var(--sp-3) var(--sp-5); transition: all var(--t-fast);
+    background: var(--brand-500); color: var(--brand-ink);
+  }
+  .btn:hover { background: var(--brand-600); transform: translateY(-1px); box-shadow: var(--sh-md); }
+  .btn:active { transform: translateY(0); }
+  .btn:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }
+  .btn.secondary { background: var(--surface); color: var(--brand-700); border-color: var(--brand-300); }
+  .btn.secondary:hover { background: var(--brand-soft); }
+  .btn.ghost { background: transparent; color: var(--brand-700); }
+  .btn.ghost:hover { background: var(--brand-soft); }
+  .btn.sm { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-sm); }
+  .btn.lg { padding: var(--sp-4) var(--sp-6); font-size: var(--fs-md); }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .field { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+  .field label { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-700); }
+  .input {
+    font: inherit; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--ink-300);
+    border-radius: var(--r-md); background: var(--surface); color: var(--ink-900); transition: all var(--t-fast);
+  }
+  .input:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .input::placeholder { color: var(--ink-400); }
+
+  .tag { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); font-weight: 600;
+    padding: 3px var(--sp-3); border-radius: var(--r-full); }
+  .tag.success { background: var(--c-success-bg); color: var(--c-success); }
+  .tag.warning { background: var(--c-warning-bg); color: var(--c-warning); }
+  .tag.danger  { background: var(--c-danger-bg);  color: var(--c-danger); }
+  .tag.info    { background: var(--c-info-bg);    color: var(--c-info); }
+  .tag.brand   { background: var(--brand-soft);   color: var(--brand-700); }
+
+  .demo-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  .demo-stack { display: flex; flex-direction: column; gap: var(--sp-5); }
+
+  table.tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
+  .tbl th, .tbl td { text-align: left; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--ink-200); }
+  .tbl th { color: var(--ink-500); font-size: var(--fs-sm); font-weight: 600; background: var(--ink-50); }
+  .tbl tbody tr:hover { background: var(--ink-50); }
+
+  .skeleton { height: 14px; border-radius: var(--r-sm); background: linear-gradient(90deg,var(--ink-100) 25%,var(--ink-200) 37%,var(--ink-100) 63%); background-size: 400% 100%; animation: sk 1.4s ease infinite; }
+  @keyframes sk { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+  .empty { text-align: center; padding: var(--sp-10); color: var(--ink-500); }
+  .empty .ic { width: 56px; height: 56px; border-radius: var(--r-full); background: var(--ink-100); display: grid; place-items: center; margin: 0 auto var(--sp-3); font-size: 24px; }
+
+  .toast { display: inline-flex; align-items: center; gap: var(--sp-2); background: var(--ink-900); color: #fff;
+    padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); box-shadow: var(--sh-lg); font-size: var(--fs-sm); }
+  .toast .ok { color: #4ade80; }
+
+  /* ============ 三端对照 ============ */
+  .compare { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-5); }
+  .phone {
+    background: var(--surface); border: 1px solid var(--ink-200); border-radius: var(--r-xl);
+    overflow: hidden; box-shadow: var(--sh-md); display: flex; flex-direction: column; min-height: 540px;
+  }
+  .phone .phead { padding: var(--sp-4) var(--sp-5); color: #fff; background: linear-gradient(135deg,var(--p500),var(--p700)); }
+  .phone .phead b { font-size: var(--fs-md); }
+  .phone .phead small { display: block; opacity: .85; font-size: var(--fs-xs); }
+  .phone .pbody { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); flex: 1; }
+  .phone[data-r="client"] { --p500:#2563eb; --p700:#1e40af; }
+  .phone[data-r="worker"] { --p500:#ea580c; --p700:#9a3412; }
+  .phone[data-r="admin"]  { --p500:#4f46e5; --p700:#3730a3; }
+
+  .stat { background: var(--ink-50); border: 1px solid var(--ink-200); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
+  .stat .n { font-size: var(--fs-2xl); font-weight: 700; color: var(--ink-900); }
+  .stat .l { font-size: var(--fs-xs); color: var(--ink-500); }
+  .stat .n.c { color: var(--p500); }
+  .plist { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .pitem { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--ink-50); }
+  .pitem .av { width: 36px; height: 36px; border-radius: var(--r-md); background: var(--p500); color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+  .pitem .t { font-weight: 600; font-size: var(--fs-sm); }
+  .pitem .s { font-size: var(--fs-xs); color: var(--ink-500); }
+  .ptab { display: flex; gap: var(--sp-1); margin-top: auto; background: var(--ink-100); padding: var(--sp-1); border-radius: var(--r-full); }
+  .ptab span { flex: 1; text-align: center; padding: var(--sp-2); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-500); }
+  .ptab span.on { background: #fff; color: var(--p500); box-shadow: var(--sh-sm); }
+
+  .foot { color: var(--ink-400); font-size: var(--fs-xs); text-align: center; padding: var(--sp-6); }
+  @media (max-width: 920px) { .app { grid-template-columns: 1fr; } .side { position: static; height: auto; } .compare { grid-template-columns: 1fr; } .main { padding: var(--sp-5); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 侧边栏（PC 后台范式，三端同源） -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">宽</div>
+      <div><b>宽带业务系统</b><span>统一设计系统 v1.0</span></div>
+    </div>
+    <nav class="nav">
+      <div class="sec">设计地基</div>
+      <a href="#color" class="active">色彩令牌</a>
+      <a href="#type">字体排印</a>
+      <a href="#space">间距与圆角</a>
+      <a href="#motion">动效与阴影</a>
+      <div class="sec">组件库</div>
+      <a href="#buttons">按钮 Button</a>
+      <a href="#forms">表单 Form</a>
+      <a href="#data">数据展示</a>
+      <a href="#states">状态与反馈</a>
+      <div class="sec">三端落地</div>
+      <a href="#compare">三端对照预览</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>统一设计系统</h1>
+        <div class="sub">一套地基，三端同源异色 —— 客户端蓝 · 师傅端橙 · PC 后台靛</div>
+      </div>
+      <div class="themeswitch" id="ts">
+        <button data-t="admin" class="on"><span class="dot" style="background:#4f46e5"></span>后台</button>
+        <button data-t="client"><span class="dot" style="background:#2563eb"></span>客户端</button>
+        <button data-t="worker"><span class="dot" style="background:#ea580c"></span>师傅端</button>
+      </div>
+    </div>
+
+    <!-- 色彩 -->
+    <section id="color" class="card">
+      <div class="sec-title">色彩令牌</div>
+      <div class="sec-desc">中性色三端共用；品牌色按主题切换（当前预览主题：<b id="curTheme">后台靛</b>）。所有文本对比度满足 WCAG AA（≥4.5:1）。</div>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:var(--brand-50)"></div><div class="meta"><b>brand-50</b><span id="v50"></span></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brand-100)"></div><div class="meta"><b>brand-100</b><span id="v100"></span></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brand-300)"></div><div class="meta"><b>brand-300</b><span id="v300"></span></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brand-500)"></div><div class="meta"><b>brand-500</b><span id="v500"></span></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brand-600)"></div><div class="meta"><b>brand-600</b><span id="v600"></span></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brand-700)"></div><div class="meta"><b>brand-700</b><span id="v700"></span></div></div>
+      </div>
+      <div style="margin-top:var(--sp-5)">
+        <div class="sec-title" style="font-size:var(--fs-md)">语义状态色（三端一致）</div>
+        <div class="demo-row" style="margin-top:var(--sp-3)">
+          <span class="tag success">● 成功 / 达标</span>
+          <span class="tag warning">● 预警 / 待处理</span>
+          <span class="tag danger">● 失败 / 超时</span>
+          <span class="tag info">● 信息 / 进行中</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 字体 -->
+    <section id="type" class="card">
+      <div class="sec-title">字体排印</div>
+      <div class="sec-desc">主字体 Inter（中文回退 PingFang SC / 微软雅黑）；等宽 JetBrains Mono 用于编号、金额、时间。</div>
+      <div class="type-row"><span class="label">3xl / 36</span><span class="sample" style="font-size:var(--fs-3xl);font-weight:700">宽带业务总览</span></div>
+      <div class="type-row"><span class="label">2xl / 28</span><span class="sample" style="font-size:var(--fs-2xl);font-weight:700">本月受理 1,284 单</span></div>
+      <div class="type-row"><span class="label">xl / 22</span><span class="sample" style="font-size:var(--fs-xl);font-weight:600">装维进度看板</span></div>
+      <div class="type-row"><span class="label">base / 14</span><span class="sample" style="font-size:var(--fs-base)">正文内容，行高 1.6，保证长文可读性。</span></div>
+      <div class="type-row"><span class="label">xs / 12 mono</span><span class="sample" style="font-size:var(--fs-xs);font-family:var(--font-mono)">WO-20260915-0042 · ¥299.00 · 09:42</span></div>
+    </section>
+
+    <!-- 间距 -->
+    <section id="space" class="card">
+      <div class="sec-title">间距与圆角</div>
+      <div class="sec-desc">4px 基准栅格，8 点节奏；圆角统一四级（sm/md/lg/xl）。</div>
+      <div class="spacer-demo" id="spdemo"></div>
+    </section>
+
+    <!-- 动效 -->
+    <section id="motion" class="card">
+      <div class="sec-title">动效与阴影</div>
+      <div class="sec-desc">交互反馈 ≤240ms；悬浮抬升 + 柔和投影建立层级。遵循 prefers-reduced-motion（系统开启减弱动效时自动降级）。</div>
+      <div class="demo-row">
+        <div class="card" style="box-shadow:var(--sh-sm)">sh-sm 静态</div>
+        <div class="card" style="box-shadow:var(--sh-md)">sh-md 悬浮</div>
+        <div class="card" style="box-shadow:var(--sh-lg)">sh-lg 浮层</div>
+      </div>
+    </section>
+
+    <!-- 按钮 -->
+    <section id="buttons" class="card">
+      <div class="sec-title">按钮 Button</div>
+      <div class="sec-desc">主/次/幽灵三态 × sm/md/lg 三尺寸；44px 触控高度达标；焦点环清晰。</div>
+      <div class="demo-stack">
+        <div class="demo-row">
+          <button class="btn">主操作</button>
+          <button class="btn secondary">次操作</button>
+          <button class="btn ghost">幽灵</button>
+          <button class="btn" disabled>禁用</button>
+        </div>
+        <div class="demo-row">
+          <button class="btn sm">小</button>
+          <button class="btn">中</button>
+          <button class="btn lg">大</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 表单 -->
+    <section id="forms" class="card">
+      <div class="sec-title">表单 Form</div>
+      <div class="sec-desc">左对齐标签 + 清晰聚焦态；错误态用语义色与文案双重提示。</div>
+      <div style="max-width:420px">
+        <div class="field"><label>宽带账号</label><input class="input" placeholder="请输入宽带账号 / 手机号" /></div>
+        <div class="field"><label>预约时段</label><input class="input" placeholder="如 2026-09-16 上午" /></div>
+        <div class="field"><label>备注</label><input class="input" style="border-color:var(--c-danger)" placeholder="此项为必填" /><span style="color:var(--c-danger);font-size:var(--fs-xs)">请填写安装地址备注</span></div>
+        <button class="btn">提交工单</button>
+      </div>
+    </section>
+
+    <!-- 数据 -->
+    <section id="data" class="card">
+      <div class="sec-title">数据展示</div>
+      <div class="sec-desc">表格、标签、统计卡统一间距与圆角；状态用语义标签一目了然。</div>
+      <table class="tbl">
+        <thead><tr><th>工单号</th><th>小区</th><th>师傅</th><th>状态</th><th>时限</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:var(--font-mono)">WO-0042</td><td>阳光花园</td><td>王师傅</td><td><span class="tag success">已完工</span></td><td><span class="tag info">达标</span></td></tr>
+          <tr><td style="font-family:var(--font-mono)">WO-0043</td><td>滨江壹号</td><td>李师傅</td><td><span class="tag warning">安装中</span></td><td><span class="tag warning">预警</span></td></tr>
+          <tr><td style="font-family:var(--font-mono)">WO-0044</td><td>翠湖天地</td><td>—</td><td><span class="tag danger">已超时</span></td><td><span class="tag danger">超时</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 状态 -->
+    <section id="states" class="card">
+      <div class="sec-title">状态与反馈</div>
+      <div class="sec-desc">加载骨架屏、空状态引导、Toast 提示——覆盖全链路等待与异常场景。</div>
+      <div class="demo-stack">
+        <div style="display:flex;flex-direction:column;gap:var(--sp-2);max-width:360px">
+          <div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:50%"></div>
+        </div>
+        <div class="empty"><div class="ic">📭</div>暂无待派工单<br><small>新的报装需求会自动出现在这里</small></div>
+        <div><span class="toast"><span class="ok">✓</span> 工单 WO-0042 已派发给王师傅</span></div>
+      </div>
+    </section>
+
+    <!-- 三端对照 -->
+    <section id="compare">
+      <div class="sec-title">三端对照预览</div>
+      <div class="sec-desc">同一套组件与令牌，三个品牌主题叠加 —— 视觉同源、体验一致。</div>
+      <div class="compare">
+        <!-- 客户端 -->
+        <div class="phone" data-r="client">
+          <div class="phead"><b>宽带管家</b><small>客户端 · 蓝 #2563eb</small></div>
+          <div class="pbody">
+            <div class="stat"><div class="n c">300M</div><div class="l">当前套餐速率</div></div>
+            <div class="plist">
+              <div class="pitem"><div class="av">升</div><div><div class="t">套餐升级</div><div class="s">月差补差 · 立享千兆</div></div></div>
+              <div class="pitem"><div class="av">装</div><div><div class="t">报装新宽带</div><div class="s">覆盖小区可在线下单</div></div></div>
+              <div class="pitem"><div class="av">流</div><div><div class="t">流量监控</div><div class="s">本月已用 62%</div></div></div>
+            </div>
+            <div class="ptab"><span class="on">首页</span><span>套餐</span><span>我的</span></div>
+          </div>
+        </div>
+        <!-- 师傅端 -->
+        <div class="phone" data-r="worker">
+          <div class="phead"><b>装维助手</b><small>师傅端 · 橙 #ea580c</small></div>
+          <div class="pbody">
+            <div class="stat"><div class="n c">4</div><div class="l">今日待办工单</div></div>
+            <div class="plist">
+              <div class="pitem"><div class="av">王</div><div><div class="t">阳光花园 3-2-801</div><div class="s">09:00 上午 · 速率类</div></div></div>
+              <div class="pitem"><div class="av">李</div><div><div class="t">滨江壹号 12-1-302</div><div class="s">10:30 上午 · 时限类</div></div></div>
+            </div>
+            <div class="ptab"><span class="on">工单</span><span>排班</span><span>我的</span></div>
+          </div>
+        </div>
+        <!-- 后台 -->
+        <div class="phone" data-r="admin">
+          <div class="phead"><b>运营后台</b><small>PC 后台 · 靛 #4f46e5</small></div>
+          <div class="pbody">
+            <div class="stat"><div class="n c">1,284</div><div class="l">本月受理总量</div></div>
+            <div class="plist">
+              <div class="pitem"><div class="av">派</div><div><div class="t">智能派单</div><div class="s">相邻合并 · 容量校验</div></div></div>
+              <div class="pitem"><div class="av">S</div><div><div class="t">SLA 看板</div><div class="s">达标率 96.2%</div></div></div>
+              <div class="pitem"><div class="av">评</div><div><div class="t">客户评价</div><div class="s">满意度 4.8 / 5</div></div></div>
+            </div>
+            <div class="ptab"><span class="on">概览</span><span>工单</span><span>客户</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">UI Designer · 统一设计系统 v1.0 · 间距 4px 栅格 · WCAG AA · 三端同源</div>
+  </main>
+</div>
+
+<script>
+  // 主题切换：仅改变设计系统展示区的品牌色，三端对照区固定各自主题
+  var map = { admin:'后台靛', client:'客户端蓝', worker:'师傅端橙' };
+  var hex = { admin:'#4f46e5', client:'#2563eb', worker:'#ea580c' };
+  function setTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    document.getElementById('curTheme').textContent = map[t];
+    document.querySelectorAll('#ts button').forEach(function(b){ b.classList.toggle('on', b.dataset.t===t); });
+    ['50','100','300','500','600','700'].forEach(function(k){
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--brand-'+k).trim();
+      document.getElementById('v'+k).textContent = v;
+    });
+  }
+  document.getElementById('ts').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(b) setTheme(b.dataset.t);
+  });
+  // 间距可视化
+  var sp = [4,8,12,16,24,32,48]; var names={4:'sp-1',8:'sp-2',12:'sp-3',16:'sp-4',24:'sp-6',32:'sp-8',48:'sp-12'};
+  var sd = document.getElementById('spdemo');
+  sp.forEach(function(p){ var d=document.createElement('div'); d.className='sp-box'; d.style.width=p+'px'; d.style.height=p+'px'; d.title=names[p]+' '+p+'px'; d.textContent=p; sd.appendChild(d); });
+  // 初始化
+  setTheme('admin');
+  // 导航高亮
+  var links = document.querySelectorAll('.nav a');
+  links.forEach(function(a){ a.addEventListener('click', function(){ links.forEach(function(x){x.classList.remove('active')}); a.classList.add('active'); }); });
+</script>
+</body>
+</html>

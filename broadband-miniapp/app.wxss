@@ -4,7 +4,47 @@
    设计 token 与 web-admin --bd-* 体系对齐
    ============================================================ */
 page {
-  /* 品牌主色梯度 */
+  /* ============ 统一设计系统令牌（与 design-system.html 一致，新增） ============ */
+  /* 间距：4rpx 基准栅格 */
+  --sp-1: 4rpx;  --sp-2: 8rpx;  --sp-3: 12rpx; --sp-4: 16rpx;
+  --sp-5: 20rpx; --sp-6: 24rpx; --sp-8: 32rpx; --sp-10: 40rpx; --sp-12: 48rpx;
+
+  /* 圆角 */
+  --r-sm: 12rpx; --r-md: 20rpx; --r-lg: 28rpx; --r-xl: 36rpx; --r-full: 999rpx;
+
+  /* 字体 */
+  --font-sans: -apple-system, 'PingFang SC', sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  /* 字号阶梯（rpx） */
+  --fs-xs: 24rpx; --fs-sm: 26rpx; --fs-base: 28rpx; --fs-md: 30rpx;
+  --fs-lg: 34rpx; --fs-xl: 40rpx; --fs-2xl: 48rpx; --fs-3xl: 56rpx;
+
+  /* 中性色 */
+  --ink-900: #0f172a; --ink-700: #334155; --ink-500: #64748b;
+  --ink-400: #94a3b8; --ink-300: #cbd5e1; --ink-200: #e2e8f0;
+  --ink-100: #f1f5f9; --ink-50: #f8fafc; --surface: #ffffff;
+
+  /* 语义状态色 */
+  --c-success: #16a34a; --c-success-bg: #dcfce7;
+  --c-warning: #d97706; --c-warning-bg: #fef3c7;
+  --c-danger:  #dc2626; --c-danger-bg:  #fee2e2;
+  --c-info:    #0ea5e9; --c-info-bg:    #e0f2fe;
+
+  /* 阴影 */
+  --sh-sm: 0 2rpx 8rpx rgba(15,23,42,.05);
+  --sh-md: 0 4rpx 16rpx rgba(15,23,42,.08);
+
+  /* 动效 */
+  --t-fast: 120ms ease;
+  --t-norm: 240ms ease;
+
+  /* 品牌色（客户端蓝，与既有 --c 体系等值） */
+  --brand-50: #eff6ff; --brand-100: #dbeafe; --brand-300: #bfdbfe;
+  --brand-500: #2563eb; --brand-600: #1d4ed8; --brand-700: #1e40af;
+  --brand-ink: #ffffff; --brand-soft: #eff6ff;
+
+  /* 品牌主色梯度（既有体系，保留供已有页面） */
   --c: #2563eb;
   --c-50: #eff6ff;
   --c-100: #dbeafe;

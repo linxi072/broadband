@@ -105,7 +105,7 @@ onMounted(load)
             <el-tag :type="meta(row.status).type" size="small" effect="light">{{ meta(row.status).label }}</el-tag>
           </template>
         </el-table-column>
-        <template #empty>暂无工单（可先执行一次派单）</template>
+        <template #empty><EmptyState icon="🔧" title="暂无工单" desc="可先执行一次派单，订单将自动进入工单池" /></template>
       </el-table>
     </div>
   </div>

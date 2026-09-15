@@ -45,7 +45,6 @@ const localPreview = computed(() => {
 const show = computed(() => preview.value || localPreview.value)
 
 const effectLabel = (t) => (t === 'nextMonth' ? '次月生效' : '立即生效')
-const statusType = (s) => ({ 待审核: 'warning', 已生效: 'success', 已驳回: 'danger' }[s] || 'info')
 
 async function loadOptions() {
   optionsLoading.value = true
@@ -239,13 +238,13 @@ onMounted(async () => {
             </el-table-column>
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="statusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
+                <StatusTag :status="row.status" />
               </template>
             </el-table-column>
             <el-table-column label="提交时间" width="150">
               <template #default="{ row }">{{ row.time || fmtTime(row.createdTime) }}</template>
             </el-table-column>
-            <template #empty>暂无升级申请单</template>
+            <template #empty><EmptyState icon="⚡" title="暂无升级申请单" desc="在「升级配置」中提交套餐升档或加购申请" /></template>
           </el-table>
         </div>
       </el-tab-pane>

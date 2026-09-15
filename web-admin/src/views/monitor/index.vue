@@ -118,7 +118,7 @@ onMounted(async () => {
             <el-table-column prop="count" label="调用次数" width="120" />
             <el-table-column prop="avgMs" label="平均耗时(ms)" width="140" />
             <el-table-column prop="maxMs" label="峰值(ms)" width="120" />
-            <template #empty>暂无调用记录</template>
+            <template #empty><EmptyState icon="📈" title="暂无调用记录" desc="后端接通后将记录接口调用、耗时与异常" /></template>
           </el-table>
         </div>
 

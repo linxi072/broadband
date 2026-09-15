@@ -87,7 +87,7 @@ onMounted(async () => {
           </el-table-column>
           <el-table-column prop="path" label="路径" min-width="170" />
           <el-table-column prop="perm" label="权限码" min-width="150" />
-          <template #empty>暂无菜单数据</template>
+          <template #empty><EmptyState icon="🧭" title="暂无菜单数据" desc="同步前端导航与后端 sys_menu 权限树" /></template>
         </el-table>
       </div>
 

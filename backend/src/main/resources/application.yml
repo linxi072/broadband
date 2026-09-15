@@ -48,12 +48,13 @@ logging:
 # ============================================================================
 # 登录态收口 & 微信小程序凭证（M9）
 #   - app.security.protect-client-api=true：C 端开放接口（套餐/小区/订单/流量）改为强制鉴权
-#   - 微信 appid/secret 生产用环境变量 WECHAT_APPID / WECHAT_SECRET 注入，yml 仅占位、不落明文
+#   - AppID 属公开标识，已回填真实值；AppSecret 生产用环境变量 WECHAT_SECRET 注入，yml 不落明文
+#     注入 Secret 后即由「演示码 1234 回退」自动切换为微信 code2Session 真实登录（前端无需改动）。
 # ============================================================================
 app:
   security:
     protect-client-api: true
   wechat:
     miniapp:
-      appid: ${WECHAT_APPID:}
+      appid: ${WECHAT_APPID:wxcc344ad7f4f849d4}
       secret: ${WECHAT_SECRET:}

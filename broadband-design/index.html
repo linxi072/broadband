@@ -156,8 +156,8 @@
 <header>
   <div class="wrap">
     <h1>宽带业务管理系统 · 功能页面设计稿</h1>
-    <p>微信小程序（客户端 / 安装师傅端）+ PC 后端管理系统（web-admin）· 线框原型与功能清单 <b>v2.0</b></p>
-    <p style="color:#93c5fd;font-size:13px;margin-top:6px">v2.0 更新：与实现口径 v1.5 对齐（M9 双端登录态收口）—— 补齐登录页设计、页面清单按实际落地路由校正、新增各端落地状态总览。</p>
+    <p>微信小程序（客户端 / 安装师傅端）+ PC 后端管理系统（web-admin）· 线框原型与功能清单 <b>v2.1</b></p>
+    <p style="color:#93c5fd;font-size:13px;margin-top:6px">v2.1 更新：与实现口径 v1.7 对齐（M10 师傅端数据绑定 + 微信 AppID 就位）—— 更新落地状态总览与师傅端线框至真实接口 <code>/api/worker/*</code>、新增凭证/环境变量清单、刷新后续计划。</p>
   </div>
 </header>
 
@@ -215,16 +215,28 @@
     </table>
     <div class="note">说明：原「销售端」小程序已移除，销售拓客/录单/业绩等功能统一由 PC 后台「销售管理」模块承接（管理员或指定销售岗在后台操作）。</div>
 
-    <h3>落地状态总览（对齐实现口径 v1.5 · 2026-09-14）</h3>
+    <h3>落地状态总览（对齐实现口径 v1.7 · 2026-09-15）</h3>
     <table class="matrix">
       <tr><th>端 / 层</th><th>设计稿规划</th><th>已落地</th><th>状态</th><th>关键说明</th></tr>
       <tr><td>客户端小程序</td><td>20 页</td><td>20 页</td><td>✅ 100%</td><td>登录走真实 <code>POST /api/auth/miniapp-login</code>，401 自动跳登录页</td></tr>
-      <tr><td>安装师傅端小程序</td><td>8 页</td><td>8 页</td><td>✅ 100%</td><td>登录走真实 <code>POST /api/auth/worker-login</code>（按 <code>worker.phone</code> 签发令牌）</td></tr>
+      <tr><td>安装师傅端小程序</td><td>8 页</td><td>8 页</td><td>✅ 100%</td><td><b>M10：</b>首页/容量/排班/完工 4 页已接真实 <code>/api/worker/*</code>，<b>按 token 隔离只看到本人工单</b></td></tr>
       <tr><td>PC 后台 web-admin</td><td>16 模块</td><td>22 模块 / 25 页</td><td>✅ 100%</td><td>菜单由后端 <code>/api/auth/me</code> 动态渲染，与 <code>@PreAuthorize</code> 权限码同源</td></tr>
       <tr><td>后端服务</td><td>4 模块 + 公共层</td><td>56 接口（GET36/POST15/PUT5）</td><td>✅ 100%</td><td>三类令牌：SYS / CUSTOMER / WORKER；C 端强制鉴权；师傅端 <code>/api/worker/*</code> 按 token 隔离工单</td></tr>
-      <tr><td>数据库</td><td>25 张表</td><td>25 张表 + 种子数据</td><td>✅ 100%</td><td>幂等初始化；v1.5 增列 <code>customer.openid</code> / <code>worker.phone</code></td></tr>
+      <tr><td>数据库</td><td>25 张表</td><td>25 张表 + 种子数据</td><td>✅ 100%</td><td>幂等初始化；<code>customer.openid</code> / <code>worker.phone</code> / <code>work_order</code> 完工五列</td></tr>
+      <tr><td>微信凭证</td><td>AppID + AppSecret</td><td><b>AppID 已就位</b></td><td><span class="stat w">90%</span></td><td>两端 <code>project.config.json</code> 已填 AppID <code>wxcc344ad7f4f849d4</code>；<b>缺 Secret</b>，当前登录走演示码 <code>1234</code> 回退</td></tr>
     </table>
-    <div class="note"><b>待办（见第六章后续计划）：</b>微信真实凭证接入、师傅端数据全绑定与视觉验收、业务闭环联调、监控与配置治理、CI/CD。</div>
+    <div class="note"><b>待办（见第六章后续计划）：</b>① 注入 <code>WECHAT_SECRET</code> 环境变量 → 登录自动切真实 <code>code2Session</code>；② 师傅端页面截图视觉验收；③ 业务闭环联调；④ 监控与配置治理；⑤ CI/CD 与上线。</div>
+
+    <h3>凭证与环境变量清单（v2.1 新增）</h3>
+    <table class="matrix">
+      <tr><th>项</th><th>注入位置</th><th>状态</th><th>缺失时的行为</th></tr>
+      <tr><td>微信 AppID <code>wxcc344ad7f4f849d4</code></td><td>两端 <code>project.config.json</code> + 后端 <code>app.wechat.miniapp.appid</code></td><td>✅ 已配置</td><td>—</td></tr>
+      <tr><td>微信 AppSecret</td><td>环境变量 <code>WECHAT_SECRET</code></td><td>⬜ 待提供</td><td>自动回退演示验证码 <code>1234</code>（前端无需改动）</td></tr>
+      <tr><td>JWT 密钥</td><td><code>app.jwt.secret</code>（生产用环境变量覆盖）</td><td>✅ 默认可用</td><td>建议生产强制覆盖，否则存在默认密钥风险</td></tr>
+      <tr><td>MySQL 凭据</td><td><code>DB_HOST/PORT/NAME/USERNAME/PASSWORD</code></td><td>✅ 本地已通</td><td>启动失败（连接池无法建立）</td></tr>
+      <tr><td>C 端鉴权开关</td><td><code>app.security.protect-client-api</code></td><td>✅ <code>true</code></td><td>置 <code>false</code> 即临时开放 C 端接口</td></tr>
+    </table>
+    <div class="note">⚠️ 客户端与师傅端当前<b>共用同一 AppID</b>；正式提审前需确认走「同主体多端」还是为师傅端单独申请 AppID。</div>
   </div>
 </section>
 
@@ -1039,15 +1051,16 @@
     <h3><span class="badge b-install">安装师傅端</span> 微信小程序（8 页 · 已全量落地）</h3>
     <table class="inv">
       <tr><th>页面</th><th>路由/文件</th><th>核心功能</th><th>落地</th></tr>
-      <tr><td>师傅首页</td><td><code>pages/index</code></td><td>今日工单概览、容量与排班快捷入口</td><td>✅</td></tr>
-      <tr><td>我的工单</td><td><code>pages/order</code></td><td>待接 / 进行中 / 已完成 三态列表</td><td>✅</td></tr>
-      <tr><td>工单详情</td><td><code>pages/order-detail</code></td><td>客户、地址导航、套餐、施工操作、客户评价星级</td><td>✅</td></tr>
-      <tr><td>完工确认</td><td><code>pages/confirm</code></td><td>完工拍照、测速结果录入与提交</td><td>✅</td></tr>
-      <tr><td>排班与容量</td><td><code>pages/capacity</code></td><td>时段容量热力图、个人容量配置</td><td>✅</td></tr>
-      <tr><td>工单路线</td><td><code>pages/schedule</code></td><td>当日工单路线与顺序规划（相邻优先）</td><td>✅</td></tr>
+      <tr><td>师傅首页</td><td><code>pages/index</code></td><td><b>今日工单统计卡</b>（待上门/施工中/已完工）+ 容量与排班快捷入口 → <code>GET /api/worker/summary</code></td><td>✅</td></tr>
+      <tr><td>我的工单</td><td><code>pages/order</code></td><td>待接 / 进行中 / 已完成 三态列表，<b>服务端按 token 只返回本人工单</b> → <code>GET /api/worker/work-orders</code></td><td>✅</td></tr>
+      <tr><td>工单详情</td><td><code>pages/order-detail</code></td><td>客户、地址导航、套餐、施工操作、客户评价星级，<b>非本人工单返回空</b> → <code>GET /api/worker/work-orders/{id}</code></td><td>✅</td></tr>
+      <tr><td>完工确认</td><td><code>pages/confirm</code></td><td>施工照片、<b>测速结果（下行/上行）</b>、客户签名、服务项录入并置 DONE，越权返回 400 → <code>POST /api/worker/work-orders/{id}/complete</code></td><td>✅</td></tr>
+      <tr><td>排班与容量</td><td><code>pages/capacity</code></td><td><b>本人</b>分时段容量占用看板（7 天 × 时段热力）→ <code>GET /api/worker/capacity</code></td><td>✅</td></tr>
+      <tr><td>工单路线</td><td><code>pages/schedule</code></td><td>未来 <b>7 天排班</b> + 当日工单顺序（相邻优先）→ <code>GET /api/worker/schedule</code></td><td>✅</td></tr>
       <tr><td>个人中心</td><td><code>pages/profile</code></td><td>师傅信息、完工统计、登录门禁 <code>onShow</code></td><td>✅</td></tr>
-      <tr><td><b>登录</b></td><td><code>pages/login</code></td><td><b>v2.0 新增</b>：手机号 + 验证码 → <code>POST /api/auth/worker-login</code> 签发 WORKER 令牌</td><td>✅</td></tr>
+      <tr><td><b>登录</b></td><td><code>pages/login</code></td><td>手机号 + 验证码 → <code>POST /api/auth/worker-login</code> 签发 WORKER 令牌（<code>worker.phone</code> 查表）</td><td>✅</td></tr>
     </table>
+    <div class="note"><b>v2.1：</b>上述前 6 页原本为硬编码假数据，M10 已全部改为真实接口（<code>WorkerController</code> 6 端点）；完工回填的 <code>down_speed</code>/<code>up_speed</code>/<code>sign_name</code>/<code>service_items</code>/<code>complete_time</code> 五列已落库。</div>
 
     <h3><span class="badge b-admin">PC 后端管理</span> web-admin（Vue3 · 22 模块 / 25 页 · 已全量落地）</h3>
     <table class="inv">
@@ -1073,7 +1086,12 @@
     </table>
 
     <div class="note">
-      <b>后续计划（M10–M13）：</b>① M10 师傅端数据全绑定与页面视觉验收；② M11 业务闭环联调（下单 → 派单 → 装机 → SLA 赔付 → 评价，支付可后置）；③ M12 监控深化（metrics / 日志聚合 / 告警）与多环境 profile 配置治理；④ M13 CI/CD 流水线、生产 Nginx 部署与文档收尾；⑤ 微信真实凭证（AppID/Secret）接入后，小程序登录由演示码自动切换为 <code>code2Session</code> 真实登录。
+      <b>后续计划：</b>
+      ① <b>M10 ✅ 已完成</b>（师傅端数据全绑定 + 仅看本人工单：6 个 <code>/api/worker/*</code> 接口、服务端按 token 隔离、13 项验证全绿），剩余 M10b <b>页面视觉验收</b>需微信开发者工具截图；
+      ② <b>WECHAT_SECRET 注入</b>——AppID 已就位，补齐 Secret 后小程序登录自动由演示码切换为真实 <code>code2Session</code>；
+      ③ M11 业务闭环联调（下单 → 派单 → 装机 → SLA 赔付 → 评价，支付可后置）；
+      ④ M12 监控深化（metrics / 日志聚合 / 告警）与多环境 profile 配置治理；
+      ⑤ M13 CI/CD 流水线、生产 Nginx 部署与文档收尾。
     </div>
   </div>
 </section>

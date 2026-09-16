@@ -8,6 +8,7 @@ import com.broadband.system.model.SysUserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -115,6 +116,34 @@ public class SysUserController {
         patch.password = passwordEncoder.encode(raw);
         userMapper.updateById(patch);
         log("重置密码 " + id, "/api/system/users/" + id + "/password", "PUT");
+        return Map.of("ok", true);
+    }
+
+    /** 编辑用户基本信息（姓名 / 部门；密码与角色走独立接口）。 */
+    @PutMapping("/{id}")
+    public Map<String, Object> update(@PathVariable String id, @RequestBody Map<String, Object> req) {
+        SysUser exist = userMapper.selectById(id);
+        if (exist == null) throw new IllegalArgumentException("用户不存在：" + id);
+        SysUser patch = new SysUser();
+        patch.id = id;
+        patch.name = str(req.get("name")) == null ? exist.name : str(req.get("name"));
+        patch.dept = str(req.get("dept")) == null ? exist.dept : str(req.get("dept"));
+        userMapper.updateById(patch);
+        log("编辑用户 " + id, "/api/system/users/" + id, "PUT");
+        return Map.of("ok", true);
+    }
+
+    /** 删除用户：禁止删除自己、禁止删除内置 admin；级联清理用户-角色关联。 */
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(@PathVariable String id) {
+        SysUser exist = userMapper.selectById(id);
+        if (exist == null) throw new IllegalArgumentException("用户不存在：" + id);
+        var me = AuthController.current();
+        if (me != null && me.user.id.equals(id)) throw new IllegalArgumentException("不能删除当前登录账号");
+        if ("admin".equals(exist.username)) throw new IllegalArgumentException("内置管理员账号不可删除");
+        userMapper.deleteUserRoles(id);
+        userMapper.deleteById(id);
+        log("删除用户 " + exist.username, "/api/system/users/" + id, "DELETE");
         return Map.of("ok", true);
     }
 

@@ -107,21 +107,3 @@ export function importRoles(file) {
 export function exportMenus() {
   return downloadCsv('/system/menus/export', '菜单数据.csv')
 }
-
-/* ----------------------------- 部门管理（按区域划分） ----------------------------- */
-
-export function departmentList() {
-  return request({ url: '/system/departments', method: 'get' })
-}
-export function departmentTree() {
-  return request({ url: '/system/departments/tree', method: 'get' })
-}
-export function createDepartment(data) {
-  return request({ url: '/system/departments', method: 'post', data })
-}
-export function updateDepartment(id, data) {
-  return request({ url: `/system/departments/${id}`, method: 'put', data })
-}
-export function deleteDepartment(id) {
-  return request({ url: `/system/departments/${id}`, method: 'delete' })
-}

@@ -204,6 +204,41 @@ INSERT IGNORE INTO review (id, order_id, customer_name, worker_name, score, tags
  ('RV20260911001','WO2026091101','王女士','李强',3,'迟到',          'COMPLAINT','预约下午上门，实际晚上才到，影响了当天安排。','PROCESSING', UNIX_TIMESTAMP('2026-09-11 20:05:00')*1000),
  ('RV20260910001','WO2026091001','赵女士','王芳',4,'专业',          'REVIEW','布线整齐，测速达标。','CLOSED', UNIX_TIMESTAMP('2026-09-10 17:10:00')*1000);
 
+-- ---------------------------------------------------------------------------
+-- 部门（按区域划分：华南大区 > 深圳 / 广州分公司；华东大区 > 上海分公司）
+-- 树形：parent_id 为空为区域根；sys_user / community / 订单 经 dept_id 归属，
+-- 实现「运营人员只能看本部门及下级部门数据」的行级隔离。
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO sys_department (id, parent_id, name, region, sort_order, status, created_time) VALUES
+ ('D1', NULL, '华南大区',   '华南', 1, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D2', 'D1', '深圳分公司', '华南', 2, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D3', 'D1', '广州分公司', '华南', 3, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D4', NULL, '华东大区',   '华东', 4, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D5', 'D4', '上海分公司', '华东', 5, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 已存在小区归属部门（深圳片区 -> 深圳分公司）
+UPDATE community SET dept_id = 'D2' WHERE region IN ('南山','福田','宝安') AND (dept_id IS NULL OR dept_id = '');
+
+-- 上海演示小区（归属 上海分公司，用于验证跨区数据隔离）
+INSERT IGNORE INTO community (id, name, region, street, latitude, longitude, installable, port_total, port_used, dept_id) VALUES
+ ('com_sh01','上海康桥花园','浦东','康桥路',31.1500,121.5500,1,200,120,'D5'),
+ ('com_sh02','上海张江高科','浦东','张江路',31.2000,121.6000,1,180, 90,'D5');
+
+-- 上海演示订单（归属 上海分公司）
+INSERT IGNORE INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, amount, sales_name, community_id, community_name, order_type, status, created_time) VALUES
+ ('B20260914004','C20260004','上海客户甲','13700000004','pkg1000','1000M 融合套餐',159,'上海运营','com_sh01','上海康桥花园','NEW_INSTALL','PAID', UNIX_TIMESTAMP('2026-09-14 09:30:00')*1000),
+ ('B20260914005','C20260004','上海客户甲','13700000004','pkg500', '500M 融合套餐', 99,'上海运营','com_sh02','上海张江高科','RENEW',     'DONE', UNIX_TIMESTAMP('2026-09-10 14:00:00')*1000);
+
+-- 上海演示工单
+INSERT IGNORE INTO work_order (id, community_id, address, time_slot, customer_name, package_desc, status, adjacent_route, dept_id) VALUES
+ ('WO2026091401','com_sh01','康桥路1号 2栋501','2026-09-15#AM','上海客户甲','1000M 融合套餐','PENDING',NULL,'D5');
+
+-- 订单 / 工单 dept_id 经 community 推导（幂等：仅补齐未归属的）
+UPDATE biz_order b JOIN community c ON c.id = b.community_id SET b.dept_id = c.dept_id WHERE b.dept_id IS NULL OR b.dept_id = '';
+UPDATE work_order w JOIN biz_order b ON b.id = w.biz_order_id SET w.dept_id = b.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
+-- 兜底：未关联 biz_order 的工单，直接按所属小区归属部门
+UPDATE work_order w JOIN community c ON c.id = w.community_id SET w.dept_id = c.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
+
 -- ===========================================================================
 -- RBAC 种子：角色 / 菜单权限 / 用户 / 授权
 -- 说明：用户密码留空，由后端 RbacInitializer 首次启动时写入 BCrypt 哈希
@@ -247,6 +282,7 @@ INSERT IGNORE INTO sys_menu (id, parent_id, name, path, perm, type, sort_order) 
  ('M132','M13','角色管理',      '/system/role',      'system:role',    'MENU', 2),
  ('M133','M13','菜单权限',      '/system/menu',      'system:menu',    'MENU', 3),
  ('M134','M13','操作日志',      '/system/log',       'system:log',     'MENU', 4),
+ ('M44','M13','部门管理',      '/system/department','system:dept',   'MENU', 5),
  ('M14', NULL, '性能监控',      '/monitor',          'monitor:view',   'MENU', 14);
 
 -- 角色授权（管理员：全部菜单）
@@ -255,7 +291,7 @@ INSERT IGNORE INTO sys_role_menu (role_id, menu_id) VALUES
  ('R_ADMIN','M5'),('R_ADMIN','M6'),('R_ADMIN','M61'),('R_ADMIN','M62'),('R_ADMIN','M7'),('R_ADMIN','M71'),
  ('R_ADMIN','M72'),('R_ADMIN','M73'),('R_ADMIN','M74'),('R_ADMIN','M8'),('R_ADMIN','M9'),('R_ADMIN','M10'),
  ('R_ADMIN','M11'),('R_ADMIN','M12'),('R_ADMIN','M13'),('R_ADMIN','M131'),('R_ADMIN','M132'),('R_ADMIN','M133'),
- ('R_ADMIN','M134'),('R_ADMIN','M14'),('R_ADMIN','M43'),
+ ('R_ADMIN','M134'),('R_ADMIN','M14'),('R_ADMIN','M43'),('R_ADMIN','M44'),
  -- 运营专员：业务模块（不含财务 / 权限管理 / 性能监控）
  ('R_OPERATOR','M1'),('R_OPERATOR','M2'),('R_OPERATOR','M3'),('R_OPERATOR','M4'),('R_OPERATOR','M41'),('R_OPERATOR','M43'),
  ('R_OPERATOR','M42'),('R_OPERATOR','M5'),('R_OPERATOR','M6'),('R_OPERATOR','M61'),('R_OPERATOR','M62'),
@@ -268,16 +304,26 @@ INSERT IGNORE INTO sys_role_menu (role_id, menu_id) VALUES
  -- 销售
  ('R_SALES','M1'),('R_SALES','M2'),('R_SALES','M3'),('R_SALES','M11');
 
--- 用户（password 留空 = 待 RbacInitializer 写入初始密码）
-INSERT IGNORE INTO sys_user (id, username, password, name, dept, status, created_time) VALUES
- ('U_ADMIN',   'admin',    '', '超级管理员', '信息技术部', 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_LIUWEI',  'liuwei',   '', '刘伟',       '运营中心',   'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_ZHAOMIN', 'zhaomin',  '', '赵敏',       '财务部',     'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_WANGFANG','wangfang', '', '王芳',       '客服中心',   'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+-- 用户（password 留空 = 待 RbacInitializer 写入初始密码；dept_id 关联 sys_department）
+-- admin 无部门 -> 看全部；其余按所属分公司隔离（深圳 D2 / 上海 D5）
+INSERT IGNORE INTO sys_user (id, username, password, name, dept_id, status, created_time) VALUES
+ ('U_ADMIN',   'admin',    '', '超级管理员', NULL,    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_LIUWEI',  'liuwei',   '', '刘伟',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_ZHAOMIN', 'zhaomin',  '', '赵敏',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_WANGFANG','wangfang', '', '王芳',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_SH',      'shanghai', '', '上海运营',   'D5',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 幂等补全（已存在用户不会被 INSERT 覆盖，用 UPDATE 同步部门归属）
+UPDATE sys_user SET dept_id = NULL WHERE username = 'admin';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'liuwei';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'zhaomin';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'wangfang';
+UPDATE sys_user SET dept_id = 'D5'  WHERE username = 'shanghai';
 
 -- 用户角色
 INSERT IGNORE INTO sys_user_role (user_id, role_id) VALUES
  ('U_ADMIN','R_ADMIN'),
  ('U_LIUWEI','R_OPERATOR'),
  ('U_ZHAOMIN','R_FINANCE'),
- ('U_WANGFANG','R_CS');
+ ('U_WANGFANG','R_CS'),
+ ('U_SH','R_OPERATOR');

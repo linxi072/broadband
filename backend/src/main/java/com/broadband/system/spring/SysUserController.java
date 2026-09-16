@@ -158,7 +158,7 @@ public class SysUserController {
         SysUser patch = new SysUser();
         patch.id = id;
         patch.name = str(req.get("name")) == null ? exist.name : str(req.get("name"));
-        patch.dept = str(req.get("dept")) == null ? exist.dept : str(req.get("dept"));
+        patch.deptId = str(req.get("deptId")) == null ? exist.deptId : str(req.get("deptId"));
         userMapper.updateById(patch);
         log("编辑用户 " + id, "/api/system/users/" + id, "PUT");
         return Map.of("ok", true);

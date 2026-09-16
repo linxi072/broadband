@@ -79,6 +79,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
+                                           MustChangePasswordFilter mustChangePasswordFilter,
                                            RestAuthHandlers handlers) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
@@ -100,7 +101,8 @@ public class SecurityConfig {
                 }
                 reg.anyRequest().authenticated();
             })
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(mustChangePasswordFilter, JwtAuthFilter.class);
 
         return http.build();
     }

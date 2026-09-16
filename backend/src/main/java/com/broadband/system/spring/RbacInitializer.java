@@ -1,6 +1,7 @@
 package com.broadband.system.spring;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.broadband.system.mapper.SysUserMapper;
 import com.broadband.system.model.SysUser;
 import org.slf4j.Logger;
@@ -51,10 +52,11 @@ public class RbacInitializer implements ApplicationRunner {
         for (SysUser u : users) {
             if (u.password == null || u.password.isBlank()) {
                 String plain = DEFAULT_PASSWORDS.getOrDefault(u.username, u.username + "123");
-                SysUser patch = new SysUser();
-                patch.id = u.id;
-                patch.password = passwordEncoder.encode(plain);
-                userMapper.updateById(patch);
+                // 仅更新 password 列，避免 updateById 用部分实体把 must_change_password 等列重置为默认值
+                // （UPDATE sys_user SET password=?, must_change_password=0, ...），从而抹掉 T-02 首登改密门禁的种子标记。
+                userMapper.update(null, new UpdateWrapper<SysUser>()
+                        .eq("id", u.id)
+                        .set("password", passwordEncoder.encode(plain)));
                 filled++;
             }
         }

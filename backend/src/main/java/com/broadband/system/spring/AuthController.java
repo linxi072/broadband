@@ -234,6 +234,39 @@ public class AuthController {
         return Map.of("ok", true);
     }
 
+    /**
+     * 自服务改密（T-02 安全治理）：已登录用户凭旧密码修改自己的密码。
+     * 若账号处于「首次登录必须改密」状态（mustChangePassword=1），改密成功后自动清除标记，
+     * 服务端过滤器随即放行其全部后台接口。无需 system:user 权限，任意已认证后台用户可用。
+     */
+    @PostMapping("/change-password")
+    public Map<String, Object> changePassword(@RequestBody Map<String, String> req, HttpServletRequest http) {
+        LoginUser me = current();
+        if (me == null) throw new BadCredentials("未认证");
+        String oldPassword = req.get("oldPassword");
+        String newPassword = req.get("newPassword");
+        if (oldPassword == null || oldPassword.isEmpty() || newPassword == null || newPassword.isEmpty()) {
+            throw new IllegalArgumentException("旧密码与新密码均不能为空");
+        }
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("新密码至少 6 位");
+        }
+        SysUser u = userMapper.selectById(me.user.id);
+        if (u == null) throw new BadCredentials("用户不存在");
+        if (!passwordEncoder.matches(oldPassword, u.password)) {
+            operLogService.record(me.user.username, me.user.name, "修改密码", "/api/auth/change-password",
+                    "POST", RestAuthHandlers.clientIp(http), "失败(旧密码错误)", 0);
+            throw new BadCredentials("旧密码错误");
+        }
+        // 先载入完整实体再更新，避免 updateById 覆盖 createdTime/status 等字段（MyBatis-Plus 全字段更新语义）。
+        u.password = passwordEncoder.encode(newPassword);
+        u.mustChangePassword = 0;
+        userMapper.updateById(u);
+        operLogService.record(me.user.username, me.user.name, "修改密码", "/api/auth/change-password",
+                "POST", RestAuthHandlers.clientIp(http), "成功", 0);
+        return Map.of("ok", true, "mustChangePassword", 0);
+    }
+
     // ------------------------------------------------------------------ 辅助
 
     public static LoginUser current() {
@@ -249,6 +282,7 @@ public class AuthController {
         m.put("name", u.name);
         m.put("deptId", u.deptId);
         m.put("status", u.status);
+        m.put("mustChangePassword", u.mustChangePassword);
         return m;
     }
 

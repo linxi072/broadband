@@ -39,6 +39,14 @@ export function demoCustomer360(id) {
       oneTimeDiff: u.oneTimeDiff, currentFee: 0, newFee: 0, effectType: u.effectType,
       statusLabel: u.status, createdAt: u.time
     })),
+    lifecycle: { stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
+    touchRecords: [
+      { type: 'order', title: '下单 · 500M 融合 40G', detail: '¥129 · 已支付', time: Date.now() - 12 * 86400000, timeText: '2026-09-14 09:12' },
+      { type: 'install', title: '安装完工 · 新装', detail: '师傅 张师傅', time: Date.now() - 11 * 86400000, timeText: '2026-09-13 11:30' },
+      { type: 'review', title: '评价 · 5★', detail: '师傅专业、速度快', time: Date.now() - 10 * 86400000, timeText: '2026-09-12 18:20' },
+      { type: 'upgrade', title: '升级申请 · 1000M 融合', detail: '待审核', time: Date.now() - 2 * 86400000, timeText: '2026-09-14 12:01' },
+      { type: 'contract', title: '签约合约', detail: '¥129 · 到期 2028-03-31', time: Date.now() - 400 * 86400000, timeText: '2026-04-01' }
+    ],
     summary: { orderCount: 4, paidAmount: 496, workOrderCount: demoWorkOrders.length, reviewCount: 1, avgScore: 5, upgradeCount: 1 }
   }
 }
@@ -231,6 +239,15 @@ export function demoSlaDashboard() {
     ],
     overtimeByDay: dayLabels.map((date, i) => ({ date, overtime: overtimeByDay[i], met: metByDay[i] })),
     compTrend,
+    heatmap: (() => {
+      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+      const hours = Array.from({ length: 24 }, (_, h) => h)
+      const values = days.map((_, d) => hours.map((h) => {
+        const base = (d < 5 ? 1 : 0.4) * (h >= 9 && h <= 21 ? 1 : 0.3)
+        return Math.floor(Math.random() * 3 * base) + ((h >= 18 && h <= 21 && d < 5) ? Math.floor(Math.random() * 4) : 0)
+      }))
+      return { days, hours, values }
+    })(),
     recentCompensations: [
       { orderId: 'WO-SLA-001', custName: '王先生', orderType: 'REPAIR', compType: 'CASH', compAmount: 30, reason: '故障报修超时 45 分钟', status: 'PAID', createdTime: Date.now() - 3600_000 },
       { orderId: 'WO-SLA-002', custName: '李女士', orderType: 'NEW_INSTALL', compType: 'VOUCHER', compAmount: 50, reason: '新装超时 1.2 小时', status: 'VERIFYING', createdTime: Date.now() - 7200_000 },
@@ -282,6 +299,13 @@ export function demoMarketingDashboard() {
       { month: '2026-07', revenue: 580, orders: 4 },
       { month: '2026-08', revenue: 660, orders: 5 },
       { month: '2026-09', revenue: 650, orders: 4 }
+    ],
+    funnel: [
+      { stage: '业务订单', value: 28 },
+      { stage: '已支付', value: 24 },
+      { stage: '已完成', value: 19 },
+      { stage: '升级申请', value: 6 },
+      { stage: '升级生效', value: 4 }
     ]
   }
 }

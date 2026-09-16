@@ -111,10 +111,13 @@ public class SysUserController {
     public Map<String, Object> resetPassword(@PathVariable String id, @RequestBody Map<String, Object> req) {
         String raw = str(req.get("password"));
         if (raw == null || raw.length() < 6) throw new IllegalArgumentException("密码至少 6 位");
-        SysUser patch = new SysUser();
-        patch.id = id;
-        patch.password = passwordEncoder.encode(raw);
-        userMapper.updateById(patch);
+        SysUser exist = userMapper.selectById(id);
+        if (exist == null) throw new IllegalArgumentException("用户不存在：" + id);
+        // 载入完整实体再更新，避免 updateById 覆盖 createdTime/status 等字段；
+        // 管理员重置后强制用户下次登录改密（mustChangePassword=1）。
+        exist.password = passwordEncoder.encode(raw);
+        exist.mustChangePassword = 1;
+        userMapper.updateById(exist);
         log("重置密码 " + id, "/api/system/users/" + id + "/password", "PUT");
         return Map.of("ok", true);
     }

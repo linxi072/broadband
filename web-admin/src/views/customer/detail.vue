@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SourceTag from '@/components/SourceTag.vue'
 import { customer360 } from '@/api/business'
-import { loadResource, money, pct } from '@/composables/useResource'
+import { loadResource, money, pct, fmtTime } from '@/composables/useResource'
 import { demoCustomer360 } from '@/mock/fallback'
 
 const route = useRoute()
@@ -23,6 +23,13 @@ const reviews = computed(() => data.value?.reviews || [])
 const workOrders = computed(() => data.value?.workOrders || [])
 const upgradeOrders = computed(() => data.value?.upgradeOrders || [])
 const summary = computed(() => data.value?.summary || {})
+const lifecycle = computed(() => data.value?.lifecycle || {})
+const touchRecords = computed(() => data.value?.touchRecords || [])
+
+const TOUCH_LABEL = { order: '下单', review: '评价', complaint: '投诉', install: '安装', upgrade: '升级', contract: '合约' }
+const TOUCH_COLOR = { order: '#4f46e5', review: '#22c55e', complaint: '#ef4444', install: '#f59e0b', upgrade: '#a855f7', contract: '#06b6d4' }
+const touchLabel = (t) => TOUCH_LABEL[t] || '事件'
+const touchColor = (t) => TOUCH_COLOR[t] || '#4f46e5'
 
 const levelType = (l) => ({ 五星: 'danger', 四星: 'warning', 三星: 'info', VIP: 'danger', GOLD: 'warning', SILVER: 'info' }[l] || 'info')
 const statusType = (s) => ({ 在用: 'success', 暂停: 'warning', 已销户: 'info', 生效中: 'success', 待续约: 'warning' }[s] || 'info')
@@ -70,6 +77,7 @@ const trendMax = computed(() => {
               <b>{{ profile.name }}</b>
               <el-tag :type="levelType(profile.level)" size="small" effect="light">{{ profile.levelLabel }}</el-tag>
               <el-tag :type="statusType(profile.statusLabel)" size="small" effect="light">{{ profile.statusLabel }}</el-tag>
+              <el-tag v-if="lifecycle.stageLabel" :type="lifecycle.color" size="small" effect="dark">{{ lifecycle.stageLabel }}</el-tag>
               <span v-for="t in profile.tags || []" :key="t" class="ctag">{{ t }}</span>
             </div>
             <p>📱 {{ profile.phone }} ｜ 🏠 {{ profile.communityName || '—' }} {{ profile.address || '' }}</p>
@@ -187,6 +195,28 @@ const trendMax = computed(() => {
               <el-table-column prop="createdAt" label="时间" min-width="140" />
             </el-table>
           </el-tab-pane>
+
+          <el-tab-pane label="触达记录" name="touch">
+            <div v-if="lifecycle.reasons && lifecycle.reasons.length" class="lifecycle-reasons">
+              <el-tag :type="lifecycle.color" size="small" effect="dark">{{ lifecycle.stageLabel }}</el-tag>
+              <span v-for="(r, i) in lifecycle.reasons" :key="i" class="reason">{{ r }}</span>
+            </div>
+            <el-timeline v-if="touchRecords.length" class="touch-timeline">
+              <el-timeline-item
+                v-for="(rec, i) in touchRecords" :key="i"
+                :timestamp="rec.time ? fmtTime(rec.time) : (rec.timeText || '')"
+                :color="touchColor(rec.type)"
+                placement="top"
+              >
+                <div class="touch-item">
+                  <el-tag size="small" effect="plain" :style="{ color: touchColor(rec.type), borderColor: touchColor(rec.type) }">{{ touchLabel(rec.type) }}</el-tag>
+                  <b class="touch-title">{{ rec.title }}</b>
+                  <p v-if="rec.detail" class="touch-detail">{{ rec.detail }}</p>
+                </div>
+              </el-timeline-item>
+            </el-timeline>
+            <el-empty v-else description="暂无触达记录" :image-size="60" />
+          </el-tab-pane>
         </el-tabs>
       </template>
     </div>
@@ -266,4 +296,23 @@ const trendMax = computed(() => {
 .bcol { width: 22px; background: var(--bd-primary); border-radius: 4px 4px 0 0; }
 .blab { font-size: 11px; color: var(--bd-text-sub); }
 .tabs { margin-top: 4px; }
+
+.lifecycle-reasons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.reason {
+  font-size: 12px;
+  color: var(--bd-text-sub);
+  background: #f5f6fb;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.touch-timeline { padding: 8px 4px 0; max-width: 760px; }
+.touch-item { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.touch-title { font-size: 13px; }
+.touch-detail { margin: 2px 0 0; font-size: 12px; color: var(--bd-text-sub); width: 100%; }
 </style>

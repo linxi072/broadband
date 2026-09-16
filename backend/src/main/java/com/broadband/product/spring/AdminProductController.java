@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -132,6 +133,8 @@ public class AdminProductController {
             result.put("workOrders", List.of());
             result.put("upgradeOrders", List.of());
             result.put("summary", Map.of());
+            result.put("lifecycle", Map.of());
+            result.put("touchRecords", List.of());
             return result;
         }
 
@@ -228,7 +231,171 @@ public class AdminProductController {
                 .stream().findFirst().orElse(Map.of());
         result.put("summary", summary);
 
+        // 从 result 取出已聚合的子列表，供生命周期 / 触达记录派生使用
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> orders = (List<Map<String, Object>>) result.get("orders");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> reviews = (List<Map<String, Object>>) result.get("reviews");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> workOrders = (List<Map<String, Object>>) result.get("workOrders");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> upgradeOrders = (List<Map<String, Object>>) result.get("upgradeOrders");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> contracts = (List<Map<String, Object>>) result.get("contracts");
+
+        // ---- 生命周期阶段 ----
+        result.put("lifecycle", computeLifecycle(profile, summary, orders, reviews, workOrders, upgradeOrders, contracts));
+
+        // ---- 触达 / 互动记录时间线 ----
+        result.put("touchRecords", buildTouchRecords(profile, orders, reviews, workOrders, upgradeOrders, contracts));
+
         return result;
+    }
+
+    // ==================================================================== 客户 360 派生（生命周期 / 触达记录）
+
+    private Map<String, Object> computeLifecycle(Map<String, Object> profile, Map<String, Object> summary,
+            List<Map<String, Object>> orders, List<Map<String, Object>> reviews,
+            List<Map<String, Object>> workOrders, List<Map<String, Object>> upgradeOrders,
+            List<Map<String, Object>> contracts) {
+        Map<String, Object> lc = new LinkedHashMap<>();
+        long orderCount = ((Number) summary.getOrDefault("orderCount", 0)).longValue();
+        String level = str(profile.get("level"));
+        String levelLabel = str(profile.get("levelLabel"));
+        String contractStatus = str(profile.get("contractStatus"));
+        String contractEnd = str(profile.get("contractEnd"));
+
+        long lastActive = 0;
+        lastActive = maxTs(lastActive, orders, "createdAt");
+        lastActive = maxTs(lastActive, reviews, "createdAt");
+        lastActive = maxTs(lastActive, upgradeOrders, "createdAt");
+        lastActive = maxTs(lastActive, workOrders, "completeTime");
+
+        long daysSince = lastActive == 0 ? 9999 : (System.currentTimeMillis() - lastActive) / 86_400_000L;
+
+        String stage, stageLabel, color;
+        List<String> reasons = new ArrayList<>();
+        if (orderCount == 0) {
+            stage = "LEAD"; stageLabel = "潜在客户"; color = "info";
+            reasons.add("尚未产生业务订单");
+        } else if ("生效中".equals(contractStatus) && contractEnd != null && withinDays(contractEnd, 90)) {
+            stage = "RENEW"; stageLabel = "待续约"; color = "warning";
+            reasons.add("合约将于 " + contractEnd + " 到期（≤90 天）");
+        } else if (daysSince > 180) {
+            stage = "CHURN_RISK"; stageLabel = "流失预警"; color = "danger";
+            reasons.add("近 " + daysSince + " 天无互动，存在流失风险");
+        } else if ("VIP".equals(level) || "GOLD".equals(level)) {
+            stage = "HIGH_VALUE"; stageLabel = "高价值客户"; color = "danger";
+            reasons.add(levelLabel + "高价值客户");
+        } else if (daysSince <= 30) {
+            stage = "GROWING"; stageLabel = "成长期"; color = "success";
+            reasons.add("近 " + daysSince + " 天内有互动");
+        } else {
+            stage = "STABLE"; stageLabel = "稳定期"; color = "success";
+            reasons.add("近 " + daysSince + " 天内有互动");
+        }
+        if (lastActive > 0) reasons.add(0, "最近互动：" + fmtTs(lastActive));
+
+        lc.put("stage", stage);
+        lc.put("stageLabel", stageLabel);
+        lc.put("color", color);
+        lc.put("daysSince", daysSince);
+        lc.put("lastActive", lastActive);
+        lc.put("reasons", reasons);
+        return lc;
+    }
+
+    private List<Map<String, Object>> buildTouchRecords(Map<String, Object> profile,
+            List<Map<String, Object>> orders, List<Map<String, Object>> reviews,
+            List<Map<String, Object>> workOrders, List<Map<String, Object>> upgradeOrders,
+            List<Map<String, Object>> contracts) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map<String, Object> o : orders) {
+            list.add(touch("order", "下单 · " + str(o.get("packageName")),
+                    moneyStr(o.get("amount")) + " · " + str(o.get("statusLabel")), str(o.get("createdAt"))));
+        }
+        for (Map<String, Object> r : reviews) {
+            String type = "投诉".equals(str(r.get("typeLabel"))) ? "complaint" : "review";
+            list.add(touch(type, str(r.get("typeLabel")) + " · " + scoreStr(r.get("score")) + "★",
+                    str(r.get("content")), str(r.get("createdAt"))));
+        }
+        for (Map<String, Object> w : workOrders) {
+            String ct = str(w.get("completeTime"));
+            if (ct == null) continue;
+            list.add(touch("install", "安装完工 · " + str(w.get("packageDesc")),
+                    "师傅 " + str(w.get("workerId")), ct));
+        }
+        for (Map<String, Object> u : upgradeOrders) {
+            list.add(touch("upgrade", "升级申请 · " + str(u.get("targetBandKey")),
+                    str(u.get("statusLabel")), str(u.get("createdAt"))));
+        }
+        for (Map<String, Object> c : contracts) {
+            list.add(touch("contract", "签约合约",
+                    moneyStr(c.get("monthlyFee")) + " · 到期 " + str(c.get("endDate")), str(c.get("startDate"))));
+        }
+        list.sort((a, b) -> Long.compare(tsOf(b), tsOf(a)));
+        if (list.size() > 30) list = new ArrayList<>(list.subList(0, 30));
+        return list;
+    }
+
+    private Map<String, Object> touch(String type, String title, String detail, String timeText) {
+        long t = parseTs(timeText);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", type);
+        m.put("title", title);
+        m.put("detail", detail);
+        m.put("time", t);
+        m.put("timeText", timeText);
+        return m;
+    }
+
+    private long tsOf(Map<String, Object> m) {
+        Object t = m.get("time");
+        return t instanceof Number ? ((Number) t).longValue() : 0;
+    }
+
+    private long maxTs(long cur, List<Map<String, Object>> list, String field) {
+        long max = cur;
+        if (list == null) return max;
+        for (Map<String, Object> m : list) {
+            long t = parseTs(str(m.get(field)));
+            if (t > max) max = t;
+        }
+        return max;
+    }
+
+    private static long parseTs(String s) {
+        if (s == null || s.isEmpty()) return 0;
+        String[] pats = {"yyyy-MM-dd HH:mm", "yyyy-MM-dd"};
+        for (String p : pats) {
+            try {
+                SimpleDateFormat f = new SimpleDateFormat(p);
+                f.setLenient(false);
+                return f.parse(s).getTime();
+            } catch (Exception ignored) { }
+        }
+        return 0;
+    }
+
+    private boolean withinDays(String dateStr, int days) {
+        try {
+            java.time.LocalDate d = java.time.LocalDate.parse(dateStr);
+            return !d.isAfter(java.time.LocalDate.now().plusDays(days));
+        } catch (Exception e) { return false; }
+    }
+
+    private String fmtTs(long ms) {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(ms));
+    }
+
+    private String moneyStr(Object v) {
+        if (v == null) return "—";
+        try { return "¥" + ((Number) v).longValue(); } catch (Exception e) { return String.valueOf(v); }
+    }
+
+    private String scoreStr(Object v) {
+        if (v == null) return "";
+        try { return String.valueOf(((Number) v).intValue()); } catch (Exception e) { return String.valueOf(v); }
     }
 
     // ==================================================================== 套餐
@@ -628,6 +795,25 @@ public class AdminProductController {
         double upgradeRate = upgradeCount == 0 ? 0 : Math.round(effectiveUpgrades * 1000.0 / upgradeCount) / 10.0;
         summary.put("upgradeRate", upgradeRate);
         result.put("summary", summary);
+
+        // ---- 转化漏斗：业务订单 → 已支付 → 已完成 → 升级申请 → 升级生效（营销看板「转化漏斗」）----
+        long totalOrders = ((Number) summary.getOrDefault("totalOrders", 0)).longValue();
+        long doneOrders = ((Number) summary.getOrDefault("doneOrders", 0)).longValue();
+        long paidOrders = ((Number) jdbc.queryForObject(
+                "SELECT COUNT(*) FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE')", Number.class)).longValue();
+        List<Map<String, Object>> funnel = new ArrayList<>();
+        java.util.function.BiConsumer<String, Long> addStage = (stage, value) -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("stage", stage);
+            m.put("value", value);
+            funnel.add(m);
+        };
+        addStage.accept("业务订单", totalOrders);
+        addStage.accept("已支付", paidOrders);
+        addStage.accept("已完成", doneOrders);
+        addStage.accept("升级申请", upgradeCount);
+        addStage.accept("升级生效", effectiveUpgrades);
+        result.put("funnel", funnel);
 
         // ---- 套餐销量排行 ----
         long totalRevenue = ((Number) summary.getOrDefault("totalRevenue", 0)).longValue();

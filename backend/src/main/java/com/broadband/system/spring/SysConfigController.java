@@ -3,6 +3,7 @@ package com.broadband.system.spring;
 import com.broadband.common.Ids;
 import com.broadband.system.mapper.SysConfigMapper;
 import com.broadband.system.model.SysConfig;
+import com.broadband.system.service.ConfigCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,6 +37,7 @@ public class SysConfigController {
 
     @Autowired private SysConfigMapper configMapper;
     @Autowired private OperLogService operLog;
+    @Autowired private ConfigCacheService configCache;
 
     @GetMapping
     public List<SysConfig> list() {
@@ -62,6 +64,7 @@ public class SysConfigController {
         c.remark = str(req.get("remark"));
         c.createTime = System.currentTimeMillis();
         configMapper.insert(c);
+        configCache.reloadConfig();
         log("新增参数 " + key);
         return c;
     }
@@ -77,6 +80,7 @@ public class SysConfigController {
         patch.configType = str(req.get("configType")) == null ? exist.configType : str(req.get("configType"));
         patch.remark = str(req.get("remark")) == null ? exist.remark : str(req.get("remark"));
         configMapper.updateById(patch);
+        configCache.reloadConfig();
         log("编辑参数 " + key);
         return Map.of("ok", true);
     }
@@ -84,8 +88,19 @@ public class SysConfigController {
     @DeleteMapping("/{key}")
     public Map<String, Object> delete(@PathVariable String key) {
         configMapper.deleteById(key);
+        configCache.reloadConfig();
         log("删除参数 " + key);
         return Map.of("ok", true);
+    }
+
+    /**
+     * 手动刷新参数配置缓存（T-05 热刷新兜底端点）。
+     * 适用于直接改库、或需跨节点强制同步的场景，无需重启。
+     */
+    @PostMapping("/refresh")
+    public Map<String, Object> refresh() {
+        configCache.reloadConfig();
+        return configCache.status();
     }
 
     // ------------------------------------------------------------------ 辅助

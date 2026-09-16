@@ -533,6 +533,18 @@ PREPARE stmt_o_dept FROM @add_o_dept;
 EXECUTE stmt_o_dept;
 DEALLOCATE PREPARE stmt_o_dept;
 
+-- biz_order：所属片区（销售页「负责片区」；由 community 推导，幂等）
+SET @add_o_region := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE biz_order ADD COLUMN region VARCHAR(64) NULL COMMENT ''所属片区（由 community 推导，用于销售业绩归属）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'biz_order' AND column_name = 'region'
+);
+PREPARE stmt_o_region FROM @add_o_region;
+EXECUTE stmt_o_region;
+DEALLOCATE PREPARE stmt_o_region;
+
 -- work_order：归属部门
 SET @add_w_dept := (
   SELECT IF(COUNT(*) = 0,

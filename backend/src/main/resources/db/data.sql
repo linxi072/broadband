@@ -235,6 +235,8 @@ INSERT IGNORE INTO work_order (id, community_id, address, time_slot, customer_na
 
 -- 订单 / 工单 dept_id 经 community 推导（幂等：仅补齐未归属的）
 UPDATE biz_order b JOIN community c ON c.id = b.community_id SET b.dept_id = c.dept_id WHERE b.dept_id IS NULL OR b.dept_id = '';
+-- 订单片区：经 community 推导（消除销售页「负责片区」空值，幂等）
+UPDATE biz_order b JOIN community c ON c.id = b.community_id SET b.region = c.region WHERE b.region IS NULL OR b.region = '';
 UPDATE work_order w JOIN biz_order b ON b.id = w.biz_order_id SET w.dept_id = b.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
 -- 兜底：未关联 biz_order 的工单，直接按所属小区归属部门
 UPDATE work_order w JOIN community c ON c.id = w.community_id SET w.dept_id = c.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';

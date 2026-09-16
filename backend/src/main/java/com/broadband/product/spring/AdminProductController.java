@@ -444,7 +444,8 @@ public class AdminProductController {
         List<Map<String, Object>> rows = jdbc.queryForList("""
                 SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
                        SUM(CASE WHEN status IN ('PAID','INSTALLING','DONE') THEN amount ELSE 0 END) AS revenue,
-                       SUM(CASE WHEN status = 'CANCELLED' THEN amount ELSE 0 END) AS refund,
+                       SUM(CASE WHEN status = 'REFUND' THEN amount ELSE 0 END) AS refund,
+                       SUM(CASE WHEN status = 'CANCELLED' THEN amount ELSE 0 END) AS cancelled,
                        SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END) AS receivable,
                        COUNT(*) AS orders
                 FROM biz_order
@@ -467,6 +468,139 @@ public class AdminProductController {
         return rows;
     }
 
+    // ==================================================================== 退款 / 对账状态机
+
+    /**
+     * 退款单列表（财务退款口径对齐，复用 finance:view）。
+     * 可选 ?status=PENDING/APPROVED/REJECTED/REFUNDED 过滤。
+     */
+    @GetMapping("/refunds")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public List<Map<String, Object>> refunds(@RequestParam(required = false) String status) {
+        String sql = "SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName, "
+                + "amount, reason, channel, status, refund_no AS refundNo, operator, "
+                + "created_time AS createdTime, handled_time AS handledTime FROM order_refund";
+        List<Object> args = new ArrayList<>();
+        if (status != null && !status.isBlank()) {
+            sql += " WHERE status = ?";
+            args.add(status);
+        }
+        sql += " ORDER BY created_time DESC";
+        return jdbc.queryForList(sql, args.toArray());
+    }
+
+    /** 审批退款：PENDING -> REFUNDED，生成退款流水号，并将业务订单置 REFUND（营收扣减）。 */
+    @PostMapping("/refunds/{id}/approve")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public Map<String, Object> approveRefund(@PathVariable String id,
+                                             @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> rf = one("SELECT id, order_id, status FROM order_refund WHERE id = ?", id);
+        if (rf == null) throw new IllegalArgumentException("退款单不存在：" + id);
+        if (!"PENDING".equals(rf.get("status")))
+            throw new IllegalStateException("仅 PENDING 退款单可审批，当前：" + rf.get("status"));
+        String refundNo = "RN" + System.currentTimeMillis();
+        String operator = str(body == null ? null : body.get("operator"));
+        if (operator == null) operator = "财务";
+        jdbc.update("UPDATE order_refund SET status = 'REFUNDED', refund_no = ?, operator = ?, handled_time = ? WHERE id = ?",
+                refundNo, operator, System.currentTimeMillis(), id);
+        jdbc.update("UPDATE biz_order SET status = 'REFUND' WHERE id = ?", rf.get("order_id"));
+        log("审批退款", id, "POST");
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", id);
+        resp.put("refundNo", refundNo);
+        resp.put("status", "REFUNDED");
+        resp.put("orderStatus", "REFUND");
+        return resp;
+    }
+
+    /** 驳回退款：PENDING -> REJECTED。 */
+    @PostMapping("/refunds/{id}/reject")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public Map<String, Object> rejectRefund(@PathVariable String id,
+                                           @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> rf = one("SELECT id, status FROM order_refund WHERE id = ?", id);
+        if (rf == null) throw new IllegalArgumentException("退款单不存在：" + id);
+        if (!"PENDING".equals(rf.get("status")))
+            throw new IllegalStateException("仅 PENDING 退款单可驳回，当前：" + rf.get("status"));
+        String operator = str(body == null ? null : body.get("operator"));
+        if (operator == null) operator = "财务";
+        jdbc.update("UPDATE order_refund SET status = 'REJECTED', operator = ?, handled_time = ? WHERE id = ?",
+                operator, System.currentTimeMillis(), id);
+        log("驳回退款", id, "POST");
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", id);
+        resp.put("status", "REJECTED");
+        return resp;
+    }
+
+    // ==================================================================== 电子发票（占位）
+
+    /** 发票申请列表（复用 finance:view）。可选 ?status=PENDING/OPENED/REJECTED 过滤。 */
+    @GetMapping("/invoices")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public List<Map<String, Object>> invoices(@RequestParam(required = false) String status) {
+        String sql = "SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName, "
+                + "title, tax_no AS taxNo, amount, status, invoice_no AS invoiceNo, pdf_url AS pdfUrl, "
+                + "operator, remark, created_time AS createdTime, opened_time AS openedTime FROM invoice_apply";
+        List<Object> args = new ArrayList<>();
+        if (status != null && !status.isBlank()) {
+            sql += " WHERE status = ?";
+            args.add(status);
+        }
+        sql += " ORDER BY created_time DESC";
+        return jdbc.queryForList(sql, args.toArray());
+    }
+
+    /** 开具发票：PENDING -> OPENED，生成发票号与占位 PDF 地址。 */
+    @PostMapping("/invoices/{id}/open")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public Map<String, Object> openInvoice(@PathVariable String id,
+                                          @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> inv = one("SELECT id, status, amount FROM invoice_apply WHERE id = ?", id);
+        if (inv == null) throw new IllegalArgumentException("发票申请不存在：" + id);
+        if (!"PENDING".equals(inv.get("status")))
+            throw new IllegalStateException("仅 PENDING 发票可申请开具，当前：" + inv.get("status"));
+        String invoiceNo = "INV" + System.currentTimeMillis();
+        String operator = str(body == null ? null : body.get("operator"));
+        if (operator == null) operator = "财务";
+        String pdfUrl = "/assets/invoice/" + invoiceNo + ".pdf";
+        jdbc.update("UPDATE invoice_apply SET status = 'OPENED', invoice_no = ?, pdf_url = ?, operator = ?, opened_time = ? WHERE id = ?",
+                invoiceNo, pdfUrl, operator, System.currentTimeMillis(), id);
+        log("开具发票", id, "POST");
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", id);
+        resp.put("invoiceNo", invoiceNo);
+        resp.put("pdfUrl", pdfUrl);
+        resp.put("status", "OPENED");
+        return resp;
+    }
+
+    /** 驳回发票：PENDING -> REJECTED，记录驳回原因。 */
+    @PostMapping("/invoices/{id}/reject")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public Map<String, Object> rejectInvoice(@PathVariable String id,
+                                            @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> inv = one("SELECT id, status FROM invoice_apply WHERE id = ?", id);
+        if (inv == null) throw new IllegalArgumentException("发票申请不存在：" + id);
+        if (!"PENDING".equals(inv.get("status")))
+            throw new IllegalStateException("仅 PENDING 发票可驳回，当前：" + inv.get("status"));
+        String remark = str(body == null ? null : body.get("remark"));
+        if (remark == null) remark = "信息不全";
+        String operator = str(body == null ? null : body.get("operator"));
+        if (operator == null) operator = "财务";
+        jdbc.update("UPDATE invoice_apply SET status = 'REJECTED', remark = ?, operator = ?, opened_time = ? WHERE id = ?",
+                remark, operator, System.currentTimeMillis(), id);
+        log("驳回发票", id, "POST");
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", id);
+        resp.put("status", "REJECTED");
+        return resp;
+    }
+
     // ==================================================================== 套餐营销看板
 
     /**
@@ -482,9 +616,9 @@ public class AdminProductController {
         Map<String, Object> summary = jdbc.queryForList("""
                 SELECT
                   (SELECT COUNT(*) FROM biz_order) AS totalOrders,
-                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status <> 'CANCELLED') AS totalRevenue,
+                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS totalRevenue,
                   (SELECT COUNT(*) FROM biz_order WHERE status = 'DONE') AS doneOrders,
-                  (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status <> 'CANCELLED') AS avgOrderAmount,
+                  (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS avgOrderAmount,
                   (SELECT COUNT(*) FROM customer) AS customerCount,
                   (SELECT COUNT(*) FROM package_upgrade_order) AS upgradeCount,
                   (SELECT COUNT(*) FROM package_upgrade_order WHERE status = 'EFFECTIVE') AS effectiveUpgrades
@@ -595,5 +729,10 @@ public class AdminProductController {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    private Map<String, Object> one(String sql, Object... args) {
+        List<Map<String, Object>> l = jdbc.queryForList(sql, args);
+        return l.isEmpty() ? null : l.get(0);
     }
 }

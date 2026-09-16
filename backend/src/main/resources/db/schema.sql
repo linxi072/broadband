@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS biz_order (
   community_id   VARCHAR(32)           COMMENT '小区ID',
   community_name VARCHAR(128)          COMMENT '小区名称',
   order_type     VARCHAR(24)  NOT NULL DEFAULT 'NEW_INSTALL' COMMENT 'NEW_INSTALL/MOVE/RENEW/SPEED_UP/REPAIR/ADDON',
-  status         VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/INSTALLING/DONE/CANCELLED',
+  status         VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/INSTALLING/DONE/CANCELLED/REFUND',
   created_time   BIGINT       NOT NULL DEFAULT 0 COMMENT '下单时间（毫秒）',
   PRIMARY KEY (id),
   KEY idx_order_status (status),
@@ -369,7 +369,7 @@ CREATE TABLE IF NOT EXISTS review (
   tags          VARCHAR(255)          COMMENT '评价标签（逗号分隔）',
   type          VARCHAR(16)  NOT NULL DEFAULT 'REVIEW' COMMENT 'REVIEW=评价 / COMPLAINT=投诉',
   content       VARCHAR(512)          COMMENT '内容',
-  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/VISITED/CLOSED',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/VISITED/CLOSED/TO_EVALUATE',
   created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
   PRIMARY KEY (id),
   KEY idx_review_status (status),
@@ -556,3 +556,65 @@ SET @add_w_dept := (
 PREPARE stmt_w_dept FROM @add_w_dept;
 EXECUTE stmt_w_dept;
 DEALLOCATE PREPARE stmt_w_dept;
+
+-- ============================================================================
+-- 退款工单（退款 / 对账状态机）
+--   biz_order.status = 'REFUND' 表示已退款（财务对账口径：营收扣减）。
+--   状态机：PENDING(客户申请) -> APPROVED(财务通过) -> REFUNDED(已退款) / REJECTED(驳回)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS order_refund (
+  id            VARCHAR(32)  NOT NULL COMMENT '退款单号',
+  order_id      VARCHAR(32)  NOT NULL COMMENT '关联业务订单号',
+  order_no      VARCHAR(32)           COMMENT '业务订单号（冗余，便于查询）',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户姓名',
+  amount        INT          NOT NULL DEFAULT 0 COMMENT '退款金额（元）',
+  reason        VARCHAR(255)          COMMENT '退款原因',
+  channel       VARCHAR(32)  NOT NULL DEFAULT 'WECHAT_MOCK' COMMENT '退款渠道（占位：真实接入后填微信支付退款单号）',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/APPROVED/REJECTED/REFUNDED',
+  refund_no     VARCHAR(64)           COMMENT '第三方退款流水号',
+  operator      VARCHAR(64)           COMMENT '处理人',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '申请时间（毫秒）',
+  handled_time  BIGINT                COMMENT '处理时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_refund_order (order_id),
+  KEY idx_refund_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='退款工单';
+
+-- ============================================================================
+-- 电子发票申请（占位）
+--   状态机：PENDING(客户申请) -> OPENED(已开具) / REJECTED(驳回)
+--   pdf_url 为占位地址，真实接入电子发票平台后回填。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS invoice_apply (
+  id            VARCHAR(32)  NOT NULL COMMENT '申请单号',
+  order_id      VARCHAR(32)  NOT NULL COMMENT '关联业务订单号',
+  order_no      VARCHAR(32)           COMMENT '业务订单号（冗余）',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户姓名',
+  title         VARCHAR(128) NOT NULL COMMENT '发票抬头',
+  tax_no        VARCHAR(64)           COMMENT '税号（企业抬头必填）',
+  amount        INT          NOT NULL DEFAULT 0 COMMENT '开票金额（元）',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/OPENED/REJECTED',
+  invoice_no    VARCHAR(64)           COMMENT '发票号码',
+  pdf_url       VARCHAR(255)          COMMENT '电子发票 PDF 地址（占位）',
+  operator      VARCHAR(64)           COMMENT '开票员',
+  remark        VARCHAR(255)          COMMENT '驳回原因 / 备注',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '申请时间（毫秒）',
+  opened_time   BIGINT                COMMENT '开票时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_invoice_order (order_id),
+  KEY idx_invoice_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电子发票申请';
+
+-- invoice_apply：补齐 customer_id（历史库可能由更早的 schema 创建而缺此列）
+SET @add_inv_cid := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE invoice_apply ADD COLUMN customer_id VARCHAR(32) NULL COMMENT ''客户ID''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'invoice_apply' AND column_name = 'customer_id'
+);
+PREPARE stmt_inv_cid FROM @add_inv_cid;
+EXECUTE stmt_inv_cid;
+DEALLOCATE PREPARE stmt_inv_cid;

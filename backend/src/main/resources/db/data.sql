@@ -241,6 +241,19 @@ UPDATE work_order w JOIN biz_order b ON b.id = w.biz_order_id SET w.dept_id = b.
 -- 兜底：未关联 biz_order 的工单，直接按所属小区归属部门
 UPDATE work_order w JOIN community c ON c.id = w.community_id SET w.dept_id = c.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
 
+-- ---------------------------------------------------------------------------
+-- 退款 / 发票演示数据（对账口径：REFUND 计入退款，CANCELLED 计入取消）
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, amount, sales_name, community_id, community_name, order_type, status, created_time) VALUES
+ ('B20260901001','demo',     '演示客户','13800000000','pkg500', '500M 融合套餐',  99,'刘伟','com_ns01','科技园小区','NEW_INSTALL','REFUND', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+INSERT IGNORE INTO order_refund (id, order_id, order_no, customer_id, customer_name, amount, reason, channel, status, refund_no, operator, created_time, handled_time) VALUES
+ ('RF20260901001','B20260901001','B20260901001','demo','演示客户',99,'客户搬家，申请退款','WECHAT_MOCK','REFUNDED','RN20260902001','财务', UNIX_TIMESTAMP('2026-09-02 10:00:00')*1000, UNIX_TIMESTAMP('2026-09-02 10:30:00')*1000);
+
+INSERT IGNORE INTO invoice_apply (id, order_id, order_no, customer_name, title, tax_no, amount, status, invoice_no, pdf_url, operator, created_time, opened_time) VALUES
+ ('IN20260901001','B20260701001','B20260701001','林小雨','林小雨','',159,'OPENED','INV20260901001','/assets/invoice/INV20260901001.pdf','财务', UNIX_TIMESTAMP('2026-09-05 14:00:00')*1000, UNIX_TIMESTAMP('2026-09-05 14:20:00')*1000),
+ ('IN20260901002','B20260701002','B20260701002','何大军','何大军','', 69,'PENDING',NULL,NULL,NULL, UNIX_TIMESTAMP('2026-09-06 11:00:00')*1000, NULL);
+
 -- ===========================================================================
 -- RBAC 种子：角色 / 菜单权限 / 用户 / 授权
 -- 说明：用户密码留空，由后端 RbacInitializer 首次启动时写入 BCrypt 哈希

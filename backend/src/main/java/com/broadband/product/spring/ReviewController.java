@@ -3,6 +3,7 @@ package com.broadband.product.spring;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,7 +69,41 @@ public class ReviewController {
                 + "FROM review WHERE customer_name = ? ORDER BY created_time DESC", customerName);
     }
 
+    /**
+     * 回填系统推送的「待评价」（TO_EVALUATE）：客户对完工服务评分，闭环评价。
+     * 入参 {score, tags?, workerName?, content?}；返回 {ok, id, status}。
+     */
+    @PostMapping("/submit/{reviewId}")
+    public Map<String, Object> submit(@PathVariable String reviewId,
+                                     @RequestBody Map<String, Object> body) {
+        Map<String, Object> rev = one("SELECT id, status FROM review WHERE id = ?", reviewId);
+        if (rev == null) throw new IllegalArgumentException("评价不存在：" + reviewId);
+        if (!"TO_EVALUATE".equals(rev.get("status")))
+            throw new IllegalStateException("该评价已提交或不可编辑，当前：" + rev.get("status"));
+        Integer score = toInt(body.get("score"));
+        if (score == null || score < 0 || score > 5) throw new IllegalArgumentException("评分需在 0-5 之间");
+        String tags = str(body.get("tags"), null);
+        String content = str(body.get("content"), null);
+        String workerName = str(body.get("workerName"), null);
+        String customerName = str(body.get("customerName"), null);
+        jdbc.update("UPDATE review SET score = ?, tags = ?, content = ?, "
+                + "worker_name = COALESCE(?, worker_name), customer_name = COALESCE(?, customer_name), "
+                + "status = 'PENDING', created_time = ? WHERE id = ?",
+                score, tags, content, workerName, customerName, System.currentTimeMillis(), reviewId);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("id", reviewId);
+        resp.put("status", "PENDING");
+        return resp;
+    }
+
     // ---------------------------------------------------------------- 工具
+
+    private Map<String, Object> one(String sql, Object... args) {
+        List<Map<String, Object>> l = jdbc.queryForList(sql, args);
+        return l.isEmpty() ? null : l.get(0);
+    }
 
     private static String str(Object v, String fallback) {
         if (v == null) return fallback;

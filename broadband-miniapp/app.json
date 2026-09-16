@@ -22,14 +22,7 @@
     "pages/settings/settings",
     "pages/repair/repair",
     "pages/repair/list",
-    "pages/repair/detail",
-    "pages/account/account",
-    "pages/account/bills",
-    "pages/points/points",
-    "pages/points/mall",
-    "pages/promotion/list",
-    "pages/promotion/detail",
-    "pages/support/support"
+    "pages/repair/detail"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2563eb",

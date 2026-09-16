@@ -6,7 +6,6 @@ import com.broadband.system.mapper.SysDictDataMapper;
 import com.broadband.system.mapper.SysDictTypeMapper;
 import com.broadband.system.model.SysDictData;
 import com.broadband.system.model.SysDictType;
-import com.broadband.system.service.ConfigCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,7 +44,6 @@ public class SysDictController {
     @Autowired private SysDictTypeMapper typeMapper;
     @Autowired private SysDictDataMapper dataMapper;
     @Autowired private OperLogService operLog;
-    @Autowired private ConfigCacheService configCache;
 
     // ---------------------------------------------------------------- 类型
 
@@ -67,7 +65,6 @@ public class SysDictController {
         t.remark = str(req.get("remark"));
         t.createTime = System.currentTimeMillis();
         typeMapper.insert(t);
-        configCache.reloadDict();
         log("新增字典类型 " + t.dictType);
         return t;
     }
@@ -82,7 +79,6 @@ public class SysDictController {
         patch.status = str(req.get("status")) == null ? exist.status : str(req.get("status"));
         patch.remark = str(req.get("remark")) == null ? exist.remark : str(req.get("remark"));
         typeMapper.updateById(patch);
-        configCache.reloadDict();
         log("编辑字典类型 " + dictType);
         return Map.of("ok", true);
     }
@@ -91,7 +87,6 @@ public class SysDictController {
     public Map<String, Object> deleteType(@PathVariable String dictType) {
         dataMapper.delete(new QueryWrapper<SysDictData>().eq("dict_type", dictType));
         typeMapper.deleteById(dictType);
-        configCache.reloadDict();
         log("删除字典类型 " + dictType);
         return Map.of("ok", true);
     }
@@ -120,7 +115,6 @@ public class SysDictController {
         d.remark = str(req.get("remark"));
         d.createTime = System.currentTimeMillis();
         dataMapper.insert(d);
-        configCache.reloadDict();
         log("新增字典数据项 " + d.dictType + "/" + d.dictLabel);
         return d;
     }
@@ -138,7 +132,6 @@ public class SysDictController {
         patch.status = str(req.get("status")) == null ? exist.status : str(req.get("status"));
         patch.remark = str(req.get("remark")) == null ? exist.remark : str(req.get("remark"));
         dataMapper.updateById(patch);
-        configCache.reloadDict();
         log("编辑字典数据项 " + id);
         return Map.of("ok", true);
     }
@@ -146,19 +139,8 @@ public class SysDictController {
     @DeleteMapping("/data/{id}")
     public Map<String, Object> deleteData(@PathVariable String id) {
         dataMapper.deleteById(id);
-        configCache.reloadDict();
         log("删除字典数据项 " + id);
         return Map.of("ok", true);
-    }
-
-    /**
-     * 手动刷新数据字典缓存（T-05 热刷新兜底端点）。
-     * 适用于直接改库、或需跨节点强制同步的场景，无需重启。
-     */
-    @PostMapping("/refresh")
-    public Map<String, Object> refresh() {
-        configCache.reloadDict();
-        return configCache.status();
     }
 
     // ------------------------------------------------------------------ 辅助

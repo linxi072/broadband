@@ -13,6 +13,12 @@ public class WorkOrder {
     public String packageDesc;
     public WorkOrderStatus status = WorkOrderStatus.PENDING;
 
+    // V1.13 故障报修：工单类型 + 报修字段
+    public String type = "INSTALL";       // INSTALL/REPAIR/MOVE/SPEED_UP/RENEW
+    public String faultCategory;          // 故障类型（关联数据字典 fault_category）
+    public String faultDesc;              // 故障描述
+    public String contactPhone;           // 报修联系电话
+
     // 派单结果回填字段
     public String workerId;        // 指派师傅
     public String clusterId;       // 相邻聚类簇 ID

@@ -47,6 +47,7 @@ public class AdminInstallController {
                 SELECT w.id,
                        w.customer_name AS customer,
                        w.package_desc  AS pkgDesc,
+                       w.type          AS type,
                        c.name          AS community,
                        w.address, w.time_slot AS timeSlot,
                        COALESCE(k.name, '—') AS worker,

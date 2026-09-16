@@ -19,7 +19,10 @@
     "pages/review/review",
     "pages/login/login",
     "pages/address/address",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/repair/repair",
+    "pages/repair/list",
+    "pages/repair/detail"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2563eb",

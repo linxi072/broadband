@@ -31,7 +31,7 @@ Page({
     if (map[item.key]) {
       wx.navigateTo({ url: map[item.key] });
     } else if (item.key === 'repair') {
-      wx.showToast({ title: '故障报修（演示）', icon: 'none' });
+      wx.navigateTo({ url: '/pages/repair/repair' });
     } else {
       wx.showToast({ title: '功能建设中', icon: 'none' });
     }

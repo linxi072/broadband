@@ -618,3 +618,96 @@ SET @add_inv_cid := (
 PREPARE stmt_inv_cid FROM @add_inv_cid;
 EXECUTE stmt_inv_cid;
 DEALLOCATE PREPARE stmt_inv_cid;
+
+-- ============================================================================
+-- 28. 数据字典类型（sys_dict_type）
+--     与 sys_dict_data 配合，替代散落在代码中的硬编码枚举（故障类型 / 工单类型 / 时段等）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_dict_type (
+  dict_type   VARCHAR(64)  NOT NULL COMMENT '字典类型编码，如 fault_category',
+  dict_name   VARCHAR(64)  NOT NULL COMMENT '字典类型名称，如 故障类型',
+  status      VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  remark      VARCHAR(255)          COMMENT '备注',
+  create_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (dict_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据字典类型';
+
+-- ============================================================================
+-- 29. 数据字典数据项（sys_dict_data）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_dict_data (
+  id          VARCHAR(32)  NOT NULL COMMENT '数据项ID',
+  dict_type   VARCHAR(64)  NOT NULL COMMENT '关联 sys_dict_type.dict_type',
+  dict_label  VARCHAR(128) NOT NULL COMMENT '展示标签，如 网络中断',
+  dict_value  VARCHAR(128) NOT NULL COMMENT '值，如 NETWORK_DOWN',
+  dict_sort   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status      VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  remark      VARCHAR(255)          COMMENT '备注',
+  create_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_dict_data_type (dict_type, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据字典数据项';
+
+-- ============================================================================
+-- 30. 参数配置（sys_config）
+--     系统级可配置参数（客服电话 / 报修承诺时长 / 派单默认容量等），后台可在线维护。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_config (
+  config_key   VARCHAR(64)  NOT NULL COMMENT '参数键，如 repair.sla.promised.hours',
+  config_name  VARCHAR(128) NOT NULL COMMENT '参数名称',
+  config_value VARCHAR(512) NOT NULL DEFAULT '' COMMENT '参数值',
+  config_type  VARCHAR(32)  NOT NULL DEFAULT 'STRING' COMMENT 'STRING/INT/BOOLEAN/JSON',
+  remark       VARCHAR(255)          COMMENT '备注',
+  create_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (config_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='参数配置';
+
+-- ============================================================================
+-- 31. 安装工单补列：工单类型 + 故障报修字段（V1.13 故障报修全流程）
+--     MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，沿用 information_schema 守卫，保证幂等。
+-- ============================================================================
+
+-- work_order.type：INSTALL(新装) / REPAIR(故障报修) / MOVE(移机) / SPEED_UP(提速) / RENEW(续费)
+SET @add_wo_type := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN type VARCHAR(16) NOT NULL DEFAULT ''INSTALL'' COMMENT ''工单类型 INSTALL/REPAIR/MOVE/SPEED_UP/RENEW''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'type'
+);
+PREPARE stmt_wo_type FROM @add_wo_type;
+EXECUTE stmt_wo_type;
+DEALLOCATE PREPARE stmt_wo_type;
+
+SET @add_wo_fc := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN fault_category VARCHAR(64) NULL COMMENT ''故障类型（报修用，关联数据字典 fault_category）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'fault_category'
+);
+PREPARE stmt_wo_fc FROM @add_wo_fc;
+EXECUTE stmt_wo_fc;
+DEALLOCATE PREPARE stmt_wo_fc;
+
+SET @add_wo_fd := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN fault_desc VARCHAR(255) NULL COMMENT ''故障描述（报修用）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'fault_desc'
+);
+PREPARE stmt_wo_fd FROM @add_wo_fd;
+EXECUTE stmt_wo_fd;
+DEALLOCATE PREPARE stmt_wo_fd;
+
+SET @add_wo_cp := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN contact_phone VARCHAR(32) NULL COMMENT ''报修联系电话（报修用，可区别于客户登记号）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'contact_phone'
+);
+PREPARE stmt_wo_cp FROM @add_wo_cp;
+EXECUTE stmt_wo_cp;
+DEALLOCATE PREPARE stmt_wo_cp;

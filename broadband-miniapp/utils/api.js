@@ -53,6 +53,19 @@ const api = {
       .then(r => ({ token: r.token, customer: r.customer }));
   },
   // —— SLA 测速（管理端接口，需登录态）——
-  evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); }
+  evaluateSla(record) { return request('/api/sla/evaluate', 'POST', record); },
+  // —— 故障报修（V1.13 全流程）——
+  // 故障类型字典（开放接口，无需登录）：返回 [{label,value,sort}]
+  getRepairCategories() { return request('/api/dict/public/fault_category', 'GET'); },
+  // 提交报修：{customerId, faultCategory, faultDesc, contactPhone?}
+  createRepair(payload) { return request('/api/repair/create', 'POST', payload || {}); },
+  // 我的报修列表
+  getMyRepairs(customerId) { return request('/api/repair/my?customerId=' + encodeURIComponent(customerId || 'demo'), 'GET'); },
+  // 报修详情（含 SLA 与时间线）
+  getRepairDetail(id) { return request('/api/repair/' + encodeURIComponent(id), 'GET'); },
+  // 撤销报修
+  cancelRepair(id) { return request('/api/repair/' + encodeURIComponent(id) + '/cancel', 'POST', {}); },
+  // 开放参数读取（如客服电话）
+  getConfig(key) { return request('/api/config/public/' + encodeURIComponent(key), 'GET'); }
 };
 module.exports = api;

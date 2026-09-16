@@ -425,6 +425,7 @@ public class AdminProductController {
     public List<Map<String, Object>> salesReport() {
         return jdbc.queryForList("""
                 SELECT sales_name AS name,
+                       MAX(region) AS region,
                        DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
                        COUNT(*) AS orders,
                        SUM(amount) AS amount,

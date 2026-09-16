@@ -117,6 +117,9 @@ export function adminPackageList() {
 export function savePackage(data) {
   return silent({ url: '/admin/packages', method: 'post', data })
 }
+export function productMarketing() {
+  return silent({ url: '/admin/product/marketing', method: 'get' })
+}
 
 // ---------- 小区覆盖 ----------
 export function adminCommunityList(params) {

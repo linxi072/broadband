@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -133,8 +132,6 @@ public class AdminProductController {
             result.put("workOrders", List.of());
             result.put("upgradeOrders", List.of());
             result.put("summary", Map.of());
-            result.put("lifecycle", Map.of());
-            result.put("touchRecords", List.of());
             return result;
         }
 
@@ -231,171 +228,7 @@ public class AdminProductController {
                 .stream().findFirst().orElse(Map.of());
         result.put("summary", summary);
 
-        // 从 result 取出已聚合的子列表，供生命周期 / 触达记录派生使用
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> orders = (List<Map<String, Object>>) result.get("orders");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> reviews = (List<Map<String, Object>>) result.get("reviews");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> workOrders = (List<Map<String, Object>>) result.get("workOrders");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> upgradeOrders = (List<Map<String, Object>>) result.get("upgradeOrders");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> contracts = (List<Map<String, Object>>) result.get("contracts");
-
-        // ---- 生命周期阶段 ----
-        result.put("lifecycle", computeLifecycle(profile, summary, orders, reviews, workOrders, upgradeOrders, contracts));
-
-        // ---- 触达 / 互动记录时间线 ----
-        result.put("touchRecords", buildTouchRecords(profile, orders, reviews, workOrders, upgradeOrders, contracts));
-
         return result;
-    }
-
-    // ==================================================================== 客户 360 派生（生命周期 / 触达记录）
-
-    private Map<String, Object> computeLifecycle(Map<String, Object> profile, Map<String, Object> summary,
-            List<Map<String, Object>> orders, List<Map<String, Object>> reviews,
-            List<Map<String, Object>> workOrders, List<Map<String, Object>> upgradeOrders,
-            List<Map<String, Object>> contracts) {
-        Map<String, Object> lc = new LinkedHashMap<>();
-        long orderCount = ((Number) summary.getOrDefault("orderCount", 0)).longValue();
-        String level = str(profile.get("level"));
-        String levelLabel = str(profile.get("levelLabel"));
-        String contractStatus = str(profile.get("contractStatus"));
-        String contractEnd = str(profile.get("contractEnd"));
-
-        long lastActive = 0;
-        lastActive = maxTs(lastActive, orders, "createdAt");
-        lastActive = maxTs(lastActive, reviews, "createdAt");
-        lastActive = maxTs(lastActive, upgradeOrders, "createdAt");
-        lastActive = maxTs(lastActive, workOrders, "completeTime");
-
-        long daysSince = lastActive == 0 ? 9999 : (System.currentTimeMillis() - lastActive) / 86_400_000L;
-
-        String stage, stageLabel, color;
-        List<String> reasons = new ArrayList<>();
-        if (orderCount == 0) {
-            stage = "LEAD"; stageLabel = "潜在客户"; color = "info";
-            reasons.add("尚未产生业务订单");
-        } else if ("生效中".equals(contractStatus) && contractEnd != null && withinDays(contractEnd, 90)) {
-            stage = "RENEW"; stageLabel = "待续约"; color = "warning";
-            reasons.add("合约将于 " + contractEnd + " 到期（≤90 天）");
-        } else if (daysSince > 180) {
-            stage = "CHURN_RISK"; stageLabel = "流失预警"; color = "danger";
-            reasons.add("近 " + daysSince + " 天无互动，存在流失风险");
-        } else if ("VIP".equals(level) || "GOLD".equals(level)) {
-            stage = "HIGH_VALUE"; stageLabel = "高价值客户"; color = "danger";
-            reasons.add(levelLabel + "高价值客户");
-        } else if (daysSince <= 30) {
-            stage = "GROWING"; stageLabel = "成长期"; color = "success";
-            reasons.add("近 " + daysSince + " 天内有互动");
-        } else {
-            stage = "STABLE"; stageLabel = "稳定期"; color = "success";
-            reasons.add("近 " + daysSince + " 天内有互动");
-        }
-        if (lastActive > 0) reasons.add(0, "最近互动：" + fmtTs(lastActive));
-
-        lc.put("stage", stage);
-        lc.put("stageLabel", stageLabel);
-        lc.put("color", color);
-        lc.put("daysSince", daysSince);
-        lc.put("lastActive", lastActive);
-        lc.put("reasons", reasons);
-        return lc;
-    }
-
-    private List<Map<String, Object>> buildTouchRecords(Map<String, Object> profile,
-            List<Map<String, Object>> orders, List<Map<String, Object>> reviews,
-            List<Map<String, Object>> workOrders, List<Map<String, Object>> upgradeOrders,
-            List<Map<String, Object>> contracts) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (Map<String, Object> o : orders) {
-            list.add(touch("order", "下单 · " + str(o.get("packageName")),
-                    moneyStr(o.get("amount")) + " · " + str(o.get("statusLabel")), str(o.get("createdAt"))));
-        }
-        for (Map<String, Object> r : reviews) {
-            String type = "投诉".equals(str(r.get("typeLabel"))) ? "complaint" : "review";
-            list.add(touch(type, str(r.get("typeLabel")) + " · " + scoreStr(r.get("score")) + "★",
-                    str(r.get("content")), str(r.get("createdAt"))));
-        }
-        for (Map<String, Object> w : workOrders) {
-            String ct = str(w.get("completeTime"));
-            if (ct == null) continue;
-            list.add(touch("install", "安装完工 · " + str(w.get("packageDesc")),
-                    "师傅 " + str(w.get("workerId")), ct));
-        }
-        for (Map<String, Object> u : upgradeOrders) {
-            list.add(touch("upgrade", "升级申请 · " + str(u.get("targetBandKey")),
-                    str(u.get("statusLabel")), str(u.get("createdAt"))));
-        }
-        for (Map<String, Object> c : contracts) {
-            list.add(touch("contract", "签约合约",
-                    moneyStr(c.get("monthlyFee")) + " · 到期 " + str(c.get("endDate")), str(c.get("startDate"))));
-        }
-        list.sort((a, b) -> Long.compare(tsOf(b), tsOf(a)));
-        if (list.size() > 30) list = new ArrayList<>(list.subList(0, 30));
-        return list;
-    }
-
-    private Map<String, Object> touch(String type, String title, String detail, String timeText) {
-        long t = parseTs(timeText);
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("type", type);
-        m.put("title", title);
-        m.put("detail", detail);
-        m.put("time", t);
-        m.put("timeText", timeText);
-        return m;
-    }
-
-    private long tsOf(Map<String, Object> m) {
-        Object t = m.get("time");
-        return t instanceof Number ? ((Number) t).longValue() : 0;
-    }
-
-    private long maxTs(long cur, List<Map<String, Object>> list, String field) {
-        long max = cur;
-        if (list == null) return max;
-        for (Map<String, Object> m : list) {
-            long t = parseTs(str(m.get(field)));
-            if (t > max) max = t;
-        }
-        return max;
-    }
-
-    private static long parseTs(String s) {
-        if (s == null || s.isEmpty()) return 0;
-        String[] pats = {"yyyy-MM-dd HH:mm", "yyyy-MM-dd"};
-        for (String p : pats) {
-            try {
-                SimpleDateFormat f = new SimpleDateFormat(p);
-                f.setLenient(false);
-                return f.parse(s).getTime();
-            } catch (Exception ignored) { }
-        }
-        return 0;
-    }
-
-    private boolean withinDays(String dateStr, int days) {
-        try {
-            java.time.LocalDate d = java.time.LocalDate.parse(dateStr);
-            return !d.isAfter(java.time.LocalDate.now().plusDays(days));
-        } catch (Exception e) { return false; }
-    }
-
-    private String fmtTs(long ms) {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(ms));
-    }
-
-    private String moneyStr(Object v) {
-        if (v == null) return "—";
-        try { return "¥" + ((Number) v).longValue(); } catch (Exception e) { return String.valueOf(v); }
-    }
-
-    private String scoreStr(Object v) {
-        if (v == null) return "";
-        try { return String.valueOf(((Number) v).intValue()); } catch (Exception e) { return String.valueOf(v); }
     }
 
     // ==================================================================== 套餐
@@ -592,7 +425,6 @@ public class AdminProductController {
     public List<Map<String, Object>> salesReport() {
         return jdbc.queryForList("""
                 SELECT sales_name AS name,
-                       MAX(region) AS region,
                        DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
                        COUNT(*) AS orders,
                        SUM(amount) AS amount,
@@ -611,8 +443,7 @@ public class AdminProductController {
         List<Map<String, Object>> rows = jdbc.queryForList("""
                 SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
                        SUM(CASE WHEN status IN ('PAID','INSTALLING','DONE') THEN amount ELSE 0 END) AS revenue,
-                       SUM(CASE WHEN status = 'REFUND' THEN amount ELSE 0 END) AS refund,
-                       SUM(CASE WHEN status = 'CANCELLED' THEN amount ELSE 0 END) AS cancelled,
+                       SUM(CASE WHEN status = 'CANCELLED' THEN amount ELSE 0 END) AS refund,
                        SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END) AS receivable,
                        COUNT(*) AS orders
                 FROM biz_order
@@ -635,193 +466,6 @@ public class AdminProductController {
         return rows;
     }
 
-    // ============================================================ 报表下钻明细（US-2.2 报表下钻标准化）
-
-    /**
-     * 销售业绩明细下钻：按销售 / 月份返回底层业务订单（构成销售报表每一行的明细）。
-     */
-    @GetMapping("/sales/report/detail")
-    @PreAuthorize("hasAuthority('sales:view')")
-    public List<Map<String, Object>> salesReportDetail(
-            @RequestParam(required = false) String salesName,
-            @RequestParam(required = false) String month) {
-        StringBuilder sql = new StringBuilder(
-                "SELECT id AS orderNo, customer_name AS customerName, package_name AS packageName, " +
-                "amount, status, order_type AS orderType, " +
-                "DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
-                "FROM biz_order WHERE sales_name IS NOT NULL AND sales_name <> ''");
-        List<Object> args = new ArrayList<>();
-        if (salesName != null && !salesName.isBlank()) {
-            sql.append(" AND sales_name = ?");
-            args.add(salesName);
-        }
-        if (month != null && !month.isBlank()) {
-            sql.append(" AND DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ?");
-            args.add(month);
-        }
-        sql.append(" ORDER BY created_time DESC");
-        return jdbc.queryForList(sql.toString(), args.toArray());
-    }
-
-    /**
-     * 财务月度明细下钻：某月营收/退款/赔付的底层业务订单 + 赔付工单（构成财务月报每一行的明细）。
-     */
-    @GetMapping("/finance/report/detail")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public Map<String, Object> financeReportDetail(@RequestParam String month) {
-        List<Map<String, Object>> orders = jdbc.queryForList(
-                "SELECT '订单' AS type, id AS ref, customer_name AS customer, amount, status, " +
-                "order_type AS orderType, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
-                "FROM biz_order WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ? " +
-                "ORDER BY created_time DESC", month);
-        List<Map<String, Object>> comps = jdbc.queryForList(
-                "SELECT '赔付' AS type, id AS ref, cust_name AS customer, comp_amount AS amount, status, " +
-                "order_type AS orderType, reason, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
-                "FROM compensation WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ? " +
-                "ORDER BY created_time DESC", month);
-        List<Map<String, Object>> rows = new ArrayList<>(orders);
-        rows.addAll(comps);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("month", month);
-        result.put("orderCount", orders.size());
-        result.put("compCount", comps.size());
-        result.put("rows", rows);
-        return result;
-    }
-
-    // ==================================================================== 退款 / 对账状态机
-
-    /**
-     * 退款单列表（财务退款口径对齐，复用 finance:view）。
-     * 可选 ?status=PENDING/APPROVED/REJECTED/REFUNDED 过滤。
-     */
-    @GetMapping("/refunds")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public List<Map<String, Object>> refunds(@RequestParam(required = false) String status) {
-        String sql = "SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName, "
-                + "amount, reason, channel, status, refund_no AS refundNo, operator, "
-                + "created_time AS createdTime, handled_time AS handledTime FROM order_refund";
-        List<Object> args = new ArrayList<>();
-        if (status != null && !status.isBlank()) {
-            sql += " WHERE status = ?";
-            args.add(status);
-        }
-        sql += " ORDER BY created_time DESC";
-        return jdbc.queryForList(sql, args.toArray());
-    }
-
-    /** 审批退款：PENDING -> REFUNDED，生成退款流水号，并将业务订单置 REFUND（营收扣减）。 */
-    @PostMapping("/refunds/{id}/approve")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public Map<String, Object> approveRefund(@PathVariable String id,
-                                             @RequestBody(required = false) Map<String, Object> body) {
-        Map<String, Object> rf = one("SELECT id, order_id, status FROM order_refund WHERE id = ?", id);
-        if (rf == null) throw new IllegalArgumentException("退款单不存在：" + id);
-        if (!"PENDING".equals(rf.get("status")))
-            throw new IllegalStateException("仅 PENDING 退款单可审批，当前：" + rf.get("status"));
-        String refundNo = "RN" + System.currentTimeMillis();
-        String operator = str(body == null ? null : body.get("operator"));
-        if (operator == null) operator = "财务";
-        jdbc.update("UPDATE order_refund SET status = 'REFUNDED', refund_no = ?, operator = ?, handled_time = ? WHERE id = ?",
-                refundNo, operator, System.currentTimeMillis(), id);
-        jdbc.update("UPDATE biz_order SET status = 'REFUND' WHERE id = ?", rf.get("order_id"));
-        log("审批退款", id, "POST");
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("ok", true);
-        resp.put("id", id);
-        resp.put("refundNo", refundNo);
-        resp.put("status", "REFUNDED");
-        resp.put("orderStatus", "REFUND");
-        return resp;
-    }
-
-    /** 驳回退款：PENDING -> REJECTED。 */
-    @PostMapping("/refunds/{id}/reject")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public Map<String, Object> rejectRefund(@PathVariable String id,
-                                           @RequestBody(required = false) Map<String, Object> body) {
-        Map<String, Object> rf = one("SELECT id, status FROM order_refund WHERE id = ?", id);
-        if (rf == null) throw new IllegalArgumentException("退款单不存在：" + id);
-        if (!"PENDING".equals(rf.get("status")))
-            throw new IllegalStateException("仅 PENDING 退款单可驳回，当前：" + rf.get("status"));
-        String operator = str(body == null ? null : body.get("operator"));
-        if (operator == null) operator = "财务";
-        jdbc.update("UPDATE order_refund SET status = 'REJECTED', operator = ?, handled_time = ? WHERE id = ?",
-                operator, System.currentTimeMillis(), id);
-        log("驳回退款", id, "POST");
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("ok", true);
-        resp.put("id", id);
-        resp.put("status", "REJECTED");
-        return resp;
-    }
-
-    // ==================================================================== 电子发票（占位）
-
-    /** 发票申请列表（复用 finance:view）。可选 ?status=PENDING/OPENED/REJECTED 过滤。 */
-    @GetMapping("/invoices")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public List<Map<String, Object>> invoices(@RequestParam(required = false) String status) {
-        String sql = "SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName, "
-                + "title, tax_no AS taxNo, amount, status, invoice_no AS invoiceNo, pdf_url AS pdfUrl, "
-                + "operator, remark, created_time AS createdTime, opened_time AS openedTime FROM invoice_apply";
-        List<Object> args = new ArrayList<>();
-        if (status != null && !status.isBlank()) {
-            sql += " WHERE status = ?";
-            args.add(status);
-        }
-        sql += " ORDER BY created_time DESC";
-        return jdbc.queryForList(sql, args.toArray());
-    }
-
-    /** 开具发票：PENDING -> OPENED，生成发票号与占位 PDF 地址。 */
-    @PostMapping("/invoices/{id}/open")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public Map<String, Object> openInvoice(@PathVariable String id,
-                                          @RequestBody(required = false) Map<String, Object> body) {
-        Map<String, Object> inv = one("SELECT id, status, amount FROM invoice_apply WHERE id = ?", id);
-        if (inv == null) throw new IllegalArgumentException("发票申请不存在：" + id);
-        if (!"PENDING".equals(inv.get("status")))
-            throw new IllegalStateException("仅 PENDING 发票可申请开具，当前：" + inv.get("status"));
-        String invoiceNo = "INV" + System.currentTimeMillis();
-        String operator = str(body == null ? null : body.get("operator"));
-        if (operator == null) operator = "财务";
-        String pdfUrl = "/assets/invoice/" + invoiceNo + ".pdf";
-        jdbc.update("UPDATE invoice_apply SET status = 'OPENED', invoice_no = ?, pdf_url = ?, operator = ?, opened_time = ? WHERE id = ?",
-                invoiceNo, pdfUrl, operator, System.currentTimeMillis(), id);
-        log("开具发票", id, "POST");
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("ok", true);
-        resp.put("id", id);
-        resp.put("invoiceNo", invoiceNo);
-        resp.put("pdfUrl", pdfUrl);
-        resp.put("status", "OPENED");
-        return resp;
-    }
-
-    /** 驳回发票：PENDING -> REJECTED，记录驳回原因。 */
-    @PostMapping("/invoices/{id}/reject")
-    @PreAuthorize("hasAuthority('finance:view')")
-    public Map<String, Object> rejectInvoice(@PathVariable String id,
-                                            @RequestBody(required = false) Map<String, Object> body) {
-        Map<String, Object> inv = one("SELECT id, status FROM invoice_apply WHERE id = ?", id);
-        if (inv == null) throw new IllegalArgumentException("发票申请不存在：" + id);
-        if (!"PENDING".equals(inv.get("status")))
-            throw new IllegalStateException("仅 PENDING 发票可驳回，当前：" + inv.get("status"));
-        String remark = str(body == null ? null : body.get("remark"));
-        if (remark == null) remark = "信息不全";
-        String operator = str(body == null ? null : body.get("operator"));
-        if (operator == null) operator = "财务";
-        jdbc.update("UPDATE invoice_apply SET status = 'REJECTED', remark = ?, operator = ?, opened_time = ? WHERE id = ?",
-                remark, operator, System.currentTimeMillis(), id);
-        log("驳回发票", id, "POST");
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("ok", true);
-        resp.put("id", id);
-        resp.put("status", "REJECTED");
-        return resp;
-    }
-
     // ==================================================================== 套餐营销看板
 
     /**
@@ -837,9 +481,9 @@ public class AdminProductController {
         Map<String, Object> summary = jdbc.queryForList("""
                 SELECT
                   (SELECT COUNT(*) FROM biz_order) AS totalOrders,
-                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS totalRevenue,
+                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status <> 'CANCELLED') AS totalRevenue,
                   (SELECT COUNT(*) FROM biz_order WHERE status = 'DONE') AS doneOrders,
-                  (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS avgOrderAmount,
+                  (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status <> 'CANCELLED') AS avgOrderAmount,
                   (SELECT COUNT(*) FROM customer) AS customerCount,
                   (SELECT COUNT(*) FROM package_upgrade_order) AS upgradeCount,
                   (SELECT COUNT(*) FROM package_upgrade_order WHERE status = 'EFFECTIVE') AS effectiveUpgrades
@@ -849,25 +493,6 @@ public class AdminProductController {
         double upgradeRate = upgradeCount == 0 ? 0 : Math.round(effectiveUpgrades * 1000.0 / upgradeCount) / 10.0;
         summary.put("upgradeRate", upgradeRate);
         result.put("summary", summary);
-
-        // ---- 转化漏斗：业务订单 → 已支付 → 已完成 → 升级申请 → 升级生效（营销看板「转化漏斗」）----
-        long totalOrders = ((Number) summary.getOrDefault("totalOrders", 0)).longValue();
-        long doneOrders = ((Number) summary.getOrDefault("doneOrders", 0)).longValue();
-        long paidOrders = ((Number) jdbc.queryForObject(
-                "SELECT COUNT(*) FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE')", Number.class)).longValue();
-        List<Map<String, Object>> funnel = new ArrayList<>();
-        java.util.function.BiConsumer<String, Long> addStage = (stage, value) -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("stage", stage);
-            m.put("value", value);
-            funnel.add(m);
-        };
-        addStage.accept("业务订单", totalOrders);
-        addStage.accept("已支付", paidOrders);
-        addStage.accept("已完成", doneOrders);
-        addStage.accept("升级申请", upgradeCount);
-        addStage.accept("升级生效", effectiveUpgrades);
-        result.put("funnel", funnel);
 
         // ---- 套餐销量排行 ----
         long totalRevenue = ((Number) summary.getOrDefault("totalRevenue", 0)).longValue();
@@ -935,41 +560,6 @@ public class AdminProductController {
 
     // ==================================================================== 工具
 
-    /**
-     * 套餐营销看板「转化漏斗」下钻：返回指定漏斗阶段的订单 / 升级单明细。
-     * 前端点击漏斗阶段时调用（stage ∈ 业务订单/已支付/已完成/升级申请/升级生效）。
-     */
-    @GetMapping("/product/funnel-detail")
-    @PreAuthorize("hasAuthority('package:view')")
-    public List<Map<String, Object>> productFunnelDetail(@RequestParam String stage) {
-        return switch (stage) {
-            case "业务订单" -> jdbc.queryForList("""
-                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
-                           order_type AS orderType, status, created_time AS createdTime
-                    FROM biz_order ORDER BY created_time DESC LIMIT 200
-                    """);
-            case "已支付" -> jdbc.queryForList("""
-                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
-                           order_type AS orderType, status, created_time AS createdTime
-                    FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE') ORDER BY created_time DESC LIMIT 200
-                    """);
-            case "已完成" -> jdbc.queryForList("""
-                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
-                           order_type AS orderType, status, created_time AS createdTime
-                    FROM biz_order WHERE status = 'DONE' ORDER BY created_time DESC LIMIT 200
-                    """);
-            case "升级申请" -> jdbc.queryForList("""
-                    SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
-                    FROM package_upgrade_order ORDER BY created_time DESC LIMIT 200
-                    """);
-            case "升级生效" -> jdbc.queryForList("""
-                    SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
-                    FROM package_upgrade_order WHERE status = 'EFFECTIVE' ORDER BY created_time DESC LIMIT 200
-                    """);
-            default -> List.of();
-        };
-    }
-
     private void log(String action, String target, String method) {
         var me = AuthController.current();
         operLog.record(me == null ? null : me.user.username, me == null ? null : me.user.name,
@@ -1004,10 +594,5 @@ public class AdminProductController {
         } catch (NumberFormatException e) {
             return 0;
         }
-    }
-
-    private Map<String, Object> one(String sql, Object... args) {
-        List<Map<String, Object>> l = jdbc.queryForList(sql, args);
-        return l.isEmpty() ? null : l.get(0);
     }
 }

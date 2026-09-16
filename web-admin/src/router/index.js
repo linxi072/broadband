@@ -19,6 +19,12 @@ const router = createRouter({
       children: [
         ...flatRoutes,
         {
+          path: '/customer/:id',
+          name: 'customer_detail',
+          component: () => import('@/views/customer/detail.vue'),
+          meta: { title: '客户详情', perm: 'customer:view' }
+        },
+        {
           path: '/403',
           name: 'forbidden',
           component: () => import('@/views/error/403.vue'),

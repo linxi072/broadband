@@ -101,6 +101,9 @@ export function monitorOverview() {
 export function customerList(params) {
   return silent({ url: '/admin/customers', method: 'get', params })
 }
+export function customer360(id) {
+  return silent({ url: `/admin/customer/${id}/360`, method: 'get' })
+}
 
 // ---------- 套餐 ----------
 export function adminPackageList() {

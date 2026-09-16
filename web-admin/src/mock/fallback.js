@@ -3,6 +3,46 @@
  * 页面会在标题旁显示「演示数据」标记，与「实时数据」区分，避免误读。
  */
 
+/** 客户 360 全景演示兜底（与 GET /api/admin/customer/:id/360 返回结构对齐） */
+export function demoCustomer360(id) {
+  const base = demoCustomers.find((c) => c.id === id) || demoCustomers[0]
+  const name = base.name
+  const statusLabelOf = (s) =>
+    ({ ASSIGNED: '已派单', PENDING: '待派单', INSTALLING: '安装中', DONE: '已完成', CANCELLED: '已取消' }[s] || s)
+  return {
+    profile: {
+      id: base.id, name: base.name, phone: base.phone, level: base.level, levelLabel: base.level,
+      pkgName: base.pkgName, pkgMonthlyFee: base.monthlyFee, packageId: 'pkg-demo',
+      communityName: '保利花园', address: '深圳市南山区科技园路 1 号', statusLabel: base.status,
+      contractEnd: base.contractEnd, contractStatus: '生效中', tags: base.tags || []
+    },
+    orders: demoOrders.filter((o) => o.customer === name).map((o) => ({
+      id: o.id, packageName: o.pkgName, amount: o.amount, orderTypeLabel: '新装',
+      statusLabel: o.status, createdAt: o.time
+    })),
+    contracts: [
+      { id: 'CT-DMO01', packageId: 'pkg-demo', monthlyFee: base.monthlyFee, startDate: '2026-04-01', endDate: base.contractEnd, statusLabel: '生效中' }
+    ],
+    traffic: { period: '2026-09', mobileTotal: 60, mobileUsed: 42, broadbandHours: 210, broadbandPeak: '943M', dailyTrend: [5, 6, 7, 5, 8, 7, 4] },
+    reviews: demoReviews.filter((r) => r.customer === name).map((r) => ({
+      id: r.id, orderId: r.orderId, score: r.score, tags: r.tags, typeLabel: r.type, content: '',
+      statusLabel: r.status, createdAt: r.time
+    })),
+    workOrders: demoWorkOrders.map((w) => ({
+      id: w.id, statusLabel: statusLabelOf(w.status), timeSlot: w.timeSlot, customerName: name,
+      packageDesc: w.type, workerId: w.worker, downSpeed: w.status === 'DONE' ? 942 : null,
+      upSpeed: w.status === 'DONE' ? 48 : null, signName: w.status === 'DONE' ? name : null,
+      completeTime: w.status === 'DONE' ? '2026-09-15 11:30' : null, bizOrderId: w.orderId, bizStatus: null
+    })),
+    upgradeOrders: demoUpgradeOrders.filter((u) => u.customer === name).map((u) => ({
+      id: u.id, fromPackageId: u.fromPkg, targetBandKey: u.toPkg, monthDiff: u.monthDiff,
+      oneTimeDiff: u.oneTimeDiff, currentFee: 0, newFee: 0, effectType: u.effectType,
+      statusLabel: u.status, createdAt: u.time
+    })),
+    summary: { orderCount: 4, paidAmount: 496, workOrderCount: demoWorkOrders.length, reviewCount: 1, avgScore: 5, upgradeCount: 1 }
+  }
+}
+
 export const demoCustomers = [
   { id: 'c001', name: '陈先生', phone: '13800001111', level: '五星', pkgName: '500M 融合 40G', monthlyFee: 129, contractEnd: '2028-03-31', status: '在用', tags: ['高价值', '合约中'] },
   { id: 'c002', name: '李女士', phone: '13800002222', level: '四星', pkgName: '300M 融合 20G', monthlyFee: 99, contractEnd: '2027-01-31', status: '在用', tags: ['宽带+IPTV'] },

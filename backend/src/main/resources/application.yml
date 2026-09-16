@@ -58,3 +58,9 @@ app:
     miniapp:
       appid: ${WECHAT_APPID:wxcc344ad7f4f849d4}
       secret: ${WECHAT_SECRET:}
+    # 师傅端（broadband-worker）独立小程序凭证：两个小程序必须各持独立 AppID 才能分别提审。
+    # worker 端登录当前按手机号识别（phone-based），不依赖 code2Session；此处在后端预留 worker 凭证，
+    # 供后续师傅端启用微信登录 / 订阅消息等平台能力时直接注入使用，无需再改结构。
+    worker:
+      appid: ${WECHAT_WORKER_APPID:}
+      secret: ${WECHAT_WORKER_SECRET:}

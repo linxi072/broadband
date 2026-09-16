@@ -81,6 +81,155 @@ public class AdminProductController {
         return rows;
     }
 
+    // ==================================================================== 客户 360 视图
+
+    /**
+     * 客户 360 全景：档案 + 业务订单 + 合约 + 流量 + 投诉评价 + 安装工单 + 升级申请 + 汇总指标。
+     * 单一人口、服务端按 customerId 聚合，避免前端多接口拼装与越权风险。
+     */
+    @GetMapping("/customer/{id}/360")
+    @PreAuthorize("hasAuthority('customer:view')")
+    public Map<String, Object> customer360(@PathVariable String id) {
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        // ---- 档案 ----
+        Map<String, Object> profile = jdbc.queryForList("""
+                SELECT c.id, c.name, c.phone, c.level,
+                       CASE c.level WHEN 'VIP' THEN '五星' WHEN 'GOLD' THEN '四星'
+                                    WHEN 'SILVER' THEN '三星' ELSE '普通' END AS levelLabel,
+                       p.name AS pkgName, p.monthly_fee AS pkgMonthlyFee,
+                       c.package_id AS packageId, c.community_id AS communityId,
+                       com.name AS communityName, c.address,
+                       CASE c.status WHEN 'ACTIVE' THEN '在用' WHEN 'SUSPENDED' THEN '暂停'
+                                    WHEN 'CLOSED' THEN '已销户' ELSE c.status END AS statusLabel,
+                       ct.id AS contractId, ct.start_date AS contractStart, ct.end_date AS contractEnd,
+                       CASE ct.status WHEN 'ACTIVE' THEN '生效中' WHEN 'EXPIRED' THEN '已到期'
+                                      WHEN 'TERMINATED' THEN '已终止' ELSE ct.status END AS contractStatus,
+                       ct.monthly_fee AS contractMonthlyFee,
+                       CONCAT_WS(',',
+                         IF(p.monthly_fee >= 199, '千兆', NULL),
+                         IF(ct.id IS NOT NULL, '合约中', NULL),
+                         IF(ct.end_date IS NOT NULL AND ct.end_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY), '临期', NULL)
+                       ) AS tagStr
+                FROM customer c
+                LEFT JOIN package_info p ON p.id = c.package_id
+                LEFT JOIN customer_contract ct ON ct.customer_id = c.id AND ct.status = 'ACTIVE'
+                LEFT JOIN community com ON com.id = c.community_id
+                WHERE c.id = ?
+                """, id).stream().findFirst().orElse(null);
+        if (profile != null) {
+            profile.put("tags", splitTags(str(profile.get("tagStr"))));
+            profile.remove("tagStr");
+        }
+        result.put("profile", profile);
+
+        if (profile == null) {
+            result.put("orders", List.of());
+            result.put("contracts", List.of());
+            result.put("traffic", null);
+            result.put("reviews", List.of());
+            result.put("workOrders", List.of());
+            result.put("upgradeOrders", List.of());
+            result.put("summary", Map.of());
+            return result;
+        }
+
+        String name = str(profile.get("name"));
+
+        // ---- 业务订单 ----
+        result.put("orders", jdbc.queryForList("""
+                SELECT id, package_name AS packageName, amount,
+                       order_type AS orderType,
+                       CASE order_type WHEN 'NEW_INSTALL' THEN '新装' WHEN 'MOVE' THEN '移机'
+                                        WHEN 'RENEW' THEN '续费' WHEN 'SPEED_UP' THEN '提速'
+                                        WHEN 'REPAIR' THEN '报修' WHEN 'ADDON' THEN '加购' ELSE order_type END AS orderTypeLabel,
+                       CASE status WHEN 'PENDING' THEN '待支付' WHEN 'PAID' THEN '已支付'
+                                  WHEN 'INSTALLING' THEN '安装中' WHEN 'DONE' THEN '已完成'
+                                  WHEN 'CANCELLED' THEN '已取消' ELSE status END AS statusLabel,
+                       DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d %H:%i') AS createdAt
+                FROM biz_order WHERE customer_id = ? ORDER BY created_time DESC LIMIT 50
+                """, id));
+
+        // ---- 合约 ----
+        result.put("contracts", jdbc.queryForList("""
+                SELECT id, package_id AS packageId, monthly_fee AS monthlyFee,
+                       start_date AS startDate, end_date AS endDate,
+                       CASE status WHEN 'ACTIVE' THEN '生效中' WHEN 'EXPIRED' THEN '已到期'
+                                   WHEN 'TERMINATED' THEN '已终止' ELSE status END AS statusLabel
+                FROM customer_contract WHERE customer_id = ? ORDER BY start_date DESC LIMIT 20
+                """, id));
+
+        // ---- 流量（取最近一个周期） ----
+        Map<String, Object> traffic = jdbc.queryForList("""
+                SELECT period_month AS period, mobile_total AS mobileTotal, mobile_used AS mobileUsed,
+                       broadband_hours AS broadbandHours, broadband_peak AS broadbandPeak,
+                       daily_trend AS dailyTrend
+                FROM traffic_usage WHERE customer_id = ? ORDER BY period_month DESC LIMIT 1
+                """, id).stream().findFirst().orElse(null);
+        if (traffic != null) {
+            String trend = str(traffic.get("dailyTrend"));
+            List<Integer> arr = new ArrayList<>();
+            if (trend != null) for (String s : trend.split(",")) {
+                try { arr.add(Integer.parseInt(s.trim())); } catch (Exception ignored) {}
+            }
+            traffic.put("dailyTrend", arr);
+        }
+        result.put("traffic", traffic);
+
+        // ---- 投诉与评价 ----
+        result.put("reviews", jdbc.queryForList("""
+                SELECT id, order_id AS orderId, score, tags, type, content,
+                       CASE type WHEN 'COMPLAINT' THEN '投诉' ELSE '评价' END AS typeLabel,
+                       CASE status WHEN 'PENDING' THEN '待处理' WHEN 'PROCESSING' THEN '处理中'
+                                   WHEN 'VISITED' THEN '已回访' WHEN 'CLOSED' THEN '已闭环'
+                                   ELSE status END AS statusLabel,
+                       DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d %H:%i') AS createdAt
+                FROM review WHERE customer_name = ? ORDER BY created_time DESC LIMIT 50
+                """, name == null ? "" : name));
+
+        // ---- 安装工单（经 biz_order 关联 或 按客户姓名） ----
+        result.put("workOrders", jdbc.queryForList("""
+                SELECT wo.id, wo.status, wo.time_slot AS timeSlot, wo.customer_name AS customerName,
+                       wo.package_desc AS packageDesc, wo.worker_id AS workerId,
+                       wo.down_speed AS downSpeed, wo.up_speed AS upSpeed,
+                       wo.sign_name AS signName, wo.complete_time AS completeTime,
+                       bo.id AS bizOrderId, bo.status AS bizStatus,
+                       CASE wo.status WHEN 'PENDING' THEN '待派单' WHEN 'ASSIGNED' THEN '已派单'
+                                      WHEN 'INSTALLING' THEN '安装中' WHEN 'DONE' THEN '已完成'
+                                      WHEN 'CANCELLED' THEN '已取消' ELSE wo.status END AS statusLabel
+                FROM work_order wo
+                LEFT JOIN biz_order bo ON bo.id = wo.biz_order_id
+                WHERE bo.customer_id = ? OR wo.customer_name = ?
+                ORDER BY wo.complete_time DESC, wo.id DESC LIMIT 50
+                """, id, name == null ? "" : name));
+
+        // ---- 升级申请单 ----
+        result.put("upgradeOrders", jdbc.queryForList("""
+                SELECT id, from_package_id AS fromPackageId, target_band_key AS targetBandKey,
+                       addon_keys AS addonKeys, month_diff AS monthDiff, one_time_diff AS oneTimeDiff,
+                       current_fee AS currentFee, new_fee AS newFee, effect_type AS effectType,
+                       CASE status WHEN 'SUBMITTED' THEN '待审核' WHEN 'EFFECTIVE' THEN '已生效'
+                                   WHEN 'REJECTED' THEN '已驳回' ELSE status END AS statusLabel,
+                       DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d %H:%i') AS createdAt
+                FROM package_upgrade_order WHERE customer_id = ? ORDER BY created_time DESC LIMIT 20
+                """, id));
+
+        // ---- 汇总指标 ----
+        Map<String, Object> summary = jdbc.queryForList("""
+                SELECT
+                  (SELECT COUNT(*) FROM biz_order WHERE customer_id = ?) AS orderCount,
+                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE customer_id = ? AND status IN ('PAID','INSTALLING','DONE')) AS paidAmount,
+                  (SELECT COUNT(*) FROM work_order wo LEFT JOIN biz_order bo ON bo.id = wo.biz_order_id WHERE bo.customer_id = ? OR wo.customer_name = ?) AS workOrderCount,
+                  (SELECT COUNT(*) FROM review WHERE customer_name = ?) AS reviewCount,
+                  (SELECT COALESCE(ROUND(AVG(score),1),0) FROM review WHERE customer_name = ?) AS avgScore,
+                  (SELECT COUNT(*) FROM package_upgrade_order WHERE customer_id = ?) AS upgradeCount
+                """, id, id, id, name == null ? "" : name, name == null ? "" : name, name == null ? "" : name, id)
+                .stream().findFirst().orElse(Map.of());
+        result.put("summary", summary);
+
+        return result;
+    }
+
     // ==================================================================== 套餐
 
     @GetMapping("/packages")

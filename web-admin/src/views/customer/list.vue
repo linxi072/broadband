@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import SourceTag from '@/components/SourceTag.vue'
 import { customerList, upgradeOptions, trafficUsage } from '@/api/business'
 import { loadResource, money, pct } from '@/composables/useResource'
@@ -10,6 +11,11 @@ const live = ref(false)
 const loading = ref(true)
 const keyword = ref('')
 const level = ref('')
+const router = useRouter()
+
+function go360(row) {
+  router.push('/customer/' + (row.id || ''))
+}
 
 const drawer = ref(false)
 const detail = ref(null)
@@ -120,6 +126,7 @@ onMounted(async () => {
             <b>{{ detail.name }}</b>
             <p>{{ detail.phone }} ｜ {{ detail.level || '—' }}</p>
           </div>
+          <el-button size="small" type="primary" link @click="go360(detail)">查看 360 全景 →</el-button>
           <SourceTag :live="detailLive" />
         </div>
 

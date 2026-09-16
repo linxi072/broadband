@@ -1,32 +1,94 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { navConfig } from '@/router/routes'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
+import { navConfig } from '@/router/routes'
 
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const app = useAppStore()
 
-/** 按权限码过滤菜单：无权限的叶子 / 空分组不渲染 */
-const menus = computed(() =>
-  navConfig
-    .map((item) => {
-      if (item.children) {
-        const children = item.children.filter((c) => !c.perm || user.perms.includes(c.perm))
-        return children.length ? { ...item, children } : null
-      }
-      return !item.perm || user.perms.includes(item.perm) ? item : null
-    })
-    .filter(Boolean)
-)
+/**
+ * 图标映射：后端 sys_menu 当前未持久化图标（仅存 path / perm / type），
+ * 前端按 path（目录与叶子共用同一 path 前缀）或 name 映射 emoji，保持与历史 navConfig 视觉一致。
+ * 后续若后端菜单表增加 icon 字段，可直接优先使用后端下发值。
+ */
+const ICONS_BY_PATH = {
+  '/dashboard': '📊',
+  '/order': '📋',
+  '/customer': '👤',
+  '/package': '📦',
+  '/package/marketing': '📣',
+  '/package/upgrade': '⚡',
+  '/community': '🏘',
+  '/workorder/pool': '🔧',
+  '/sla': '🛡',
+  '/traffic': '📶',
+  '/review': '⭐',
+  '/sales': '💼',
+  '/finance': '💰',
+  '/system/user': '🔐',
+  '/monitor': '📈'
+}
+const ICONS_BY_NAME = {
+  套餐管理: '📦',
+  小区覆盖管理: '🏘',
+  安装工单: '🔧',
+  权限管理: '🔐'
+}
+function iconOf(node) {
+  return ICONS_BY_PATH[node.path] || ICONS_BY_NAME[node.name] || '📄'
+}
+
+/** 将后端菜单树 / demo 菜单树装饰为侧边栏可用的结构（剔除按钮类、补图标） */
+function decorate(list) {
+  return (list || [])
+    .filter((m) => m.type !== 'BUTTON')
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      path: m.path,
+      perm: m.perm,
+      type: m.type,
+      icon: iconOf(m),
+      children: m.children && m.children.length ? decorate(m.children) : undefined
+    }))
+}
+
+/**
+ * 动态菜单：优先使用后端 /auth/me 按当前用户角色下发的菜单树（user.menus），
+ * 实现「不同角色看到不同菜单」。仅当动态菜单为空（极端异常）时，退回静态 navConfig，
+ * 避免出现空白侧边栏。
+ */
+const menus = computed(() => {
+  const dynamic = decorate(user.menus)
+  if (dynamic.length) return dynamic
+  return navConfig.map((item) => ({
+    id: item.path,
+    name: item.title,
+    path: item.path,
+    perm: item.perm,
+    type: item.children ? 'DIR' : 'MENU',
+    icon: iconOf(item),
+    children: item.children
+      ? item.children.map((c) => ({
+          id: c.path,
+          name: c.title,
+          path: c.path,
+          perm: c.perm,
+          type: 'MENU',
+          icon: iconOf(c)
+        }))
+      : undefined
+  }))
+})
 
 const activePath = computed(() => route.path)
 
 function go(path) {
-  if (path !== route.path) router.push(path)
+  if (path && path !== route.path) router.push(path)
 }
 </script>
 
@@ -50,25 +112,25 @@ function go(path) {
         active-text-color="#ffffff"
         unique-opened
       >
-        <template v-for="item in menus" :key="item.path || item.title">
-          <el-sub-menu v-if="item.children" :index="item.title">
+        <template v-for="item in menus" :key="item.id || item.path">
+          <el-sub-menu v-if="item.children" :index="item.id || item.name">
             <template #title>
               <span class="mi">{{ item.icon }}</span>
-              <span class="mt">{{ item.title }}</span>
+              <span class="mt">{{ item.name }}</span>
             </template>
             <el-menu-item
               v-for="child in item.children"
-              :key="child.path"
+              :key="child.id || child.path"
               :index="child.path"
               @click="go(child.path)"
             >
-              {{ child.title }}
+              {{ child.name }}
             </el-menu-item>
           </el-sub-menu>
 
           <el-menu-item v-else :index="item.path" @click="go(item.path)">
             <span class="mi">{{ item.icon }}</span>
-            <template #title>{{ item.title }}</template>
+            <template #title>{{ item.name }}</template>
           </el-menu-item>
         </template>
       </el-menu>

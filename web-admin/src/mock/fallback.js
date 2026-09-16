@@ -128,30 +128,37 @@ export const demoSlowApis = [
 ]
 
 export const demoMenus = [
-  { id: 1, name: '数据看板', path: '/dashboard', perm: 'dashboard:view', type: 'MENU' },
-  { id: 2, name: '订单管理', path: '/order', perm: 'order:view', type: 'MENU' },
-  { id: 3, name: '客户管理', path: '/customer', perm: 'customer:view', type: 'MENU' },
-  { id: 4, name: '套餐管理', path: '/package', perm: 'package:view', type: 'MENU' },
-  { id: 5, name: '安装工单', path: '/workorder', type: 'DIR', children: [
-    { id: 51, name: '工单池', path: '/workorder/pool', perm: 'workorder:view', type: 'MENU' },
-    { id: 52, name: '派单调度', path: '/workorder/dispatch', perm: 'dispatch:run', type: 'MENU' },
-    { id: 53, name: '容量配置', path: '/workorder/capacity', perm: 'capacity:config', type: 'MENU' },
-    { id: 54, name: '调度规则', path: '/workorder/rules', perm: 'capacity:config', type: 'MENU' }
+  { id: 'M1', name: '数据看板', path: '/dashboard', perm: 'dashboard:view', type: 'MENU' },
+  { id: 'M2', name: '订单管理', path: '/order', perm: 'order:view', type: 'MENU' },
+  { id: 'M3', name: '客户管理', path: '/customer', perm: 'customer:view', type: 'MENU' },
+  { id: 'M4', name: '套餐管理', path: '/package', type: 'DIR', children: [
+    { id: 'M41', name: '套餐列表', path: '/package', perm: 'package:view', type: 'MENU' },
+    { id: 'M42', name: '新增/编辑套餐', path: '/package/edit', perm: 'package:edit', type: 'MENU' },
+    { id: 'M43', name: '营销看板', path: '/package/marketing', perm: 'package:view', type: 'MENU' }
   ] },
-  { id: 6, name: '装维 SLA 与赔付', path: '/sla', perm: 'sla:view', type: 'MENU' },
-  { id: 7, name: '流量监控', path: '/traffic', perm: 'traffic:view', type: 'MENU' },
-  { id: 8, name: '套餐升级', path: '/package/upgrade', perm: 'upgrade:view', type: 'MENU' },
-  { id: 9, name: '小区覆盖管理', path: '/community', perm: 'community:view', type: 'MENU' },
-  { id: 10, name: '投诉与评价', path: '/review', perm: 'review:view', type: 'MENU' },
-  { id: 11, name: '销售管理', path: '/sales', perm: 'sales:view', type: 'MENU' },
-  { id: 12, name: '财务管理', path: '/finance', perm: 'finance:view', type: 'MENU' },
-  { id: 13, name: '权限管理', path: '/system', type: 'DIR', children: [
-    { id: 131, name: '用户管理', path: '/system/user', perm: 'system:user', type: 'MENU' },
-    { id: 132, name: '角色管理', path: '/system/role', perm: 'system:role', type: 'MENU' },
-    { id: 133, name: '菜单权限', path: '/system/menu', perm: 'system:menu', type: 'MENU' },
-    { id: 134, name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' }
+  { id: 'M5', name: '套餐升级', path: '/package/upgrade', perm: 'upgrade:view', type: 'MENU' },
+  { id: 'M6', name: '小区覆盖管理', path: '/community', type: 'DIR', children: [
+    { id: 'M61', name: '小区列表', path: '/community', perm: 'community:view', type: 'MENU' },
+    { id: 'M62', name: '新增/编辑覆盖', path: '/community/edit', perm: 'community:edit', type: 'MENU' }
   ] },
-  { id: 14, name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
+  { id: 'M7', name: '安装工单', path: '/workorder/pool', type: 'DIR', children: [
+    { id: 'M71', name: '工单池', path: '/workorder/pool', perm: 'workorder:view', type: 'MENU' },
+    { id: 'M72', name: '派单调度', path: '/workorder/dispatch', perm: 'dispatch:run', type: 'MENU' },
+    { id: 'M73', name: '容量配置', path: '/workorder/capacity', perm: 'capacity:config', type: 'MENU' },
+    { id: 'M74', name: '调度规则', path: '/workorder/rules', perm: 'capacity:config', type: 'MENU' }
+  ] },
+  { id: 'M8', name: '装维 SLA 与赔付', path: '/sla', perm: 'sla:view', type: 'MENU' },
+  { id: 'M9', name: '流量监控', path: '/traffic', perm: 'traffic:view', type: 'MENU' },
+  { id: 'M10', name: '投诉与评价', path: '/review', perm: 'review:view', type: 'MENU' },
+  { id: 'M11', name: '销售管理', path: '/sales', perm: 'sales:view', type: 'MENU' },
+  { id: 'M12', name: '财务管理', path: '/finance', perm: 'finance:view', type: 'MENU' },
+  { id: 'M13', name: '权限管理', path: '/system/user', type: 'DIR', children: [
+    { id: 'M131', name: '用户管理', path: '/system/user', perm: 'system:user', type: 'MENU' },
+    { id: 'M132', name: '角色管理', path: '/system/role', perm: 'system:role', type: 'MENU' },
+    { id: 'M133', name: '菜单权限', path: '/system/menu', perm: 'system:menu', type: 'MENU' },
+    { id: 'M134', name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' }
+  ] },
+  { id: 'M14', name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
 ]
 
 export const demoTrafficOverview = {

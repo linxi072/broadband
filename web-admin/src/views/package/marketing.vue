@@ -98,6 +98,24 @@ const trendOption = computed(() => {
   }
 })
 
+// ---- 转化漏斗：业务订单 → 已支付 → 已完成 → 升级申请 → 升级生效 ----
+const funnelOption = computed(() => {
+  const list = data.value?.funnel || []
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ' },
+    series: [{
+      type: 'funnel', top: 16, bottom: 16, left: '8%', width: '84%',
+      minSize: '24%', maxSize: '100%', sort: 'descending', gap: 2,
+      label: { show: true, position: 'inside', formatter: '{b}\n{c}', color: '#fff' },
+      itemStyle: { borderColor: '#fff', borderWidth: 2 },
+      data: list.map((x, i) => ({
+        name: x.stage, value: x.value,
+        itemStyle: { color: PALETTE[i % PALETTE.length] }
+      }))
+    }]
+  }
+})
+
 async function load() {
   const r = await loadResource(() => productMarketing(), () => demoMarketingDashboard())
   data.value = r.data
@@ -146,6 +164,10 @@ onMounted(async () => {
       <div class="card chart-card">
         <div class="card-head"><h3>升级单状态分布</h3></div>
         <ChartBox :option="upgradePie" height="300px" />
+      </div>
+      <div class="card chart-card">
+        <div class="card-head"><h3>转化漏斗</h3></div>
+        <ChartBox :option="funnelOption" height="300px" />
       </div>
       <div class="card chart-card span2">
         <div class="card-head"><h3>近 6 月营收趋势</h3></div>

@@ -330,6 +330,8 @@ INSERT IGNORE INTO sys_user (id, username, password, name, dept_id, status, crea
 
 -- 幂等补全（已存在用户不会被 INSERT 覆盖，用 UPDATE 同步部门归属）
 UPDATE sys_user SET dept_id = NULL WHERE username = 'admin';
+-- T-02 安全治理：默认管理员首次登录强制改密（幂等，重复执行无副作用）
+UPDATE sys_user SET must_change_password = 1 WHERE username = 'admin';
 UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'liuwei';
 UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'zhaomin';
 UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'wangfang';

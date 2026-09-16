@@ -392,6 +392,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
   name         VARCHAR(64)  NOT NULL COMMENT '姓名',
   dept         VARCHAR(64)           COMMENT '部门',
   status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  must_change_password TINYINT NOT NULL DEFAULT 0 COMMENT '首次登录必须改密 0/1（默认管理员种子置 1）',
   created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
   PRIMARY KEY (id),
   UNIQUE KEY uk_sys_user_username (username)
@@ -556,6 +557,21 @@ SET @add_w_dept := (
 PREPARE stmt_w_dept FROM @add_w_dept;
 EXECUTE stmt_w_dept;
 DEALLOCATE PREPARE stmt_w_dept;
+
+-- ---------------------------------------------------------------------------
+-- 28b. T-02 安全治理：sys_user 增加「首次登录必须改密」标记（幂等）
+--   新库由上面 CREATE TABLE 直接带列；此处仅对「已有 sys_user 表但缺该列」的老库补齐。
+-- ---------------------------------------------------------------------------
+SET @add_u_mcp := (
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE sys_user ADD COLUMN must_change_password TINYINT NOT NULL DEFAULT 0 COMMENT ''首次登录必须改密 0/1''',
+    'SELECT 1')
+  FROM information_schema.COLUMNS
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'must_change_password'
+);
+PREPARE stmt_u_mcp FROM @add_u_mcp;
+EXECUTE stmt_u_mcp;
+DEALLOCATE PREPARE stmt_u_mcp;
 
 -- ============================================================================
 -- 退款工单（退款 / 对账状态机）

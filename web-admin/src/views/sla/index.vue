@@ -87,6 +87,44 @@ const compTrendOption = computed(() => {
   }
 })
 
+// ---- 超时热力：星期 × 时段（0~23 时）的超时工单分布 ----
+const heatmapOption = computed(() => {
+  const hm = dashboard.value?.heatmap
+  if (!hm || !Array.isArray(hm.values)) return { series: [] }
+  const days = hm.days || []
+  const hours = hm.hours || []
+  const values = hm.values
+  const data = []
+  let max = 0
+  for (let d = 0; d < days.length; d++) {
+    for (let h = 0; h < hours.length; h++) {
+      const v = (values[d] && values[d][h]) || 0
+      if (v > max) max = v
+      data.push([h, d, v])
+    }
+  }
+  return {
+    tooltip: {
+      position: 'top',
+      formatter: (p) => `${days[p.data[1]]} ${String(hours[p.data[0]]).padStart(2, '0')}:00 超时 ${p.data[2]} 单`
+    },
+    grid: { left: 48, right: 16, top: 12, bottom: 58 },
+    xAxis: { type: 'category', data: hours.map((h) => String(h).padStart(2, '0')), splitArea: { show: true }, axisLabel: { interval: 2 } },
+    yAxis: { type: 'category', data: days, splitArea: { show: true } },
+    visualMap: {
+      min: 0, max: Math.max(max, 1), calculable: true, orient: 'horizontal',
+      left: 'center', bottom: 0, show: false,
+      inRange: { color: ['#eef2ff', '#a5b4fc', '#4f46e5', '#dc2626'] }
+    },
+    series: [{
+      name: '超时', type: 'heatmap', data,
+      label: { show: false },
+      itemStyle: { borderColor: '#fff', borderWidth: 1 },
+      emphasis: { itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.3)' } }
+    }]
+  }
+})
+
 async function onEvaluate() {
   evaluating.value = true
   const now = Date.now()
@@ -168,6 +206,10 @@ onMounted(async () => {
           <div class="card chart-card">
             <div class="card-head"><h3>近 14 日 超时 vs 达标</h3></div>
             <ChartBox :option="overtimeOption" height="280px" />
+          </div>
+          <div class="card chart-card span2">
+            <div class="card-head"><h3>超时热力（星期 × 时段）</h3></div>
+            <ChartBox :option="heatmapOption" height="300px" />
           </div>
           <div class="card chart-card span2">
             <div class="card-head"><h3>近 6 月 赔付趋势</h3></div>

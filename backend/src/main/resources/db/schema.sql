@@ -464,3 +464,83 @@ CREATE TABLE IF NOT EXISTS sys_oper_log (
   KEY idx_log_created (created_time),
   KEY idx_log_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志';
+
+-- ---------------------------------------------------------------------------
+-- 27. 部门（按区域划分：华南大区 > 深圳分公司 / 广州分公司；华东大区 > 上海分公司）
+--     树形结构：parent_id 为空表示区域根节点；sys_user / community / 订单 通过 dept_id 归属部门，
+--     用于「运营人员只能看到本部门及下级部门数据」的数据权限（行级隔离）。
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_department (
+  id           VARCHAR(32)  NOT NULL COMMENT '部门ID',
+  parent_id    VARCHAR(32)           COMMENT '父部门ID（区域树，顶级为空）',
+  name         VARCHAR(64)  NOT NULL COMMENT '部门名称',
+  region       VARCHAR(32)           COMMENT '所属区域（华南/华东/华北...）',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_dept_parent (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门（按区域划分）';
+
+-- ---------------------------------------------------------------------------
+-- 27b. 历史列改造 + 各业务表补 dept_id（幂等）
+--     MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，沿用 information_schema 守卫。
+-- ---------------------------------------------------------------------------
+
+-- sys_user：dept 自由文本 -> dept_id（关联 sys_department）
+SET @drop_u_dept := (
+  SELECT IF(COUNT(*) = 0, 'SELECT 1',
+            'ALTER TABLE sys_user DROP COLUMN dept')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'dept'
+);
+PREPARE stmt_drop_u_dept FROM @drop_u_dept;
+EXECUTE stmt_drop_u_dept;
+DEALLOCATE PREPARE stmt_drop_u_dept;
+
+SET @add_u_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE sys_user ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''部门ID（关联 sys_department）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'dept_id'
+);
+PREPARE stmt_u_dept FROM @add_u_dept;
+EXECUTE stmt_u_dept;
+DEALLOCATE PREPARE stmt_u_dept;
+
+-- community：归属部门
+SET @add_c_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE community ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'community' AND column_name = 'dept_id'
+);
+PREPARE stmt_c_dept FROM @add_c_dept;
+EXECUTE stmt_c_dept;
+DEALLOCATE PREPARE stmt_c_dept;
+
+-- biz_order：归属部门
+SET @add_o_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE biz_order ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）'', ADD KEY idx_biz_dept (dept_id)',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'biz_order' AND column_name = 'dept_id'
+);
+PREPARE stmt_o_dept FROM @add_o_dept;
+EXECUTE stmt_o_dept;
+DEALLOCATE PREPARE stmt_o_dept;
+
+-- work_order：归属部门
+SET @add_w_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）'', ADD KEY idx_wo_dept (dept_id)',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'dept_id'
+);
+PREPARE stmt_w_dept FROM @add_w_dept;
+EXECUTE stmt_w_dept;
+DEALLOCATE PREPARE stmt_w_dept;

@@ -120,6 +120,16 @@ export const demoNodes = [
   { name: 'nginx-gateway', addr: '127.0.0.1:80', status: '在线', cpu: 9, mem: 18, qps: 890, rt: 3 }
 ]
 
+/** 部门（按区域划分）演示兜底（与 GET /api/system/departments 返回结构对齐） */
+export const demoDepartments = [
+  { id: 'D1', parentId: null, name: '华南大区', region: '华南', sortOrder: 1, status: 'ENABLED', createdTime: 1756678800000 },
+  { id: 'D2', parentId: 'D1', name: '深圳分公司', region: '华南', sortOrder: 2, status: 'ENABLED', createdTime: 1756678800000 },
+  { id: 'D3', parentId: 'D1', name: '广州分公司', region: '华南', sortOrder: 3, status: 'ENABLED', createdTime: 1756678800000 },
+  { id: 'D4', parentId: null, name: '华东大区', region: '华东', sortOrder: 4, status: 'ENABLED', createdTime: 1756678800000 },
+  { id: 'D5', parentId: 'D4', name: '上海分公司', region: '华东', sortOrder: 5, status: 'ENABLED', createdTime: 1756678800000 }
+]
+
+
 export const demoSlowApis = [
   { api: 'POST /api/dispatch/run', calls: 1204, avg: 312, status: '偏慢' },
   { api: 'GET /api/package/detail', calls: 8910, avg: 88, status: '正常' },
@@ -156,7 +166,8 @@ export const demoMenus = [
     { id: 'M131', name: '用户管理', path: '/system/user', perm: 'system:user', type: 'MENU' },
     { id: 'M132', name: '角色管理', path: '/system/role', perm: 'system:role', type: 'MENU' },
     { id: 'M133', name: '菜单权限', path: '/system/menu', perm: 'system:menu', type: 'MENU' },
-    { id: 'M134', name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' }
+    { id: 'M134', name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' },
+    { id: 'M44', name: '部门管理', path: '/system/department', perm: 'system:dept', type: 'MENU' }
   ] },
   { id: 'M14', name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
 ]

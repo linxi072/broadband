@@ -2,6 +2,7 @@ package com.broadband.install.spring;
 
 import com.broadband.system.spring.AuthController;
 import com.broadband.system.spring.OperLogService;
+import com.broadband.system.service.SysDepartmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +35,7 @@ public class AdminInstallController {
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private OperLogService operLog;
+    @Autowired private SysDepartmentService departmentService;
 
     // ==================================================================== 工单池
 
@@ -56,6 +58,14 @@ public class AdminInstallController {
                 WHERE 1 = 1
                 """);
         List<Object> args = new ArrayList<>();
+
+        // 数据权限：运营人员仅看本部门及下级部门工单；管理员（deptId 为空）看全部
+        List<String> scope = dataScopeDeptIds();
+        if (scope != null) {
+            sql.append(" AND w.dept_id IN (").append(placeholders(scope)).append(")");
+            args.addAll(scope);
+        }
+
         if (status != null && !status.isBlank()) {
             sql.append(" AND w.status = ?");
             args.add(status);
@@ -69,6 +79,22 @@ public class AdminInstallController {
         }
         sql.append(" ORDER BY w.time_slot, w.id");
         return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    /** 当前登录用户的数据权限部门集合；null 表示不限定（看全部）。 */
+    private List<String> dataScopeDeptIds() {
+        var me = AuthController.current();
+        if (me == null || me.user.deptId == null || me.user.deptId.isEmpty()) return null;
+        return departmentService.visibleDeptIds(me.user.deptId);
+    }
+
+    private static String placeholders(List<String> list) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(',');
+            sb.append('?');
+        }
+        return sb.toString();
     }
 
     /** 单条工单详情（师傅端工单详情页用）。 */

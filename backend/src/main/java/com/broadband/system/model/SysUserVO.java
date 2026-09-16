@@ -8,7 +8,8 @@ public class SysUserVO {
     public String id;
     public String username;
     public String name;
-    public String dept;
+    public String deptId;       // 部门ID（关联 sys_department）
+    public String deptName;     // 部门名称（展示用，由控制器回填）
     public String status;
     public long createdTime;
 
@@ -23,7 +24,7 @@ public class SysUserVO {
         vo.id = u.id;
         vo.username = u.username;
         vo.name = u.name;
-        vo.dept = u.dept;
+        vo.deptId = u.deptId;
         vo.status = u.status;
         vo.createdTime = u.createdTime;
         return vo;

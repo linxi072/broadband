@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.broadband.system.service.SysDepartmentService;
+
 import javax.sql.DataSource;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -35,6 +37,7 @@ public class AdminPlatformController {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ApiMetricsFilter metrics;
     @Autowired private DataSource dataSource;
+    @Autowired private SysDepartmentService departmentService;
 
     @Value("${server.port:8082}")
     private int serverPort;
@@ -112,6 +115,14 @@ public class AdminPlatformController {
                 WHERE 1 = 1
                 """);
         List<Object> args = new ArrayList<>();
+
+        // 数据权限：运营人员仅看本部门及下级部门订单；管理员（deptId 为空）看全部
+        List<String> scope = dataScopeDeptIds();
+        if (scope != null) {
+            sql.append(" AND o.dept_id IN (").append(placeholders(scope)).append(")");
+            args.addAll(scope);
+        }
+
         if (status != null && !status.isBlank()) {
             sql.append(" AND o.status = ?");
             args.add(status);
@@ -125,6 +136,22 @@ public class AdminPlatformController {
         }
         sql.append(" ORDER BY o.created_time DESC LIMIT 500");
         return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    /** 当前登录用户的数据权限部门集合；null 表示不限定（看全部）。 */
+    private List<String> dataScopeDeptIds() {
+        var me = AuthController.current();
+        if (me == null || me.user.deptId == null || me.user.deptId.isEmpty()) return null;
+        return departmentService.visibleDeptIds(me.user.deptId);
+    }
+
+    private static String placeholders(List<String> list) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(',');
+            sb.append('?');
+        }
+        return sb.toString();
     }
 
     // ==================================================================== 流量总览

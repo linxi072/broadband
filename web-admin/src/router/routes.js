@@ -170,6 +170,12 @@ export const navConfig = [
         path: '/system/log',
         perm: 'system:log',
         component: () => import('@/views/system/log.vue')
+      },
+      {
+        title: '部门管理',
+        path: '/system/department',
+        perm: 'system:dept',
+        component: () => import('@/views/system/department.vue')
       }
     ]
   },

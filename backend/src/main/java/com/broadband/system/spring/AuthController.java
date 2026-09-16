@@ -77,7 +77,9 @@ public class AuthController {
             throw new BadCredentials("账号已被禁用，请联系管理员");
         }
 
-        String token = jwtUtil.issue(user.username, user.id, user.name, user.dept);
+        // JWT 的 dept 声明是 token 类型判别符（SYS/CUSTOMER/WORKER），后台用户固定为 SYS；
+        // 组织部门 deptId 由 LoginUser.user.deptId 承载，用于数据权限（部门级行隔离）。
+        String token = jwtUtil.issue(user.username, user.id, user.name, "SYS");
         operLogService.record(username, user.name, "登录", "/api/auth/login", "POST", ip,
                 "成功", System.currentTimeMillis() - begin);
 
@@ -245,7 +247,7 @@ public class AuthController {
         m.put("id", u.id);
         m.put("username", u.username);
         m.put("name", u.name);
-        m.put("dept", u.dept);
+        m.put("deptId", u.deptId);
         m.put("status", u.status);
         return m;
     }

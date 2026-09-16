@@ -73,8 +73,9 @@ public class ClientOrderController {
         String pkgName = String.valueOf(pkg.get("name"));
         int amount = ((Number) pkg.get("monthly_fee")).intValue();
 
-        Map<String, Object> com = one("SELECT name FROM community WHERE id = ?", communityId);
+        Map<String, Object> com = one("SELECT name, dept_id FROM community WHERE id = ?", communityId);
         String communityName = com == null ? "" : String.valueOf(com.get("name"));
+        String deptId = com == null ? null : str((Object) com.get("dept_id"), null);
 
         String customerName = contactName;
         String phone = contactPhone;
@@ -94,10 +95,10 @@ public class ClientOrderController {
         String orderId = "B" + System.currentTimeMillis();
         long now = System.currentTimeMillis();
         jdbc.update("INSERT INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, "
-                + "amount, community_id, community_name, order_type, status, created_time) "
-                + "VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?)",
+                + "amount, community_id, community_name, order_type, status, dept_id, created_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?, ?)",
                 orderId, customerId, customerName, phone, packageId, pkgName, amount,
-                communityId, communityName, orderType, now);
+                communityId, communityName, orderType, deptId, now);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);

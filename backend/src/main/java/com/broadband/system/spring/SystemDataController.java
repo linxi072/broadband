@@ -55,7 +55,7 @@ public class SystemDataController {
             List<String> codes = new ArrayList<>();
             userMapper.selectRoles(u.id).forEach(r -> codes.add(r.code));
             rows.add(new String[]{
-                    u.username, u.name, u.dept == null ? "" : u.dept,
+                    u.username, u.name, u.deptId == null ? "" : u.deptId,
                     String.join(",", codes), u.status, ""
             });
         }
@@ -85,7 +85,7 @@ public class SystemDataController {
             u.id = Ids.next();
             u.username = username;
             u.name = name;
-            u.dept = row.length > 2 ? row[2].trim() : null;
+            u.deptId = row.length > 2 ? row[2].trim() : null;
             u.status = "ENABLED";
             u.createdTime = System.currentTimeMillis();
             String raw = row.length > 5 && !row[5].isBlank() ? row[5].trim() : "123456";

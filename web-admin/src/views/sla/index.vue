@@ -3,9 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import { slaDashboard, slaRules, slaCompensations, slaEvaluate, slaOvertimeDetail } from '@/api/business'
+import { slaDashboard, slaRules, slaCompensations, slaEvaluate } from '@/api/business'
 import { loadResource, money, fmtTime } from '@/composables/useResource'
-import { demoSlaDashboard, demoSlaOvertimeDetail } from '@/mock/fallback'
+import { demoSlaDashboard } from '@/mock/fallback'
 
 const ORDER_TYPE = { NEW_INSTALL: '新装宽带', MOVE: '宽带移机', REPAIR: '故障报修', SPEED_UP: '宽带提速', RENEW: '续费' }
 const COMP_TYPE = { VOUCHER: '流量券/电子券', CASH: '现金/话费', FEE_WAIVE: '费用减免' }
@@ -33,25 +33,6 @@ const form = reactive({
 })
 const evaluating = ref(false)
 const evalResult = ref(null)
-
-// ---- 超时热力下钻
-const overtimeDetail = ref([])
-const overtimeDetailLoading = ref(false)
-const overtimeDetailVisible = ref(false)
-const overtimeDetailTitle = ref('')
-async function onHeatmapClick(params) {
-  if (!params || params.seriesType !== 'heatmap') return
-  const d = params.data[1]
-  const h = params.data[0]
-  const v = params.data[2]
-  const days = (dashboard.value && dashboard.value.heatmap && dashboard.value.heatmap.days) || []
-  overtimeDetailTitle.value = `${days[d] || ''} ${String(h).padStart(2, '0')}:00 超时明细（${v} 单）`
-  overtimeDetailLoading.value = true
-  overtimeDetailVisible.value = true
-  const r = await loadResource(() => slaOvertimeDetail(d + 1, h), () => demoSlaOvertimeDetail(d + 1, h))
-  overtimeDetail.value = r.data || []
-  overtimeDetailLoading.value = false
-}
 
 const summary = computed(() => dashboard.value?.summary || {})
 const recent = computed(() => (dashboard.value && dashboard.value.recentCompensations) || comps.value.slice(0, 6))
@@ -103,44 +84,6 @@ const compTrendOption = computed(() => {
       { name: '赔付金额(元)', type: 'line', smooth: true, data: list.map((x) => x.compAmount), itemStyle: { color: '#f59e0b' }, areaStyle: { opacity: 0.12 } },
       { name: '赔付单数', type: 'bar', yAxisIndex: 1, data: list.map((x) => x.compCount), itemStyle: { color: '#4f46e5', borderRadius: [4, 4, 0, 0] } }
     ]
-  }
-})
-
-// ---- 超时热力：星期 × 时段（0~23 时）的超时工单分布 ----
-const heatmapOption = computed(() => {
-  const hm = dashboard.value?.heatmap
-  if (!hm || !Array.isArray(hm.values)) return { series: [] }
-  const days = hm.days || []
-  const hours = hm.hours || []
-  const values = hm.values
-  const data = []
-  let max = 0
-  for (let d = 0; d < days.length; d++) {
-    for (let h = 0; h < hours.length; h++) {
-      const v = (values[d] && values[d][h]) || 0
-      if (v > max) max = v
-      data.push([h, d, v])
-    }
-  }
-  return {
-    tooltip: {
-      position: 'top',
-      formatter: (p) => `${days[p.data[1]]} ${String(hours[p.data[0]]).padStart(2, '0')}:00 超时 ${p.data[2]} 单`
-    },
-    grid: { left: 48, right: 16, top: 12, bottom: 58 },
-    xAxis: { type: 'category', data: hours.map((h) => String(h).padStart(2, '0')), splitArea: { show: true }, axisLabel: { interval: 2 } },
-    yAxis: { type: 'category', data: days, splitArea: { show: true } },
-    visualMap: {
-      min: 0, max: Math.max(max, 1), calculable: true, orient: 'horizontal',
-      left: 'center', bottom: 0, show: false,
-      inRange: { color: ['#eef2ff', '#a5b4fc', '#4f46e5', '#dc2626'] }
-    },
-    series: [{
-      name: '超时', type: 'heatmap', data,
-      label: { show: false },
-      itemStyle: { borderColor: '#fff', borderWidth: 1 },
-      emphasis: { itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.3)' } }
-    }]
   }
 })
 
@@ -225,10 +168,6 @@ onMounted(async () => {
           <div class="card chart-card">
             <div class="card-head"><h3>近 14 日 超时 vs 达标</h3></div>
             <ChartBox :option="overtimeOption" height="280px" />
-          </div>
-          <div class="card chart-card span2">
-            <div class="card-head"><h3>超时热力（星期 × 时段）<span class="hint">点击单元格下钻明细</span></h3></div>
-            <ChartBox :option="heatmapOption" height="300px" @chart-click="onHeatmapClick" />
           </div>
           <div class="card chart-card span2">
             <div class="card-head"><h3>近 6 月 赔付趋势</h3></div>
@@ -381,23 +320,6 @@ onMounted(async () => {
         </div>
       </el-tab-pane>
     </el-tabs>
-
-    <el-drawer v-model="overtimeDetailVisible" :title="overtimeDetailTitle" size="48%" :append-to-body="true">
-      <el-table v-loading="overtimeDetailLoading" :data="overtimeDetail" empty-text="该时段无超时工单">
-        <el-table-column prop="orderId" label="工单号" min-width="140" />
-        <el-table-column label="类型" width="110">
-          <template #default="{ row }">{{ row.orderTypeLabel || row.orderType || '—' }}</template>
-        </el-table-column>
-        <el-table-column prop="customerName" label="客户" width="100" />
-        <el-table-column prop="community" label="小区" min-width="120" />
-        <el-table-column label="受理时间" width="150">
-          <template #default="{ row }">{{ fmtTime(row.acceptTime) }}</template>
-        </el-table-column>
-        <el-table-column label="完工时间" width="150">
-          <template #default="{ row }">{{ fmtTime(row.completeTime) }}</template>
-        </el-table-column>
-      </el-table>
-    </el-drawer>
   </div>
 </template>
 
@@ -442,13 +364,6 @@ onMounted(async () => {
 
 .up {
   color: var(--bd-up);
-}
-
-.hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--bd-text-mute);
-  margin-left: 8px;
 }
 
 .summary {

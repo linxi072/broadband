@@ -9,23 +9,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.broadband.system.service.SysDepartmentService;
-
 import javax.sql.DataSource;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadMXBean;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 /**
  * 平台级运营聚合接口（数据看板 / 流量总览 / 性能监控）。
@@ -40,7 +35,6 @@ public class AdminPlatformController {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ApiMetricsFilter metrics;
     @Autowired private DataSource dataSource;
-    @Autowired private SysDepartmentService departmentService;
 
     @Value("${server.port:8082}")
     private int serverPort;
@@ -118,14 +112,6 @@ public class AdminPlatformController {
                 WHERE 1 = 1
                 """);
         List<Object> args = new ArrayList<>();
-
-        // 数据权限：运营人员仅看本部门及下级部门订单；管理员（deptId 为空）看全部
-        List<String> scope = dataScopeDeptIds();
-        if (scope != null) {
-            sql.append(" AND o.dept_id IN (").append(placeholders(scope)).append(")");
-            args.addAll(scope);
-        }
-
         if (status != null && !status.isBlank()) {
             sql.append(" AND o.status = ?");
             args.add(status);
@@ -139,22 +125,6 @@ public class AdminPlatformController {
         }
         sql.append(" ORDER BY o.created_time DESC LIMIT 500");
         return jdbc.queryForList(sql.toString(), args.toArray());
-    }
-
-    /** 当前登录用户的数据权限部门集合；null 表示不限定（看全部）。 */
-    private List<String> dataScopeDeptIds() {
-        var me = AuthController.current();
-        if (me == null || me.user.deptId == null || me.user.deptId.isEmpty()) return null;
-        return departmentService.visibleDeptIds(me.user.deptId);
-    }
-
-    private static String placeholders(List<String> list) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < list.size(); i++) {
-            if (i > 0) sb.append(',');
-            sb.append('?');
-        }
-        return sb.toString();
     }
 
     // ==================================================================== 流量总览
@@ -381,63 +351,7 @@ public class AdminPlatformController {
                        comp_type AS compType, comp_amount AS compAmount, reason, status, created_time AS createdTime
                 FROM compensation ORDER BY created_time DESC LIMIT 8
                 """));
-
-        // ---- 超时热力：按 星期 × 小时 统计 OVERTIME 工单分布（看板「超时热力」）----
-        int[][] matrix = new int[7][24]; // 行=周一~周日，列=0~23 时
-        for (Map<String, Object> r : jdbc.queryForList("""
-                SELECT COALESCE(complete_time, created_time) AS ts
-                FROM sla_record WHERE sla_status = 'OVERTIME'
-                AND COALESCE(complete_time, created_time) > 0
-                """)) {
-            Object ts = r.get("ts");
-            long ms = ts instanceof Number ? ((Number) ts).longValue() : 0;
-            if (ms <= 0) continue;
-            LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault());
-            matrix[ldt.getDayOfWeek().getValue() - 1][ldt.getHour()]++;
-        }
-        List<List<Integer>> values = new ArrayList<>();
-        for (int d = 0; d < 7; d++) {
-            List<Integer> row = new ArrayList<>();
-            for (int h = 0; h < 24; h++) row.add(matrix[d][h]);
-            values.add(row);
-        }
-        Map<String, Object> heatmap = new LinkedHashMap<>();
-        heatmap.put("days", java.util.List.of("周一", "周二", "周三", "周四", "周五", "周六", "周日"));
-        heatmap.put("hours", IntStream.range(0, 24).boxed().toList());
-        heatmap.put("values", values);
-        out.put("heatmap", heatmap);
-
         return out;
-    }
-
-    /**
-     * SLA 超时热力下钻：返回指定「星期 × 时段」单元的超时工单明细。
-     * 前端点击热力图单元格时调用（dayOfWeek 1..7 周一为 1；hour 0..23）。
-     */
-    @GetMapping("/sla/overtime-detail")
-    @PreAuthorize("hasAuthority('sla:view')")
-    public List<Map<String, Object>> slaOvertimeDetail(@RequestParam int dayOfWeek, @RequestParam int hour) {
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-                SELECT sr.id, sr.order_id AS orderId, sr.order_type AS orderType,
-                       sr.accept_time AS acceptTime, sr.complete_time AS completeTime, sr.created_time AS createdTime,
-                       bo.customer_name AS customerName, bo.community_name AS community
-                FROM sla_record sr
-                LEFT JOIN biz_order bo ON bo.id = sr.order_id
-                WHERE sr.sla_status = 'OVERTIME'
-                """);
-        List<Map<String, Object>> matched = new ArrayList<>();
-        for (Map<String, Object> r : rows) {
-            Object ts = r.get("completeTime");
-            if (ts == null || ((Number) ts).longValue() <= 0) ts = r.get("createdTime");
-            long ms = ts instanceof Number ? ((Number) ts).longValue() : 0;
-            if (ms <= 0) continue;
-            LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault());
-            if (ldt.getDayOfWeek().getValue() == dayOfWeek && ldt.getHour() == hour) {
-                r.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(String.valueOf(r.get("orderType")), String.valueOf(r.get("orderType"))));
-                matched.add(r);
-            }
-        }
-        return matched;
     }
 
     // ==================================================================== 工具

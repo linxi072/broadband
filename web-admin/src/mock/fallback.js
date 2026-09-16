@@ -39,14 +39,6 @@ export function demoCustomer360(id) {
       oneTimeDiff: u.oneTimeDiff, currentFee: 0, newFee: 0, effectType: u.effectType,
       statusLabel: u.status, createdAt: u.time
     })),
-    lifecycle: { stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
-    touchRecords: [
-      { type: 'order', title: '下单 · 500M 融合 40G', detail: '¥129 · 已支付', time: Date.now() - 12 * 86400000, timeText: '2026-09-14 09:12' },
-      { type: 'install', title: '安装完工 · 新装', detail: '师傅 张师傅', time: Date.now() - 11 * 86400000, timeText: '2026-09-13 11:30' },
-      { type: 'review', title: '评价 · 5★', detail: '师傅专业、速度快', time: Date.now() - 10 * 86400000, timeText: '2026-09-12 18:20' },
-      { type: 'upgrade', title: '升级申请 · 1000M 融合', detail: '待审核', time: Date.now() - 2 * 86400000, timeText: '2026-09-14 12:01' },
-      { type: 'contract', title: '签约合约', detail: '¥129 · 到期 2028-03-31', time: Date.now() - 400 * 86400000, timeText: '2026-04-01' }
-    ],
     summary: { orderCount: 4, paidAmount: 496, workOrderCount: demoWorkOrders.length, reviewCount: 1, avgScore: 5, upgradeCount: 1 }
   }
 }
@@ -128,16 +120,6 @@ export const demoNodes = [
   { name: 'nginx-gateway', addr: '127.0.0.1:80', status: '在线', cpu: 9, mem: 18, qps: 890, rt: 3 }
 ]
 
-/** 部门（按区域划分）演示兜底（与 GET /api/system/departments 返回结构对齐） */
-export const demoDepartments = [
-  { id: 'D1', parentId: null, name: '华南大区', region: '华南', sortOrder: 1, status: 'ENABLED', createdTime: 1756678800000 },
-  { id: 'D2', parentId: 'D1', name: '深圳分公司', region: '华南', sortOrder: 2, status: 'ENABLED', createdTime: 1756678800000 },
-  { id: 'D3', parentId: 'D1', name: '广州分公司', region: '华南', sortOrder: 3, status: 'ENABLED', createdTime: 1756678800000 },
-  { id: 'D4', parentId: null, name: '华东大区', region: '华东', sortOrder: 4, status: 'ENABLED', createdTime: 1756678800000 },
-  { id: 'D5', parentId: 'D4', name: '上海分公司', region: '华东', sortOrder: 5, status: 'ENABLED', createdTime: 1756678800000 }
-]
-
-
 export const demoSlowApis = [
   { api: 'POST /api/dispatch/run', calls: 1204, avg: 312, status: '偏慢' },
   { api: 'GET /api/package/detail', calls: 8910, avg: 88, status: '正常' },
@@ -146,38 +128,30 @@ export const demoSlowApis = [
 ]
 
 export const demoMenus = [
-  { id: 'M1', name: '数据看板', path: '/dashboard', perm: 'dashboard:view', type: 'MENU' },
-  { id: 'M2', name: '订单管理', path: '/order', perm: 'order:view', type: 'MENU' },
-  { id: 'M3', name: '客户管理', path: '/customer', perm: 'customer:view', type: 'MENU' },
-  { id: 'M4', name: '套餐管理', path: '/package', type: 'DIR', children: [
-    { id: 'M41', name: '套餐列表', path: '/package', perm: 'package:view', type: 'MENU' },
-    { id: 'M42', name: '新增/编辑套餐', path: '/package/edit', perm: 'package:edit', type: 'MENU' },
-    { id: 'M43', name: '营销看板', path: '/package/marketing', perm: 'package:view', type: 'MENU' }
+  { id: 1, name: '数据看板', path: '/dashboard', perm: 'dashboard:view', type: 'MENU' },
+  { id: 2, name: '订单管理', path: '/order', perm: 'order:view', type: 'MENU' },
+  { id: 3, name: '客户管理', path: '/customer', perm: 'customer:view', type: 'MENU' },
+  { id: 4, name: '套餐管理', path: '/package', perm: 'package:view', type: 'MENU' },
+  { id: 5, name: '安装工单', path: '/workorder', type: 'DIR', children: [
+    { id: 51, name: '工单池', path: '/workorder/pool', perm: 'workorder:view', type: 'MENU' },
+    { id: 52, name: '派单调度', path: '/workorder/dispatch', perm: 'dispatch:run', type: 'MENU' },
+    { id: 53, name: '容量配置', path: '/workorder/capacity', perm: 'capacity:config', type: 'MENU' },
+    { id: 54, name: '调度规则', path: '/workorder/rules', perm: 'capacity:config', type: 'MENU' }
   ] },
-  { id: 'M5', name: '套餐升级', path: '/package/upgrade', perm: 'upgrade:view', type: 'MENU' },
-  { id: 'M6', name: '小区覆盖管理', path: '/community', type: 'DIR', children: [
-    { id: 'M61', name: '小区列表', path: '/community', perm: 'community:view', type: 'MENU' },
-    { id: 'M62', name: '新增/编辑覆盖', path: '/community/edit', perm: 'community:edit', type: 'MENU' }
+  { id: 6, name: '装维 SLA 与赔付', path: '/sla', perm: 'sla:view', type: 'MENU' },
+  { id: 7, name: '流量监控', path: '/traffic', perm: 'traffic:view', type: 'MENU' },
+  { id: 8, name: '套餐升级', path: '/package/upgrade', perm: 'upgrade:view', type: 'MENU' },
+  { id: 9, name: '小区覆盖管理', path: '/community', perm: 'community:view', type: 'MENU' },
+  { id: 10, name: '投诉与评价', path: '/review', perm: 'review:view', type: 'MENU' },
+  { id: 11, name: '销售管理', path: '/sales', perm: 'sales:view', type: 'MENU' },
+  { id: 12, name: '财务管理', path: '/finance', perm: 'finance:view', type: 'MENU' },
+  { id: 13, name: '权限管理', path: '/system', type: 'DIR', children: [
+    { id: 131, name: '用户管理', path: '/system/user', perm: 'system:user', type: 'MENU' },
+    { id: 132, name: '角色管理', path: '/system/role', perm: 'system:role', type: 'MENU' },
+    { id: 133, name: '菜单权限', path: '/system/menu', perm: 'system:menu', type: 'MENU' },
+    { id: 134, name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' }
   ] },
-  { id: 'M7', name: '安装工单', path: '/workorder/pool', type: 'DIR', children: [
-    { id: 'M71', name: '工单池', path: '/workorder/pool', perm: 'workorder:view', type: 'MENU' },
-    { id: 'M72', name: '派单调度', path: '/workorder/dispatch', perm: 'dispatch:run', type: 'MENU' },
-    { id: 'M73', name: '容量配置', path: '/workorder/capacity', perm: 'capacity:config', type: 'MENU' },
-    { id: 'M74', name: '调度规则', path: '/workorder/rules', perm: 'capacity:config', type: 'MENU' }
-  ] },
-  { id: 'M8', name: '装维 SLA 与赔付', path: '/sla', perm: 'sla:view', type: 'MENU' },
-  { id: 'M9', name: '流量监控', path: '/traffic', perm: 'traffic:view', type: 'MENU' },
-  { id: 'M10', name: '投诉与评价', path: '/review', perm: 'review:view', type: 'MENU' },
-  { id: 'M11', name: '销售管理', path: '/sales', perm: 'sales:view', type: 'MENU' },
-  { id: 'M12', name: '财务管理', path: '/finance', perm: 'finance:view', type: 'MENU' },
-  { id: 'M13', name: '权限管理', path: '/system/user', type: 'DIR', children: [
-    { id: 'M131', name: '用户管理', path: '/system/user', perm: 'system:user', type: 'MENU' },
-    { id: 'M132', name: '角色管理', path: '/system/role', perm: 'system:role', type: 'MENU' },
-    { id: 'M133', name: '菜单权限', path: '/system/menu', perm: 'system:menu', type: 'MENU' },
-    { id: 'M134', name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' },
-    { id: 'M44', name: '部门管理', path: '/system/department', perm: 'system:dept', type: 'MENU' }
-  ] },
-  { id: 'M14', name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
+  { id: 14, name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
 ]
 
 export const demoTrafficOverview = {
@@ -239,15 +213,6 @@ export function demoSlaDashboard() {
     ],
     overtimeByDay: dayLabels.map((date, i) => ({ date, overtime: overtimeByDay[i], met: metByDay[i] })),
     compTrend,
-    heatmap: (() => {
-      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-      const hours = Array.from({ length: 24 }, (_, h) => h)
-      const values = days.map((_, d) => hours.map((h) => {
-        const base = (d < 5 ? 1 : 0.4) * (h >= 9 && h <= 21 ? 1 : 0.3)
-        return Math.floor(Math.random() * 3 * base) + ((h >= 18 && h <= 21 && d < 5) ? Math.floor(Math.random() * 4) : 0)
-      }))
-      return { days, hours, values }
-    })(),
     recentCompensations: [
       { orderId: 'WO-SLA-001', custName: '王先生', orderType: 'REPAIR', compType: 'CASH', compAmount: 30, reason: '故障报修超时 45 分钟', status: 'PAID', createdTime: Date.now() - 3600_000 },
       { orderId: 'WO-SLA-002', custName: '李女士', orderType: 'NEW_INSTALL', compType: 'VOUCHER', compAmount: 50, reason: '新装超时 1.2 小时', status: 'VERIFYING', createdTime: Date.now() - 7200_000 },
@@ -256,183 +221,10 @@ export function demoSlaDashboard() {
   }
 }
 
-/** SLA 超时热力下钻演示兜底（与 GET /api/admin/sla/overtime-detail 返回结构对齐） */
-export function demoSlaOvertimeDetail(dayOfWeek, hour) {
-  const types = [['REPAIR', '故障报修', '王先生', '保利花园'], ['NEW_INSTALL', '新装宽带', '李女士', '海岸城公寓'], ['MOVE', '宽带移机', '陈先生', '阳光新村']]
-  const n = 2 + ((dayOfWeek + hour) % 3)
-  const list = []
-  for (let i = 0; i < n; i++) {
-    const t = types[(i + hour) % types.length]
-    const base = Date.now() - (i + 1) * 3600_000 * (dayOfWeek + 1)
-    list.push({
-      id: 'SR-D' + dayOfWeek + '-' + hour + '-' + i,
-      orderId: 'WO-SLA-00' + ((hour * 7 + i) % 99 + 1),
-      orderType: t[0],
-      orderTypeLabel: t[1],
-      customerName: t[2],
-      community: t[3],
-      acceptTime: base - 7200_000,
-      completeTime: base,
-      createdTime: base - 7200_000
-    })
-  }
-  return list
-}
-
-/** 营销看板漏斗下钻演示兜底（与 GET /api/admin/product/funnel-detail 返回结构对齐） */
-export function demoMarketingFunnelDetail(stage) {
-  if (stage === '升级申请' || stage === '升级生效') {
-    return demoUpgradeOrders.map((u) => ({
-      id: u.id, customerId: 'c00' + ((demoUpgradeOrders.indexOf(u) % 4) + 1), target: u.toPkg, status: u.status, createdTime: Date.now() - 86400000
-    }))
-  }
-  const pool = (stage === '已完成')
-    ? demoOrders.filter((o) => o.status === '已完成')
-    : (stage === '已支付')
-      ? demoOrders.filter((o) => ['已支付', '安装中', '已完成'].includes(o.status))
-      : demoOrders
-  return pool.map((o) => ({
-    id: o.id, customer: o.customer, packageName: o.pkgName, amount: o.amount,
-    orderType: 'NEW_INSTALL', status: o.status, createdTime: Date.now() - 86400000
-  }))
-}
-
-/** 套餐营销看板演示兜底（与 GET /api/admin/product/marketing 返回结构对齐） */
-export function demoMarketingDashboard() {
-  return {
-    summary: {
-      totalOrders: 28,
-      totalRevenue: 3860,
-      doneOrders: 19,
-      avgOrderAmount: 138,
-      customerCount: 12,
-      upgradeCount: 6,
-      effectiveUpgrades: 4,
-      upgradeRate: 66.7
-    },
-    packageRanking: [
-      { name: '1000M 融合 60G', orders: 9, revenue: 1791, ratio: 46.4 },
-      { name: '500M 融合 40G', orders: 11, revenue: 1419, ratio: 36.8 },
-      { name: '300M 融合 20G', orders: 6, revenue: 594, ratio: 15.4 },
-      { name: '200M 单宽', orders: 2, revenue: 138, ratio: 3.6 }
-    ],
-    orderTypeDist: [
-      { type: 'NEW_INSTALL', typeLabel: '新装宽带', orders: 16, revenue: 2218 },
-      { type: 'RENEW', typeLabel: '续费', orders: 7, revenue: 966 },
-      { type: 'SPEED_UP', typeLabel: '宽带提速', orders: 3, revenue: 396 },
-      { type: 'ADDON', typeLabel: '加购', orders: 2, revenue: 280 }
-    ],
-    upgradeByStatus: [
-      { status: 'EFFECTIVE', statusLabel: '已生效', count: 4 },
-      { status: 'SUBMITTED', statusLabel: '待审核', count: 1 },
-      { status: 'REJECTED', statusLabel: '已驳回', count: 1 }
-    ],
-    customerLevelDist: [
-      { level: 'VIP', levelLabel: '五星', count: 3 },
-      { level: 'GOLD', levelLabel: '四星', count: 5 },
-      { level: 'SILVER', levelLabel: '三星', count: 3 },
-      { level: 'NORMAL', levelLabel: '普通', count: 1 }
-    ],
-    revenueTrend: [
-      { month: '2026-04', revenue: 560, orders: 4 },
-      { month: '2026-05', revenue: 690, orders: 5 },
-      { month: '2026-06', revenue: 720, orders: 6 },
-      { month: '2026-07', revenue: 580, orders: 4 },
-      { month: '2026-08', revenue: 660, orders: 5 },
-      { month: '2026-09', revenue: 650, orders: 4 }
-    ],
-    funnel: [
-      { stage: '业务订单', value: 28 },
-      { stage: '已支付', value: 24 },
-      { stage: '已完成', value: 19 },
-      { stage: '升级申请', value: 6 },
-      { stage: '升级生效', value: 4 }
-    ]
-  }
-}
-
-/** 数据智能（V1.15）演示兜底，与 GET /api/intelligence/* 返回结构对齐 */
-export function demoIntelligenceSegments() {
-  return {
-    total: 124,
-    segments: [
-      { segment: 'LEAD', segmentLabel: '潜在客户', count: 19 },
-      { segment: 'GROWING', segmentLabel: '成长期', count: 33 },
-      { segment: 'STABLE', segmentLabel: '稳定期', count: 42 },
-      { segment: 'HIGH_VALUE', segmentLabel: '高价值活跃', count: 16 },
-      { segment: 'RENEW', segmentLabel: '临期待续约', count: 11 },
-      { segment: 'CHURN_RISK', segmentLabel: '流失预警', count: 3 }
-    ]
-  }
-}
-
-export function demoIntelligenceChurn() {
-  return {
-    total: 14,
-    list: [
-      { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 213, contractDaysLeft: 9999, lastActiveText: '2026-03-01', riskScore: 100, reasons: ['近 213 天无互动，存在流失风险'] },
-      { id: 'C0005', name: '周女士', level: 'NORMAL', levelLabel: '普通', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 196, contractDaysLeft: 9999, lastActiveText: '2026-03-18', riskScore: 96, reasons: ['近 196 天无互动，存在流失风险'] },
-      { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 88, contractDaysLeft: 16, lastActiveText: '2026-08-22', riskScore: 74, reasons: ['合约将于 16 天后到期'] },
-      { id: 'C0008', name: '吴先生', level: 'VIP', levelLabel: '五星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 64, contractDaysLeft: 41, lastActiveText: '2026-09-01', riskScore: 59, reasons: ['合约将于 41 天后到期'] },
-      { id: 'C0011', name: '郑小姐', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 151, contractDaysLeft: 9999, lastActiveText: '2026-04-12', riskScore: 81, reasons: ['近 151 天互动较少'] }
-    ]
-  }
-}
-
-export function demoIntelligenceCampaigns() {
-  return [
-    { id: 'MK_CHURN', name: '流失预警挽留', triggerType: 'CHURN_RISK', actionType: 'GRANT_COUPON', targetItem: 'PM_VOUCHER10', status: 'ENABLED', description: '对流失预警客户自动发放 10 元话费券', triggerLabel: '流失预警客户', actionLabel: '自动发券', execTotal: 12, execRecent: 3 },
-    { id: 'MK_RENEW', name: '临期客户续约推送', triggerType: 'RENEW', actionType: 'SEND_PROMO', targetItem: 'PR_ANNUAL', status: 'ENABLED', description: '对临期待续约客户推送年度续约活动', triggerLabel: '临期待续约客户', actionLabel: '推送活动', execTotal: 28, execRecent: 5 },
-    { id: 'MK_VIP', name: '高价值客户专属提速', triggerType: 'HIGH_VALUE', actionType: 'GRANT_COUPON', targetItem: 'PM_SPEED500', status: 'ENABLED', description: '对高价值活跃客户发放 500M 提速券', triggerLabel: '高价值活跃客户', actionLabel: '自动发券', execTotal: 19, execRecent: 2 }
-  ]
-}
-
-/** 销售业绩明细下钻演示兜底（与 GET /api/admin/sales/report/detail 返回结构对齐） */
-export function demoSalesDetail(salesName) {
-  const all = [
-    { orderNo: 'B20260914001', customerName: '陈先生', packageName: '500M 融合', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { orderNo: 'B20260914003', customerName: '王先生', packageName: '1000M 融合', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { orderNo: 'B20260913005', customerName: '刘女士', packageName: '300M 融合', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' },
-    { orderNo: 'B20260912007', customerName: '黄先生', packageName: '200M 单宽', amount: 69, status: 'INSTALLING', orderType: 'NEW_INSTALL', createdDate: '2026-09-12' }
-  ]
-  if (salesName) {
-    // 演示数据以「刘伟」命中，其余销售返回少量记录
-    return salesName === '刘伟' ? all : all.slice(0, 2)
-  }
-  return all
-}
-
-/** 财务月度明细下钻演示兜底（与 GET /api/admin/finance/report/detail 返回结构对齐） */
-export function demoFinanceDetail(month) {
-  const orders = [
-    { type: '订单', ref: 'B20260914001', customer: '陈先生', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { type: '订单', ref: 'B20260914003', customer: '王先生', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { type: '订单', ref: 'B20260913005', customer: '刘女士', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' }
-  ]
-  const comps = [
-    { type: '赔付', ref: 'CP-0001', customer: '王先生', amount: 30, status: 'PAID', orderType: 'REPAIR', reason: '故障报修超时 45 分钟', createdDate: '2026-09-14' },
-    { type: '赔付', ref: 'CP-0002', customer: '李女士', amount: 50, status: 'VERIFYING', orderType: 'NEW_INSTALL', reason: '新装超时 1.2 小时', createdDate: '2026-09-13' }
-  ]
-  return { month: month || '2026-09', orderCount: orders.length, compCount: comps.length, rows: [...orders, ...comps] }
-}
-
-/** 分群客户下钻演示兜底（与 GET /api/intelligence/segment-customers 返回结构对齐） */
-export function demoSegmentCustomers(segment) {
-  const base = [
-    { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', status: 'ACTIVE', orderCnt: 6, contractDaysLeft: 16, lastActiveText: '2026-08-22', segment: 'RENEW', segmentLabel: '临期待续约' },
-    { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', status: 'ACTIVE', orderCnt: 2, contractDaysLeft: 9999, lastActiveText: '2026-03-01', segment: 'CHURN_RISK', segmentLabel: '流失预警' },
-    { id: 'C0003', name: '周女士', level: 'NORMAL', levelLabel: '普通', status: 'ACTIVE', orderCnt: 0, contractDaysLeft: 9999, lastActiveText: '无记录', segment: 'LEAD', segmentLabel: '潜在客户' },
-    { id: 'C0004', name: '吴先生', level: 'VIP', levelLabel: '五星', status: 'ACTIVE', orderCnt: 9, contractDaysLeft: 41, lastActiveText: '2026-09-01', segment: 'HIGH_VALUE', segmentLabel: '高价值活跃' }
-  ]
-  const rows = segment ? base.filter((c) => c.segment === segment) : base
-  return { segment: segment || '', segmentLabel: rows[0]?.segmentLabel || '', count: rows.length, rows }
-}
-
 /** 全部权限码（演示登录用） */
 export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',
   'community:view', 'workorder:view', 'dispatch:run', 'capacity:config', 'sla:view',
   'traffic:view', 'review:view', 'sales:view', 'finance:view',
-  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view',
-  'intelligence:view'
+  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view'
 ]

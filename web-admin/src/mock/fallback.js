@@ -180,6 +180,47 @@ export const demoDashboard = {
   orderTrendLabels: ['09-08', '09-09', '09-10', '09-11', '09-12', '09-13', '09-14']
 }
 
+/** SLA 履约看板演示兜底（与 GET /api/admin/sla/dashboard 返回结构对齐） */
+export function demoSlaDashboard() {
+  const today = new Date()
+  const dayLabels = []
+  const overtimeByDay = []
+  const metByDay = []
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    dayLabels.push(`${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+    overtimeByDay.push(Math.floor(Math.random() * 6) + 1)
+    metByDay.push(Math.floor(Math.random() * 30) + 40)
+  }
+  const compTrend = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    compTrend.push({
+      month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      compAmount: Math.floor(Math.random() * 400) + 200,
+      compCount: Math.floor(Math.random() * 20) + 5
+    })
+  }
+  return {
+    summary: { total: 1286, met: 1258, overtime: 28, slaRate: 97.8, avgResponseMin: 38, totalCompAmount: 1840, pendingCompCount: 6 },
+    byType: [
+      { orderType: 'NEW_INSTALL', orderTypeLabel: '新装宽带', total: 642, met: 632, overtime: 10, slaRate: 98.4 },
+      { orderType: 'MOVE', orderTypeLabel: '宽带移机', total: 218, met: 213, overtime: 5, slaRate: 97.7 },
+      { orderType: 'REPAIR', orderTypeLabel: '故障报修', total: 312, met: 301, overtime: 11, slaRate: 96.5 },
+      { orderType: 'SPEED_UP', orderTypeLabel: '宽带提速', total: 86, met: 85, overtime: 1, slaRate: 98.8 },
+      { orderType: 'RENEW', orderTypeLabel: '续费', total: 28, met: 27, overtime: 1, slaRate: 96.4 }
+    ],
+    overtimeByDay: dayLabels.map((date, i) => ({ date, overtime: overtimeByDay[i], met: metByDay[i] })),
+    compTrend,
+    recentCompensations: [
+      { orderId: 'WO-SLA-001', custName: '王先生', orderType: 'REPAIR', compType: 'CASH', compAmount: 30, reason: '故障报修超时 45 分钟', status: 'PAID', createdTime: Date.now() - 3600_000 },
+      { orderId: 'WO-SLA-002', custName: '李女士', orderType: 'NEW_INSTALL', compType: 'VOUCHER', compAmount: 50, reason: '新装超时 1.2 小时', status: 'VERIFYING', createdTime: Date.now() - 7200_000 },
+      { orderId: 'WO-SLA-003', custName: '陈先生', orderType: 'MOVE', compType: 'FEE_WAIVE', compAmount: 20, reason: '移机超时', status: 'PENDING', createdTime: Date.now() - 14400_000 }
+    ]
+  }
+}
+
 /** 全部权限码（演示登录用） */
 export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',

@@ -105,6 +105,11 @@ export function customer360(id) {
   return silent({ url: `/admin/customer/${id}/360`, method: 'get' })
 }
 
+// ---------- 装维 SLA 履约看板 ----------
+export function slaDashboard() {
+  return silent({ url: '/admin/sla/dashboard', method: 'get' })
+}
+
 // ---------- 套餐 ----------
 export function adminPackageList() {
   return silent({ url: '/admin/packages', method: 'get' })

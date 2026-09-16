@@ -39,6 +39,10 @@ public class AdminPlatformController {
     @Value("${server.port:8082}")
     private int serverPort;
 
+    private static final java.util.Map<String, String> ORDER_TYPE_LABELS = java.util.Map.of(
+            "NEW_INSTALL", "新装宽带", "MOVE", "宽带移机", "REPAIR", "故障报修",
+            "SPEED_UP", "宽带提速", "RENEW", "续费");
+
     // ==================================================================== 数据看板
 
     /** 看板聚合：订单/营收/待装/履约 + SLA 指标 + 7 日订单趋势。 */
@@ -260,6 +264,93 @@ public class AdminPlatformController {
         nodes.add(mysqlnode);
         out.put("nodes", nodes);
 
+        return out;
+    }
+
+    // ==================================================================== 装维 SLA 履约看板
+
+    /** SLA 履约看板：汇总指标 + 分类型达标率 + 近 14 日超时分布 + 近 6 月赔付趋势 + 最近赔付。 */
+    @GetMapping("/sla/dashboard")
+    @PreAuthorize("hasAuthority('sla:view')")
+    public Map<String, Object> slaDashboard() {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        long total = count("SELECT COUNT(*) FROM sla_record");
+        long met = count("SELECT COUNT(*) FROM sla_record WHERE sla_status = 'MET'");
+        long overtime = count("SELECT COUNT(*) FROM sla_record WHERE sla_status = 'OVERTIME'");
+        double slaRate = total == 0 ? 100.0 : round1(met * 100.0 / total);
+        long pendingComp = count("SELECT COUNT(*) FROM compensation WHERE status IN ('PENDING','VERIFYING')");
+        long totalComp = sum("SELECT COALESCE(SUM(comp_amount),0) FROM compensation");
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("total", total);
+        summary.put("met", met);
+        summary.put("overtime", overtime);
+        summary.put("slaRate", slaRate);
+        summary.put("avgResponseMin", avgResponseMinutes());
+        summary.put("totalCompAmount", round1(totalComp));
+        summary.put("pendingCompCount", pendingComp);
+        out.put("summary", summary);
+
+        List<Map<String, Object>> byType = new ArrayList<>();
+        for (Map<String, Object> r : jdbc.queryForList("""
+                SELECT order_type AS orderType,
+                       COUNT(*) AS total,
+                       SUM(CASE WHEN sla_status = 'MET' THEN 1 ELSE 0 END) AS met,
+                       SUM(CASE WHEN sla_status = 'OVERTIME' THEN 1 ELSE 0 END) AS overtime
+                FROM sla_record GROUP BY order_type
+                """)) {
+            String ot = String.valueOf(r.get("orderType"));
+            long t = num(r.get("total"));
+            long m = num(r.get("met"));
+            long o = num(r.get("overtime"));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orderType", ot);
+            row.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(ot, ot));
+            row.put("total", t);
+            row.put("met", m);
+            row.put("overtime", o);
+            row.put("slaRate", t == 0 ? 100.0 : round1(m * 100.0 / t));
+            byType.add(row);
+        }
+        out.put("byType", byType);
+
+        List<Map<String, Object>> overtimeByDay = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        for (int i = 13; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            long from = d.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long to = d.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long ot = count("SELECT COUNT(*) FROM sla_record WHERE sla_status='OVERTIME' AND created_time >= ? AND created_time < ?", from, to);
+            long mt = count("SELECT COUNT(*) FROM sla_record WHERE sla_status='MET' AND created_time >= ? AND created_time < ?", from, to);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", String.format("%02d-%02d", d.getMonthValue(), d.getDayOfMonth()));
+            row.put("overtime", ot);
+            row.put("met", mt);
+            overtimeByDay.add(row);
+        }
+        out.put("overtimeByDay", overtimeByDay);
+
+        List<Map<String, Object>> compTrend = new ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            LocalDate d = today.minusMonths(i);
+            long from = d.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long to = d.plusMonths(1).withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            double amt = sum("SELECT COALESCE(SUM(comp_amount),0) FROM compensation WHERE created_time >= ? AND created_time < ?", from, to);
+            long cnt = count("SELECT COUNT(*) FROM compensation WHERE created_time >= ? AND created_time < ?", from, to);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("month", String.format("%d-%02d", d.getYear(), d.getMonthValue()));
+            row.put("compAmount", round1(amt));
+            row.put("compCount", cnt);
+            compTrend.add(row);
+        }
+        out.put("compTrend", compTrend);
+
+        out.put("recentCompensations", jdbc.queryForList("""
+                SELECT id, order_id AS orderId, cust_name AS custName, order_type AS orderType,
+                       comp_type AS compType, comp_amount AS compAmount, reason, status, created_time AS createdTime
+                FROM compensation ORDER BY created_time DESC LIMIT 8
+                """));
         return out;
     }
 

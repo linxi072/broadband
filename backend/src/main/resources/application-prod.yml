@@ -1,0 +1,29 @@
+# ============================================================================
+# 生产环境 profile（spring.profiles.active=prod）
+#   治理原则：
+#   1. 敏感配置一律由环境变量注入（DB_PASSWORD / WECHAT_SECRET 等），yml 不落明文。
+#   2. actuator 仅暴露只读端点（health/info/prometheus），prometheus 由内网抓取、不对外网开放。
+#   3. 日志收敛为 warn，避免生产刷屏；反向代理场景由 Nginx 注入 X-Forwarded-*。
+#   4. 配置变更审计：本文件任何改动须经 PR 评审 + CI 通过，禁止手工改线上；
+#      运行期不使用 Spring Cloud Config/Apollo，保持 Spring Boot 原生配置。
+# ============================================================================
+spring:
+  datasource:
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  # 若部署在 Nginx 等反向代理之后，启用以正确获取客户端 IP 与协议：
+  # server.forward-headers-strategy: framework
+
+logging:
+  level:
+    com.broadband: warn
+    root: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never

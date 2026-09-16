@@ -89,6 +89,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(reg -> {
                 reg.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                 reg.requestMatchers("/api/auth/login", "/api/auth/miniapp-login", "/api/auth/worker-login", "/error").permitAll();
+                // 监控（G6）：仅暴露 health/info/prometheus 三个只读端点，prometheus 由内网抓取，不对外网开放。
+                reg.requestMatchers("/actuator/**").permitAll();
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }

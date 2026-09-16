@@ -1,0 +1,25 @@
+# 宽带业务管理系统 · Prometheus 抓取配置（G6 监控深化）
+# 说明：
+#   - 后端通过 Spring Boot Actuator 暴露 /actuator/prometheus（文本格式）。
+#   - 生产环境由内网 Prometheus 定时抓取；该端点不直接对外网开放（仅内网可达）。
+#   - 告警阈值与 PC 后台「性能监控」页保持一致：平均时延 ≥1000ms 判超时、≥200ms 判偏慢；
+#     5xx 错误率 >5%、JVM 堆使用率 >85% 触发告警。
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: broadband-prod
+
+rule_files:
+  - alert.rules.yml
+
+scrape_configs:
+  - job_name: 'broadband-backend'
+    metrics_path: /actuator/prometheus
+    scheme: http
+    static_configs:
+      # 生产替换为真实后端地址；沙箱联调可用 host.docker.internal:8082 / localhost:8082
+      - targets: ['backend:8082']
+        labels:
+          env: prod

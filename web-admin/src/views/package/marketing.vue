@@ -3,9 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import { productMarketing } from '@/api/business'
-import { loadResource, money } from '@/composables/useResource'
-import { demoMarketingDashboard } from '@/mock/fallback'
+import { productMarketing, productFunnelDetail } from '@/api/business'
+import { loadResource, money, fmtTime } from '@/composables/useResource'
+import { demoMarketingDashboard, demoMarketingFunnelDetail } from '@/mock/fallback'
 
 const PALETTE = ['#4f46e5', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7']
 
@@ -19,6 +19,24 @@ const typeDist = computed(() => data.value?.orderTypeDist || [])
 const levelDist = computed(() => data.value?.customerLevelDist || [])
 const upgradeDist = computed(() => data.value?.upgradeByStatus || [])
 const trend = computed(() => data.value?.revenueTrend || [])
+
+const STATUS_LABEL = { PENDING: '待支付', PAID: '已支付', INSTALLING: '安装中', DONE: '已完成', CANCELLED: '已取消', SUBMITTED: '待审核', EFFECTIVE: '已生效', REJECTED: '已驳回' }
+
+// ---- 转化漏斗下钻
+const funnelDetail = ref([])
+const funnelDetailLoading = ref(false)
+const funnelDetailVisible = ref(false)
+const funnelDetailTitle = ref('')
+async function onFunnelClick(params) {
+  if (!params || params.seriesType !== 'funnel') return
+  const stage = params.name
+  funnelDetailTitle.value = `${stage} · 明细下钻`
+  funnelDetailLoading.value = true
+  funnelDetailVisible.value = true
+  const r = await loadResource(() => productFunnelDetail(stage), () => demoMarketingFunnelDetail(stage))
+  funnelDetail.value = r.data || []
+  funnelDetailLoading.value = false
+}
 
 // ---- 图表配置
 const packagePie = computed(() => ({
@@ -166,8 +184,8 @@ onMounted(async () => {
         <ChartBox :option="upgradePie" height="300px" />
       </div>
       <div class="card chart-card">
-        <div class="card-head"><h3>转化漏斗</h3></div>
-        <ChartBox :option="funnelOption" height="300px" />
+        <div class="card-head"><h3>转化漏斗<span class="hint">点击阶段下钻明细</span></h3></div>
+        <ChartBox :option="funnelOption" height="300px" @chart-click="onFunnelClick" />
       </div>
       <div class="card chart-card span2">
         <div class="card-head"><h3>近 6 月营收趋势</h3></div>
@@ -197,6 +215,31 @@ onMounted(async () => {
         <template #empty><el-empty description="暂无套餐销量数据" /></template>
       </el-table>
     </div>
+
+    <el-drawer v-model="funnelDetailVisible" :title="funnelDetailTitle" size="52%" :append-to-body="true">
+      <el-table v-loading="funnelDetailLoading" :data="funnelDetail" empty-text="该阶段暂无记录">
+        <el-table-column prop="id" label="单号" min-width="160" />
+        <el-table-column label="客户" min-width="110">
+          <template #default="{ row }">{{ row.customer || row.customerId || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="套餐/目标" min-width="160">
+          <template #default="{ row }">{{ row.packageName || row.target || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="金额" width="110">
+          <template #default="{ row }">{{ row.amount != null ? money(row.amount) : '—' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'DONE' || row.status === 'EFFECTIVE' ? 'success' : 'info'" size="small" effect="light">
+              {{ STATUS_LABEL[row.status] || row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="时间" min-width="150">
+          <template #default="{ row }">{{ fmtTime(row.createdTime) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 
@@ -220,6 +263,13 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 .span2 { grid-column: span 2; }
+
+.hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--bd-text-mute);
+  margin-left: 8px;
+}
 
 @media (max-width: 1100px) {
   .charts { grid-template-columns: 1fr; }

@@ -410,6 +410,36 @@ public class AdminPlatformController {
         return out;
     }
 
+    /**
+     * SLA 超时热力下钻：返回指定「星期 × 时段」单元的超时工单明细。
+     * 前端点击热力图单元格时调用（dayOfWeek 1..7 周一为 1；hour 0..23）。
+     */
+    @GetMapping("/sla/overtime-detail")
+    @PreAuthorize("hasAuthority('sla:view')")
+    public List<Map<String, Object>> slaOvertimeDetail(@RequestParam int dayOfWeek, @RequestParam int hour) {
+        List<Map<String, Object>> rows = jdbc.queryForList("""
+                SELECT sr.id, sr.order_id AS orderId, sr.order_type AS orderType,
+                       sr.accept_time AS acceptTime, sr.complete_time AS completeTime, sr.created_time AS createdTime,
+                       bo.customer_name AS customerName, bo.community_name AS community
+                FROM sla_record sr
+                LEFT JOIN biz_order bo ON bo.id = sr.order_id
+                WHERE sr.sla_status = 'OVERTIME'
+                """);
+        List<Map<String, Object>> matched = new ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            Object ts = r.get("completeTime");
+            if (ts == null || ((Number) ts).longValue() <= 0) ts = r.get("createdTime");
+            long ms = ts instanceof Number ? ((Number) ts).longValue() : 0;
+            if (ms <= 0) continue;
+            LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault());
+            if (ldt.getDayOfWeek().getValue() == dayOfWeek && ldt.getHour() == hour) {
+                r.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(String.valueOf(r.get("orderType")), String.valueOf(r.get("orderType"))));
+                matched.add(r);
+            }
+        }
+        return matched;
+    }
+
     // ==================================================================== 工具
 
     private long monthStartMillis() {

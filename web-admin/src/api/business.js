@@ -109,6 +109,9 @@ export function customer360(id) {
 export function slaDashboard() {
   return silent({ url: '/admin/sla/dashboard', method: 'get' })
 }
+export function slaOvertimeDetail(dayOfWeek, hour) {
+  return silent({ url: '/admin/sla/overtime-detail', method: 'get', params: { dayOfWeek, hour } })
+}
 
 // ---------- 套餐 ----------
 export function adminPackageList() {
@@ -119,6 +122,9 @@ export function savePackage(data) {
 }
 export function productMarketing() {
   return silent({ url: '/admin/product/marketing', method: 'get' })
+}
+export function productFunnelDetail(stage) {
+  return silent({ url: '/admin/product/funnel-detail', method: 'get', params: { stage } })
 }
 
 // ---------- 小区覆盖 ----------

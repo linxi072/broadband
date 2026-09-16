@@ -221,6 +221,53 @@ export function demoSlaDashboard() {
   }
 }
 
+/** 套餐营销看板演示兜底（与 GET /api/admin/product/marketing 返回结构对齐） */
+export function demoMarketingDashboard() {
+  return {
+    summary: {
+      totalOrders: 28,
+      totalRevenue: 3860,
+      doneOrders: 19,
+      avgOrderAmount: 138,
+      customerCount: 12,
+      upgradeCount: 6,
+      effectiveUpgrades: 4,
+      upgradeRate: 66.7
+    },
+    packageRanking: [
+      { name: '1000M 融合 60G', orders: 9, revenue: 1791, ratio: 46.4 },
+      { name: '500M 融合 40G', orders: 11, revenue: 1419, ratio: 36.8 },
+      { name: '300M 融合 20G', orders: 6, revenue: 594, ratio: 15.4 },
+      { name: '200M 单宽', orders: 2, revenue: 138, ratio: 3.6 }
+    ],
+    orderTypeDist: [
+      { type: 'NEW_INSTALL', typeLabel: '新装宽带', orders: 16, revenue: 2218 },
+      { type: 'RENEW', typeLabel: '续费', orders: 7, revenue: 966 },
+      { type: 'SPEED_UP', typeLabel: '宽带提速', orders: 3, revenue: 396 },
+      { type: 'ADDON', typeLabel: '加购', orders: 2, revenue: 280 }
+    ],
+    upgradeByStatus: [
+      { status: 'EFFECTIVE', statusLabel: '已生效', count: 4 },
+      { status: 'SUBMITTED', statusLabel: '待审核', count: 1 },
+      { status: 'REJECTED', statusLabel: '已驳回', count: 1 }
+    ],
+    customerLevelDist: [
+      { level: 'VIP', levelLabel: '五星', count: 3 },
+      { level: 'GOLD', levelLabel: '四星', count: 5 },
+      { level: 'SILVER', levelLabel: '三星', count: 3 },
+      { level: 'NORMAL', levelLabel: '普通', count: 1 }
+    ],
+    revenueTrend: [
+      { month: '2026-04', revenue: 560, orders: 4 },
+      { month: '2026-05', revenue: 690, orders: 5 },
+      { month: '2026-06', revenue: 720, orders: 6 },
+      { month: '2026-07', revenue: 580, orders: 4 },
+      { month: '2026-08', revenue: 660, orders: 5 },
+      { month: '2026-09', revenue: 650, orders: 4 }
+    ]
+  }
+}
+
 /** 全部权限码（演示登录用） */
 export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',

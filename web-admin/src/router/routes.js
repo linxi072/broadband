@@ -43,6 +43,12 @@ export const navConfig = [
         perm: 'package:edit',
         routePath: '/package/edit/:id?',
         component: () => import('@/views/package/edit.vue')
+      },
+      {
+        title: '营销看板',
+        path: '/package/marketing',
+        perm: 'package:view',
+        component: () => import('@/views/package/marketing.vue')
       }
     ]
   },

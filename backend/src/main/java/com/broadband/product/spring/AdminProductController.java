@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -463,6 +464,98 @@ public class AdminProductController {
             row.put("status", month.equals(currentMonth) ? "对账中" : "已结账");
         }
         return rows;
+    }
+
+    // ==================================================================== 套餐营销看板
+
+    /**
+     * 套餐营销看板：汇总指标 + 套餐销量排行 + 业务类型分布 + 升级单状态分布 + 客户分层分布 + 近 6 月营收趋势。
+     * 平台级读侧聚合，复用 package:view 权限（与「套餐列表」同源，避免新增 RBAC 面）。
+     */
+    @GetMapping("/product/marketing")
+    @PreAuthorize("hasAuthority('package:view')")
+    public Map<String, Object> productMarketing() {
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        // ---- 汇总指标 ----
+        Map<String, Object> summary = jdbc.queryForList("""
+                SELECT
+                  (SELECT COUNT(*) FROM biz_order) AS totalOrders,
+                  (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status <> 'CANCELLED') AS totalRevenue,
+                  (SELECT COUNT(*) FROM biz_order WHERE status = 'DONE') AS doneOrders,
+                  (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status <> 'CANCELLED') AS avgOrderAmount,
+                  (SELECT COUNT(*) FROM customer) AS customerCount,
+                  (SELECT COUNT(*) FROM package_upgrade_order) AS upgradeCount,
+                  (SELECT COUNT(*) FROM package_upgrade_order WHERE status = 'EFFECTIVE') AS effectiveUpgrades
+                """).stream().findFirst().orElse(new LinkedHashMap<>());
+        long upgradeCount = ((Number) summary.getOrDefault("upgradeCount", 0)).longValue();
+        long effectiveUpgrades = ((Number) summary.getOrDefault("effectiveUpgrades", 0)).longValue();
+        double upgradeRate = upgradeCount == 0 ? 0 : Math.round(effectiveUpgrades * 1000.0 / upgradeCount) / 10.0;
+        summary.put("upgradeRate", upgradeRate);
+        result.put("summary", summary);
+
+        // ---- 套餐销量排行 ----
+        long totalRevenue = ((Number) summary.getOrDefault("totalRevenue", 0)).longValue();
+        List<Map<String, Object>> ranking = jdbc.queryForList("""
+                SELECT package_name AS name, COUNT(*) AS orders, COALESCE(SUM(amount),0) AS revenue
+                FROM biz_order WHERE package_name IS NOT NULL AND package_name <> ''
+                GROUP BY package_name ORDER BY revenue DESC
+                """);
+        for (Map<String, Object> r : ranking) {
+            long rev = ((Number) r.getOrDefault("revenue", 0)).longValue();
+            r.put("ratio", totalRevenue == 0 ? 0 : Math.round(rev * 1000.0 / totalRevenue) / 10.0);
+        }
+        result.put("packageRanking", ranking);
+
+        // ---- 业务类型分布 ----
+        Map<String, String> typeLabels = Map.of(
+                "NEW_INSTALL", "新装宽带", "MOVE", "宽带移机", "RENEW", "续费",
+                "SPEED_UP", "宽带提速", "REPAIR", "故障报修", "ADDON", "加购");
+        List<Map<String, Object>> typeDist = jdbc.queryForList("""
+                SELECT order_type AS type, COUNT(*) AS orders, COALESCE(SUM(amount),0) AS revenue
+                FROM biz_order GROUP BY order_type
+                """);
+        for (Map<String, Object> t : typeDist) {
+            String type = String.valueOf(t.get("type"));
+            t.put("typeLabel", typeLabels.getOrDefault(type, type));
+        }
+        result.put("orderTypeDist", typeDist);
+
+        // ---- 升级单状态分布 ----
+        Map<String, String> upLabels = Map.of("SUBMITTED", "待审核", "EFFECTIVE", "已生效", "REJECTED", "已驳回");
+        List<Map<String, Object>> upgradeDist = jdbc.queryForList("""
+                SELECT status, COUNT(*) AS count FROM package_upgrade_order GROUP BY status
+                """);
+        for (Map<String, Object> u : upgradeDist) {
+            String s = String.valueOf(u.get("status"));
+            u.put("statusLabel", upLabels.getOrDefault(s, s));
+        }
+        result.put("upgradeByStatus", upgradeDist);
+
+        // ---- 客户分层分布 ----
+        Map<String, String> levelLabels = Map.of("VIP", "五星", "GOLD", "四星", "SILVER", "三星", "NORMAL", "普通");
+        List<Map<String, Object>> levelDist = jdbc.queryForList("""
+                SELECT level, COUNT(*) AS count FROM customer GROUP BY level
+                """);
+        for (Map<String, Object> l : levelDist) {
+            String lv = String.valueOf(l.get("level"));
+            l.put("levelLabel", levelLabels.getOrDefault(lv, lv));
+        }
+        result.put("customerLevelDist", levelDist);
+
+        // ---- 近 6 月营收趋势 ----
+        long threshold = LocalDate.now().minusMonths(5).withDayOfMonth(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        List<Map<String, Object>> trend = jdbc.queryForList("""
+                SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
+                       COALESCE(SUM(CASE WHEN status IN ('PAID','INSTALLING','DONE') THEN amount ELSE 0 END),0) AS revenue,
+                       COUNT(*) AS orders
+                FROM biz_order WHERE created_time >= ?
+                GROUP BY month ORDER BY month ASC
+                """, threshold);
+        result.put("revenueTrend", trend);
+
+        return result;
     }
 
     // ==================================================================== 工具

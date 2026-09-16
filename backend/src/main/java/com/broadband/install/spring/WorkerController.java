@@ -318,7 +318,7 @@ public class WorkerController {
                 String custName = order.get("customer") == null ? null : String.valueOf(order.get("customer"));
                 String reviewId = "RV" + System.currentTimeMillis();
                 jdbc.update("INSERT INTO review (id, order_id, customer_name, worker_name, score, tags, type, content, status, created_time) "
-                        + "VALUES (?,?,?,?, 0, NULL, 'REVIEW', '本次服务已完成，请对本次服务进行评价', 'TO_EVALUATE', ?)",
+                        + "VALUES (?,?,?,?, 0, NULL, 'REVIEW', '安装已完成，请对本次服务进行评价', 'TO_EVALUATE', ?)",
                         reviewId, bizId, custName, workerName, System.currentTimeMillis());
             }
         }

@@ -49,6 +49,11 @@ function back() {
   router.push('/customer')
 }
 
+// 生命周期标签下钻：跳转到「触达记录」页签，查看驱动该阶段的全部互动明细
+function drillLifecycle() {
+  tab.value = 'touch'
+}
+
 const trendMax = computed(() => {
   const t = traffic.value?.dailyTrend
   return t && t.length ? Math.max(...t) : 1
@@ -77,7 +82,7 @@ const trendMax = computed(() => {
               <b>{{ profile.name }}</b>
               <el-tag :type="levelType(profile.level)" size="small" effect="light">{{ profile.levelLabel }}</el-tag>
               <el-tag :type="statusType(profile.statusLabel)" size="small" effect="light">{{ profile.statusLabel }}</el-tag>
-              <el-tag v-if="lifecycle.stageLabel" :type="lifecycle.color" size="small" effect="dark">{{ lifecycle.stageLabel }}</el-tag>
+              <el-tag v-if="lifecycle.stageLabel" :type="lifecycle.color" size="small" effect="dark" class="lifecycle-tag" @click="drillLifecycle">{{ lifecycle.stageLabel }}<span class="drill">下钻 ›</span></el-tag>
               <span v-for="t in profile.tags || []" :key="t" class="ctag">{{ t }}</span>
             </div>
             <p>📱 {{ profile.phone }} ｜ 🏠 {{ profile.communityName || '—' }} {{ profile.address || '' }}</p>
@@ -303,6 +308,12 @@ const trendMax = computed(() => {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+}
+.lifecycle-tag { cursor: pointer; }
+.lifecycle-tag .drill {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.85;
 }
 .reason {
   font-size: 12px;

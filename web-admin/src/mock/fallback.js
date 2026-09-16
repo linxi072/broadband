@@ -256,6 +256,47 @@ export function demoSlaDashboard() {
   }
 }
 
+/** SLA 超时热力下钻演示兜底（与 GET /api/admin/sla/overtime-detail 返回结构对齐） */
+export function demoSlaOvertimeDetail(dayOfWeek, hour) {
+  const types = [['REPAIR', '故障报修', '王先生', '保利花园'], ['NEW_INSTALL', '新装宽带', '李女士', '海岸城公寓'], ['MOVE', '宽带移机', '陈先生', '阳光新村']]
+  const n = 2 + ((dayOfWeek + hour) % 3)
+  const list = []
+  for (let i = 0; i < n; i++) {
+    const t = types[(i + hour) % types.length]
+    const base = Date.now() - (i + 1) * 3600_000 * (dayOfWeek + 1)
+    list.push({
+      id: 'SR-D' + dayOfWeek + '-' + hour + '-' + i,
+      orderId: 'WO-SLA-00' + ((hour * 7 + i) % 99 + 1),
+      orderType: t[0],
+      orderTypeLabel: t[1],
+      customerName: t[2],
+      community: t[3],
+      acceptTime: base - 7200_000,
+      completeTime: base,
+      createdTime: base - 7200_000
+    })
+  }
+  return list
+}
+
+/** 营销看板漏斗下钻演示兜底（与 GET /api/admin/product/funnel-detail 返回结构对齐） */
+export function demoMarketingFunnelDetail(stage) {
+  if (stage === '升级申请' || stage === '升级生效') {
+    return demoUpgradeOrders.map((u) => ({
+      id: u.id, customerId: 'c00' + ((demoUpgradeOrders.indexOf(u) % 4) + 1), target: u.toPkg, status: u.status, createdTime: Date.now() - 86400000
+    }))
+  }
+  const pool = (stage === '已完成')
+    ? demoOrders.filter((o) => o.status === '已完成')
+    : (stage === '已支付')
+      ? demoOrders.filter((o) => ['已支付', '安装中', '已完成'].includes(o.status))
+      : demoOrders
+  return pool.map((o) => ({
+    id: o.id, customer: o.customer, packageName: o.pkgName, amount: o.amount,
+    orderType: 'NEW_INSTALL', status: o.status, createdTime: Date.now() - 86400000
+  }))
+}
+
 /** 套餐营销看板演示兜底（与 GET /api/admin/product/marketing 返回结构对齐） */
 export function demoMarketingDashboard() {
   return {

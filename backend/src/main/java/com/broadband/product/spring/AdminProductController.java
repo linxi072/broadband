@@ -881,6 +881,41 @@ public class AdminProductController {
 
     // ==================================================================== 工具
 
+    /**
+     * 套餐营销看板「转化漏斗」下钻：返回指定漏斗阶段的订单 / 升级单明细。
+     * 前端点击漏斗阶段时调用（stage ∈ 业务订单/已支付/已完成/升级申请/升级生效）。
+     */
+    @GetMapping("/product/funnel-detail")
+    @PreAuthorize("hasAuthority('package:view')")
+    public List<Map<String, Object>> productFunnelDetail(@RequestParam String stage) {
+        return switch (stage) {
+            case "业务订单" -> jdbc.queryForList("""
+                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
+                           order_type AS orderType, status, created_time AS createdTime
+                    FROM biz_order ORDER BY created_time DESC LIMIT 200
+                    """);
+            case "已支付" -> jdbc.queryForList("""
+                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
+                           order_type AS orderType, status, created_time AS createdTime
+                    FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE') ORDER BY created_time DESC LIMIT 200
+                    """);
+            case "已完成" -> jdbc.queryForList("""
+                    SELECT id, customer_name AS customer, package_name AS packageName, amount,
+                           order_type AS orderType, status, created_time AS createdTime
+                    FROM biz_order WHERE status = 'DONE' ORDER BY created_time DESC LIMIT 200
+                    """);
+            case "升级申请" -> jdbc.queryForList("""
+                    SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
+                    FROM package_upgrade_order ORDER BY created_time DESC LIMIT 200
+                    """);
+            case "升级生效" -> jdbc.queryForList("""
+                    SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
+                    FROM package_upgrade_order WHERE status = 'EFFECTIVE' ORDER BY created_time DESC LIMIT 200
+                    """);
+            default -> List.of();
+        };
+    }
+
     private void log(String action, String target, String method) {
         var me = AuthController.current();
         operLog.record(me == null ? null : me.user.username, me == null ? null : me.user.name,

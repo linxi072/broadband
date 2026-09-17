@@ -66,6 +66,32 @@ const api = {
   // 撤销报修
   cancelRepair(id) { return request('/api/repair/' + encodeURIComponent(id) + '/cancel', 'POST', {}); },
   // 开放参数读取（如客服电话）
-  getConfig(key) { return request('/api/config/public/' + encodeURIComponent(key), 'GET'); }
+  getConfig(key) { return request('/api/config/public/' + encodeURIComponent(key), 'GET'); },
+  // —— V1.14 运营留存：账户 / 积分 / 活动 / 帮助 ——
+  getAccountSummary(customerId) { return request('/api/account/summary?customerId=' + encodeURIComponent(customerId || 'demo'), 'GET'); },
+  getAccountBills(customerId, period) {
+    let p = '/api/account/bills?customerId=' + encodeURIComponent(customerId || 'demo');
+    if (period) p += '&period=' + encodeURIComponent(period);
+    return request(p, 'GET');
+  },
+  getPointsBalance(customerId) { return request('/api/points/balance?customerId=' + encodeURIComponent(customerId || 'demo'), 'GET'); },
+  signPoints(customerId) { return request('/api/points/sign?customerId=' + encodeURIComponent(customerId || 'demo'), 'POST', {}); },
+  getPointsTasks() { return request('/api/points/tasks', 'GET'); },
+  getPointsMall() { return request('/api/points/mall', 'GET'); },
+  redeemPoints(customerId, itemId) {
+    return request('/api/points/redeem?customerId=' + encodeURIComponent(customerId || 'demo') + '&itemId=' + encodeURIComponent(itemId), 'POST', {});
+  },
+  getPromotions(type) {
+    let p = '/api/promotions';
+    if (type) p += '?type=' + encodeURIComponent(type);
+    return request(p, 'GET');
+  },
+  getPromotionDetail(id) { return request('/api/promotions/' + encodeURIComponent(id), 'GET'); },
+  getSupportFaq(category) {
+    let p = '/api/support/faq';
+    if (category) p += '?category=' + encodeURIComponent(category);
+    return request(p, 'GET');
+  },
+  submitSupportTicket(payload) { return request('/api/support/ticket', 'POST', payload || {}); }
 };
 module.exports = api;

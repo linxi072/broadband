@@ -727,3 +727,113 @@ SET @add_wo_cp := (
 PREPARE stmt_wo_cp FROM @add_wo_cp;
 EXECUTE stmt_wo_cp;
 DEALLOCATE PREPARE stmt_wo_cp;
+
+-- ============================================================================
+-- 32~38. V1.14 运营与留存：积分成长 / 优惠活动 / 在线客服
+-- ============================================================================
+
+-- 32. 积分账户（一个客户一条）
+CREATE TABLE IF NOT EXISTS points_account (
+  customer_id   VARCHAR(32)  NOT NULL COMMENT '客户ID（PK）',
+  balance       INT          NOT NULL DEFAULT 0 COMMENT '当前积分',
+  total_earned  INT          NOT NULL DEFAULT 0 COMMENT '累计获得',
+  total_spent   INT          NOT NULL DEFAULT 0 COMMENT '累计消耗',
+  sign_date     VARCHAR(10)           COMMENT '最近签到日期 yyyy-MM-dd',
+  sign_streak   INT          NOT NULL DEFAULT 0 COMMENT '连续签到天数',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分账户';
+
+-- 33. 积分流水
+CREATE TABLE IF NOT EXISTS points_record (
+  id           VARCHAR(32)  NOT NULL COMMENT '流水ID',
+  customer_id  VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  type         VARCHAR(16)  NOT NULL COMMENT 'SIGN/TASK/REDEEM/EXPIRE/ADJUST',
+  amount       INT          NOT NULL DEFAULT 0 COMMENT '积分变动（正=获得，负=消耗）',
+  remark       VARCHAR(255)          COMMENT '说明',
+  ref_id       VARCHAR(32)           COMMENT '关联单号（优惠券/订单）',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_pr_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分流水';
+
+-- 34. 积分任务（签到/完善资料/首评/邀请好友）
+CREATE TABLE IF NOT EXISTS points_task (
+  id           VARCHAR(32)  NOT NULL COMMENT '任务ID',
+  task_key     VARCHAR(32)  NOT NULL COMMENT '任务键 signin/profile/first_review/invite',
+  name         VARCHAR(64)  NOT NULL COMMENT '任务名',
+  points       INT          NOT NULL DEFAULT 0 COMMENT '奖励积分',
+  description  VARCHAR(255)          COMMENT '说明',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  PRIMARY KEY (id),
+  KEY idx_pt_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分任务';
+
+-- 35. 积分商城商品（兑换项）
+CREATE TABLE IF NOT EXISTS points_mall_item (
+  id           VARCHAR(32)  NOT NULL COMMENT '商品ID',
+  name         VARCHAR(128) NOT NULL COMMENT '商品名',
+  cost         INT          NOT NULL DEFAULT 0 COMMENT '兑换所需积分',
+  stock        INT          NOT NULL DEFAULT -1 COMMENT '库存（-1 表示不限）',
+  coupon_type  VARCHAR(32)  NOT NULL DEFAULT 'SPEED_UP' COMMENT 'SPEED_UP/VOUCHER/PHYSICAL',
+  coupon_value VARCHAR(64)           COMMENT '券面额/说明（如 提速至500M / 10元现金券 / 实物描述）',
+  image        VARCHAR(512)          COMMENT '图片',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ON_SHELF' COMMENT 'ON_SHELF/OFF_SHELF',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分商城商品';
+
+-- 36. 兑换得到的优惠券
+CREATE TABLE IF NOT EXISTS points_coupon (
+  id           VARCHAR(32)  NOT NULL COMMENT '券ID',
+  customer_id  VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  item_id      VARCHAR(32)           COMMENT '来源商品ID',
+  coupon_code  VARCHAR(64)  NOT NULL COMMENT '券码',
+  coupon_type  VARCHAR(32)           COMMENT 'SPEED_UP/VOUCHER/PHYSICAL',
+  coupon_value VARCHAR(64)           COMMENT '券面额/说明',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'UNUSED' COMMENT 'UNUSED/USED/EXPIRED',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '兑换时间（毫秒）',
+  expire_time  BIGINT                COMMENT '过期时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_pc_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='兑换优惠券';
+
+-- 37. 优惠活动专区
+CREATE TABLE IF NOT EXISTS promotion (
+  id           VARCHAR(32)  NOT NULL COMMENT '活动ID',
+  title        VARCHAR(128) NOT NULL COMMENT '活动标题',
+  subtitle     VARCHAR(255)          COMMENT '副标题',
+  cover        VARCHAR(512)          COMMENT '封面图',
+  type         VARCHAR(32)  NOT NULL DEFAULT 'COMBO' COMMENT 'ANNUAL/NEW_INSTALL/COMBO/LIMITED',
+  target       VARCHAR(64)           COMMENT '适用套餐ID（ALL 表示通用）',
+  start_date   VARCHAR(10)          COMMENT '开始 yyyy-MM-dd',
+  end_date     VARCHAR(10)          COMMENT '结束 yyyy-MM-dd',
+  rule_json    VARCHAR(1024)        COMMENT '优惠规则 JSON（如 买12送2 / 直降100）',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ONLINE' COMMENT 'ONLINE/OFFLINE',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='优惠活动';
+
+-- 38. 在线客服 FAQ
+CREATE TABLE IF NOT EXISTS support_faq (
+  id           VARCHAR(32)  NOT NULL COMMENT 'FAQ ID',
+  category     VARCHAR(32)  NOT NULL DEFAULT 'GENERAL' COMMENT '网络/账单/报修/账户',
+  question     VARCHAR(255) NOT NULL COMMENT '问题',
+  answer       VARCHAR(1024)         COMMENT '回答',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服FAQ';
+
+-- 39. 在线客服工单（工单式咨询）
+CREATE TABLE IF NOT EXISTS support_ticket (
+  id            VARCHAR(32)  NOT NULL COMMENT '工单ID',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户名',
+  type          VARCHAR(32)  NOT NULL DEFAULT 'CONSULT' COMMENT 'CONSULT/FAULT/COMPLAINT',
+  content       VARCHAR(1024)         COMMENT '咨询内容',
+  contact       VARCHAR(32)           COMMENT '联系方式',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/REPLIED/CLOSED',
+  reply         VARCHAR(1024)         COMMENT '回复内容',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '提交时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_st_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服工单';

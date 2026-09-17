@@ -153,7 +153,9 @@ INSERT IGNORE INTO package_param_option (id, param_id, option_value, extra_fee, 
 INSERT IGNORE INTO customer (id, name, phone, level, package_id, community_id, address, status, created_time) VALUES
  ('demo',    '演示客户', '13800000000', 'GOLD',   'pkg500',  'com_ns01', '深圳市南山区科技园路1号 3栋802',   'ACTIVE', UNIX_TIMESTAMP('2026-04-01 10:00:00') * 1000),
  ('C20260002', '林小雨', '13800000002', 'SILVER', 'pkg1000', 'com_ns02', '深圳市南山区科技园路9号 8栋601',   'ACTIVE', UNIX_TIMESTAMP('2026-05-12 14:30:00') * 1000),
- ('C20260003', '何大军', '13800000003', 'NORMAL', 'pkg300',  'com_ft01', '深圳市福田区香蜜湖路88号 1栋1601','ACTIVE', UNIX_TIMESTAMP('2026-06-20 09:15:00') * 1000);
+ ('C20260003', '何大军', '13800000003', 'NORMAL', 'pkg300',  'com_ft01', '深圳市福田区香蜜湖路88号 1栋1601','ACTIVE', UNIX_TIMESTAMP('2026-06-20 09:15:00') * 1000),
+ ('C20260004', '陈默',   '13800000004', 'SILVER', 'pkg300',  'com_ft01', '深圳市福田区福华路18号 2栋503',  'ACTIVE', UNIX_TIMESTAMP('2024-01-10 10:00:00') * 1000),
+ ('C20260005', '赵敏',   '13800000005', 'GOLD',   'pkg1000', 'com_ns02', '深圳市南山区科技园路9号 8栋601',  'ACTIVE', UNIX_TIMESTAMP('2025-01-08 10:00:00') * 1000);
 
 -- ---------------------------------------------------------------------------
 -- 客户合约（demo 剩余约 18 个月，用于升级补差折算）
@@ -161,7 +163,12 @@ INSERT IGNORE INTO customer (id, name, phone, level, package_id, community_id, a
 INSERT IGNORE INTO customer_contract (id, customer_id, package_id, monthly_fee, start_date, end_date, status) VALUES
  ('ct_demo',   'demo',      'pkg500',   99, '2026-04-01', '2028-03-31', 'ACTIVE'),
  ('ct_c0002',  'C20260002', 'pkg1000', 159, '2026-05-12', '2028-05-11', 'ACTIVE'),
- ('ct_c0003',  'C20260003', 'pkg300',   69, '2026-06-20', '2027-06-19', 'ACTIVE');
+ ('ct_c0003',  'C20260003', 'pkg300',   69, '2026-06-20', '2027-06-19', 'ACTIVE'),
+ ('ct_c0005',  'C20260005', 'pkg1000', 159, '2025-01-08', '2026-11-15', 'ACTIVE');
+
+-- 演示「流失预警」：陈默(C20260004) 仅 2024 年初有一次历史签到，之后无任何互动（>180 天）
+INSERT IGNORE INTO points_record (id, customer_id, type, amount, remark, created_time) VALUES
+ ('pr_c0004_1', 'C20260004', 'SIGN', 5, '历史签到', UNIX_TIMESTAMP('2024-03-01 10:00:00') * 1000);
 
 -- ---------------------------------------------------------------------------
 -- 流量用量（当期 2026-09）
@@ -383,3 +390,9 @@ INSERT IGNORE INTO support_faq (id, category, question, answer, sort_order) VALU
  ('FAQ_BILL02','账单','发票如何开具？','在订单详情或账单页申请电子发票，财务审核后可在「我的发票」下载 PDF。',4),
  ('FAQ_REPAIR01','报修','报修后多久上门？','承诺当日修（24 小时内），派单后可在报修详情查看进度与 SLA 倒计时。',5),
  ('FAQ_ACC01','账户','积分有什么用？','积分可在「积分商城」兑换提速包、话费券与实物周边，签到与完成任务可获取积分。',6);
+
+-- 营销自动化规则（V1.15 数据智能）：按分群触发挽留/续约/关怀动作
+INSERT IGNORE INTO mkt_campaign (id, name, trigger_type, action_type, target_item, status, description, created_time, updated_time) VALUES
+ ('MK_CHURN','流失预警挽留','CHURN_RISK','GRANT_COUPON','PM_VOUCHER10','ENABLED','对 180 天无互动或已流失风险客户自动发放 10 元现金券挽留',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000),
+ ('MK_RENEW','临期客户续约推送','RENEW','SEND_PROMO','PR_ANNUAL','ENABLED','对 90 天内合约到期客户推送年度套餐续约优惠',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000),
+ ('MK_VIP','高价值客户专属提速','HIGH_VALUE','GRANT_COUPON','PM_SPEED500','ENABLED','对近 30 天活跃的高价值(VIP/四星)客户发放提速至 500M 券',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000);

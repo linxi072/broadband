@@ -116,6 +116,13 @@ export const navConfig = [
     component: () => import('@/views/sla/index.vue')
   },
   {
+    title: '数据智能',
+    path: '/intelligence',
+    icon: '🧠',
+    perm: 'intelligence:view',
+    component: () => import('@/views/intelligence/index.vue')
+  },
+  {
     title: '流量监控',
     path: '/traffic',
     icon: '📶',

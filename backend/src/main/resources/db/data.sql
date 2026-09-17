@@ -344,3 +344,42 @@ INSERT IGNORE INTO sys_user_role (user_id, role_id) VALUES
  ('U_ZHAOMIN','R_FINANCE'),
  ('U_WANGFANG','R_CS'),
  ('U_SH','R_OPERATOR');
+
+-- ===========================================================================
+-- V1.14 运营与留存种子：积分任务 / 积分商城 / 优惠活动 / 在线客服 FAQ
+-- ===========================================================================
+
+-- 积分任务（签到/完善资料/首评/邀请好友）
+INSERT IGNORE INTO points_task (id, task_key, name, points, description, sort_order, status) VALUES
+ ('PT_SIGNIN',     'signin',       '每日签到',     5,   '连续签到每日得 5 分，连续 7 天额外 +20', 1, 'ENABLED'),
+ ('PT_PROFILE',    'profile',      '完善资料',     20,  '补全联系地址与实名信息',               2, 'ENABLED'),
+ ('PT_FIRSTREVIEW','first_review', '首单评价',     30,  '完成第一笔订单的服务评价',             3, 'ENABLED'),
+ ('PT_INVITE',     'invite',       '邀请好友',     50,  '邀请好友成功办理宽带得 50 分',          4, 'ENABLED');
+
+-- 积分商城（兑换项：提速包 / 体验券 / 实物）
+INSERT IGNORE INTO points_mall_item (id, name, cost, stock, coupon_type, coupon_value, image, status) VALUES
+ ('PM_SPEED500', '提速至 500M（7 天）', 200, -1, 'SPEED_UP', '500M/7d', '/assets/mall/speed500.png', 'ON_SHELF'),
+ ('PM_VOUCHER10','10 元话费抵扣券',     300, -1, 'VOUCHER',  '10',      '/assets/mall/voucher10.png','ON_SHELF'),
+ ('PM_GIFT',     '宽带定制抱枕（实物）', 800, 50, 'PHYSICAL', '实物周边', '/assets/mall/gift.png',    'ON_SHELF');
+
+-- 演示客户积分账户（初始 120 分，便于验证兑换）
+INSERT IGNORE INTO points_account (customer_id, balance, total_earned, total_spent, sign_date, sign_streak, created_time) VALUES
+ ('demo', 120, 120, 0, NULL, 0, UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 优惠活动（包年趸交买 N 送 N / 限时新装赠礼 / 融合套餐折扣）
+INSERT IGNORE INTO promotion (id, title, subtitle, cover, type, target, start_date, end_date, rule_json, status) VALUES
+ ('PR_ANNUAL', '包年趸交 买 12 送 2', '一次缴清 14 个月，月均低至 8.3 折', '/assets/pro/annual.png', 'ANNUAL', 'ALL',
+  '2026-09-01', '2026-12-31', '{"kind":"buy_x_get_y","buy":12,"get":2,"unit":"month"}', 'ONLINE'),
+ ('PR_NEW_GIFT', '新装宽带 限时赠礼', '9 月新装送 FTTR 全屋光纤 + 看家 1 年', '/assets/pro/newgift.png', 'NEW_INSTALL', 'ALL',
+  '2026-09-01', '2026-09-30', '{"kind":"gift","items":["FTTR","SEE"]}', 'ONLINE'),
+ ('PR_COMBO', '融合套餐 直降 100', '1000M 融合套餐首年每月立减 100 元', '/assets/pro/combo.png', 'COMBO', 'pkg1000',
+  '2026-09-10', '2026-11-10', '{"kind":"cut","amount":100,"unit":"month"}', 'ONLINE');
+
+-- 在线客服 FAQ（网络 / 账单 / 报修 / 账户）
+INSERT IGNORE INTO support_faq (id, category, question, answer, sort_order) VALUES
+ ('FAQ_NET01','网络','无法上网怎么办？','请先重启光猫与路由器，观察光猫 LOS 指示灯是否红色；仍异常请在「我的-故障报修」提交报修，师傅将尽快上门。',1),
+ ('FAQ_NET02','网络','网速慢如何自查？','进入「流量监控」查看实时速率；建议有线测速对比无线，排除 WiFi 干扰。持续不达标可提交提速或报修。',2),
+ ('FAQ_BILL01','账单','账单怎么查看？','进入「我的-账户账单」可查看每月消费、合约到期与历史账单明细。',3),
+ ('FAQ_BILL02','账单','发票如何开具？','在订单详情或账单页申请电子发票，财务审核后可在「我的发票」下载 PDF。',4),
+ ('FAQ_REPAIR01','报修','报修后多久上门？','承诺当日修（24 小时内），派单后可在报修详情查看进度与 SLA 倒计时。',5),
+ ('FAQ_ACC01','账户','积分有什么用？','积分可在「积分商城」兑换提速包、话费券与实物周边，签到与完成任务可获取积分。',6);

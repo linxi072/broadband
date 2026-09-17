@@ -55,7 +55,18 @@ public class SecurityConfig {
             "/api/review/my",
             "/api/traffic/usage",
             "/api/repair/create",
-            "/api/repair/my"
+            "/api/repair/my",
+            // V1.14 运营留存（C 端开放层）
+            "/api/account/summary",
+            "/api/account/bills",
+            "/api/points/balance",
+            "/api/points/sign",
+            "/api/points/tasks",
+            "/api/points/mall",
+            "/api/points/redeem",
+            "/api/promotions",
+            "/api/support/faq",
+            "/api/support/ticket"
     };
 
     @Value("${app.security.protect-client-api:false}")

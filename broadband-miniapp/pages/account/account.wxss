@@ -1,0 +1,3 @@
+/* pages/account/account.wxss —— 复用全局设计令牌，无需额外样式 */
+.tile-wide { text-align: left; display: flex; align-items: center; gap: 16rpx; padding-left: 28rpx; }
+.tile-wide .lb { margin-top: 0; }

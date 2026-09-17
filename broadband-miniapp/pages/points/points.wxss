@@ -1,0 +1,10 @@
+/* pages/points/points.wxss */
+.btn-primary.disabled { opacity: .5; }
+.task { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 4rpx; border-bottom: 1rpx solid var(--border); }
+.task:last-child { border-bottom: none; }
+.task-main { flex: 1; }
+.task-name { font-size: 28rpx; font-weight: 600; color: var(--ink-900); }
+.task-desc { font-size: 24rpx; color: var(--text-sub); margin-top: 6rpx; line-height: 1.5; }
+.task-pts { color: var(--c); font-weight: 700; font-size: 28rpx; margin-left: 16rpx; }
+.tile-wide { text-align: left; display: flex; align-items: center; gap: 16rpx; padding-left: 28rpx; }
+.tile-wide .lb { margin-top: 0; }

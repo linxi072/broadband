@@ -207,3 +207,38 @@ textarea.input { width: auto; height: 160rpx; }
 /* ---------- 底部操作条 ---------- */
 .action-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom)); box-shadow: 0 -4rpx 16rpx rgba(15, 23, 42, .06); display: flex; gap: 16rpx; }
 .action-bar .btn-primary, .action-bar .btn-ghost { flex: 1; margin-top: 0; }
+
+/* ============================================================
+   通用页面布局（v1.14 新增页面复用，对齐既有 repair 页视觉）
+   ============================================================ */
+.page { min-height: 100vh; background: var(--bg); padding: 24rpx; box-sizing: border-box; }
+.page-hd { padding: 8rpx 4rpx 16rpx; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.title { font-size: 34rpx; font-weight: 600; color: var(--ink-900); }
+.sub-title { font-size: 26rpx; color: var(--text-sub); }
+.add { font-size: 26rpx; color: var(--c); }
+.section { margin-bottom: 24rpx; }
+
+/* 列表项（账单 / 活动 / 商城等） */
+.item { background: var(--card); border-radius: var(--radius); padding: 26rpx 24rpx; margin-bottom: 18rpx; box-shadow: var(--shadow); }
+.item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.pkg { font-size: 30rpx; font-weight: 600; color: var(--ink-900); }
+.amt { font-size: 30rpx; font-weight: 700; color: var(--c); }
+.desc { font-size: 26rpx; color: var(--ink-700); margin-bottom: 12rpx; line-height: 1.5; }
+.meta { display: flex; justify-content: space-between; align-items: center; font-size: 24rpx; color: var(--text-mute); }
+.kbd { font-family: var(--font-mono); }
+
+/* 头像 / 头部（账户中心） */
+.acc-hd { display: flex; align-items: center; padding: 12rpx 8rpx 24rpx; }
+.acc-info { margin-left: 24rpx; }
+.acc-name { font-size: 36rpx; font-weight: 700; }
+.acc-sub { margin-top: 8rpx; font-size: 26rpx; color: var(--text-sub); }
+
+/* 横向快捷磁贴（账户中心） */
+.tiles-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16rpx; margin-top: 8rpx; }
+.tiles-row .tile { margin: 0; }
+.tile-wide { margin-top: 20rpx; }
+
+/* 标签徽标 */
+.badge-line { font-size: 24rpx; color: var(--text-mute); }
+

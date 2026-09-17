@@ -1,0 +1,35 @@
+<!-- pages/points/points.wxml -->
+<view class="page" wx:if="{{balance}}">
+  <view class="card">
+    <view class="card-head">
+      <view class="card-title" style="margin:0">我的积分</view>
+      <text class="badge-line">连续签到 {{balance.signStreak}} 天</text>
+    </view>
+    <view class="grid3">
+      <view class="stat"><view class="n">{{balance.balance}}</view><view class="l">可用积分</view></view>
+      <view class="stat"><view class="n">{{balance.totalEarned}}</view><view class="l">累计获得</view></view>
+      <view class="stat"><view class="n">{{balance.totalSpent}}</view><view class="l">累计兑换</view></view>
+    </view>
+    <view class="btn-primary {{balance.signedToday ? 'disabled' : ''}}" bindtap="sign">
+      {{balance.signedToday ? '今日已签到 ✓' : '每日签到 +5'}}
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">积分任务</view>
+    <view class="task" wx:for="{{tasks}}" wx:key="id">
+      <view class="task-main">
+        <view class="task-name">{{item.name}}</view>
+        <view class="task-desc">{{item.description}}</view>
+      </view>
+      <view class="task-pts">+{{item.points}}</view>
+    </view>
+  </view>
+
+  <view class="tile tile-wide" bindtap="goMall">
+    <view class="ic">🛍️</view><view class="lb">进入积分商城，好礼兑换 ›</view>
+  </view>
+</view>
+
+<view class="page" wx:elif="{{loading}}"><view class="empty">加载中...</view></view>
+<view class="page" wx:else><view class="empty">加载失败</view></view>

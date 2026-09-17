@@ -351,10 +351,47 @@ export function demoMarketingDashboard() {
   }
 }
 
+/** 数据智能（V1.15）演示兜底，与 GET /api/intelligence/* 返回结构对齐 */
+export function demoIntelligenceSegments() {
+  return {
+    total: 124,
+    segments: [
+      { segment: 'LEAD', segmentLabel: '潜在客户', count: 19 },
+      { segment: 'GROWING', segmentLabel: '成长期', count: 33 },
+      { segment: 'STABLE', segmentLabel: '稳定期', count: 42 },
+      { segment: 'HIGH_VALUE', segmentLabel: '高价值活跃', count: 16 },
+      { segment: 'RENEW', segmentLabel: '临期待续约', count: 11 },
+      { segment: 'CHURN_RISK', segmentLabel: '流失预警', count: 3 }
+    ]
+  }
+}
+
+export function demoIntelligenceChurn() {
+  return {
+    total: 14,
+    list: [
+      { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 213, contractDaysLeft: 9999, lastActiveText: '2026-03-01', riskScore: 100, reasons: ['近 213 天无互动，存在流失风险'] },
+      { id: 'C0005', name: '周女士', level: 'NORMAL', levelLabel: '普通', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 196, contractDaysLeft: 9999, lastActiveText: '2026-03-18', riskScore: 96, reasons: ['近 196 天无互动，存在流失风险'] },
+      { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 88, contractDaysLeft: 16, lastActiveText: '2026-08-22', riskScore: 74, reasons: ['合约将于 16 天后到期'] },
+      { id: 'C0008', name: '吴先生', level: 'VIP', levelLabel: '五星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 64, contractDaysLeft: 41, lastActiveText: '2026-09-01', riskScore: 59, reasons: ['合约将于 41 天后到期'] },
+      { id: 'C0011', name: '郑小姐', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 151, contractDaysLeft: 9999, lastActiveText: '2026-04-12', riskScore: 81, reasons: ['近 151 天互动较少'] }
+    ]
+  }
+}
+
+export function demoIntelligenceCampaigns() {
+  return [
+    { id: 'MK_CHURN', name: '流失预警挽留', triggerType: 'CHURN_RISK', actionType: 'GRANT_COUPON', targetItem: 'PM_VOUCHER10', status: 'ENABLED', description: '对流失预警客户自动发放 10 元话费券', triggerLabel: '流失预警客户', actionLabel: '自动发券', execTotal: 12, execRecent: 3 },
+    { id: 'MK_RENEW', name: '临期客户续约推送', triggerType: 'RENEW', actionType: 'SEND_PROMO', targetItem: 'PR_ANNUAL', status: 'ENABLED', description: '对临期待续约客户推送年度续约活动', triggerLabel: '临期待续约客户', actionLabel: '推送活动', execTotal: 28, execRecent: 5 },
+    { id: 'MK_VIP', name: '高价值客户专属提速', triggerType: 'HIGH_VALUE', actionType: 'GRANT_COUPON', targetItem: 'PM_SPEED500', status: 'ENABLED', description: '对高价值活跃客户发放 500M 提速券', triggerLabel: '高价值活跃客户', actionLabel: '自动发券', execTotal: 19, execRecent: 2 }
+  ]
+}
+
 /** 全部权限码（演示登录用） */
 export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',
   'community:view', 'workorder:view', 'dispatch:run', 'capacity:config', 'sla:view',
   'traffic:view', 'review:view', 'sales:view', 'finance:view',
-  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view'
+  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view',
+  'intelligence:view'
 ]

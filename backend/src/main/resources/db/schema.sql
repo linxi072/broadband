@@ -837,3 +837,35 @@ CREATE TABLE IF NOT EXISTS support_ticket (
   PRIMARY KEY (id),
   KEY idx_st_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服工单';
+
+-- ---------------------------------------------------------------------------
+-- 40. 营销自动化规则（V1.15 数据智能：客户分群/流失预警/营销自动化）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mkt_campaign (
+  id            VARCHAR(32)  NOT NULL COMMENT '规则ID',
+  name          VARCHAR(128) NOT NULL COMMENT '规则名称',
+  trigger_type  VARCHAR(32)  NOT NULL COMMENT '触发分群 CHURN_RISK/RENEW/HIGH_VALUE/GROWING',
+  action_type   VARCHAR(32)  NOT NULL DEFAULT 'GRANT_COUPON' COMMENT 'GRANT_COUPON/SEND_PROMO',
+  target_item   VARCHAR(32)           COMMENT '目标项：GRANT_COUPON→points_mall_item.id；SEND_PROMO→promotion.id',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  description   VARCHAR(255)          COMMENT '规则说明',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  updated_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '更新时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_mkt_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化规则';
+
+-- 41. 营销自动化执行记录（每次自动触发的动作留痕，用于去重与效果回收）
+CREATE TABLE IF NOT EXISTS mkt_campaign_exec (
+  id            VARCHAR(32)  NOT NULL COMMENT '执行ID',
+  campaign_id   VARCHAR(32)  NOT NULL COMMENT '规则ID',
+  customer_id   VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  action_type   VARCHAR(32)  NOT NULL COMMENT '动作类型',
+  target_item   VARCHAR(32)           COMMENT '目标项',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'SUCCESS' COMMENT 'SUCCESS/SKIP/DUP',
+  remark        VARCHAR(255)          COMMENT '备注',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '执行时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_mkt_exec_camp (campaign_id),
+  KEY idx_mkt_exec_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化执行记录';

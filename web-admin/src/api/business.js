@@ -152,3 +152,17 @@ export function adminUpgradeOrders() {
 export function adminTrafficOverview() {
   return silent({ url: '/admin/traffic/overview', method: 'get' })
 }
+
+// ---------- 数据智能（V1.15 迭代二 · 数据深化） ----------
+export function intelligenceSegments() {
+  return silent({ url: '/intelligence/segments', method: 'get' })
+}
+export function intelligenceChurn(limit = 50) {
+  return silent({ url: '/intelligence/churn', method: 'get', params: { limit } })
+}
+export function intelligenceCampaigns() {
+  return silent({ url: '/intelligence/campaigns', method: 'get' })
+}
+export function intelligenceAutoTrigger(dryRun = false) {
+  return request({ url: '/intelligence/auto-trigger', method: 'post', data: { dryRun } })
+}

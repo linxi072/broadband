@@ -83,6 +83,7 @@ const trendMax = computed(() => {
               <el-tag :type="levelType(profile.level)" size="small" effect="light">{{ profile.levelLabel }}</el-tag>
               <el-tag :type="statusType(profile.statusLabel)" size="small" effect="light">{{ profile.statusLabel }}</el-tag>
               <el-tag v-if="lifecycle.stageLabel" :type="lifecycle.color" size="small" effect="dark" class="lifecycle-tag" @click="drillLifecycle">{{ lifecycle.stageLabel }}<span class="drill">下钻 ›</span></el-tag>
+              <el-tag v-if="lifecycle.churnRisk" type="danger" size="small" effect="plain" class="risk-tag">流失风险 {{ lifecycle.riskScore }} 分</el-tag>
               <span v-for="t in profile.tags || []" :key="t" class="ctag">{{ t }}</span>
             </div>
             <p>📱 {{ profile.phone }} ｜ 🏠 {{ profile.communityName || '—' }} {{ profile.address || '' }}</p>
@@ -315,6 +316,7 @@ const trendMax = computed(() => {
   font-size: 11px;
   opacity: 0.85;
 }
+.risk-tag { cursor: default; }
 .reason {
   font-size: 12px;
   color: var(--bd-text-sub);

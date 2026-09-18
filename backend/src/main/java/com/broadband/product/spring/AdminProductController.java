@@ -40,6 +40,31 @@ public class AdminProductController {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private OperLogService operLog;
 
+    // 客户分群口径：与 IntelligenceController 的 CUSTOMER_BASE_CTE / SEGMENT_CASE 保持同一段 SQL 文本，
+    // 确保「客户 360」与「数据智能」分群结果口径一致（消除 T-04 三页口径分歧）。
+    private static final String SEGMENT_CTE =
+            "WITH cb AS (" +
+            "  SELECT c.id, c.level, c.status," +
+            "    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt," +
+            "    GREATEST(" +
+            "      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0)," +
+            "      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0)," +
+            "      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)" +
+            "    ) AS last_active," +
+            "    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct" +
+            "       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left" +
+            "  FROM customer c WHERE c.id = ?" +
+            ")";
+    private static final String SEGMENT_CASE =
+            "CASE" +
+            "  WHEN contract_days_left IS NOT NULL AND contract_days_left <= 90 THEN 'RENEW'" +
+            "  WHEN last_active = 0 AND order_cnt = 0 THEN 'LEAD'" +
+            "  WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 180 THEN 'CHURN_RISK'" +
+            "  WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'HIGH_VALUE'" +
+            "  WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'GROWING'" +
+            "  ELSE 'STABLE'" +
+            "END";
+
     // ==================================================================== 客户
 
     @GetMapping("/customers")
@@ -243,8 +268,8 @@ public class AdminProductController {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> contracts = (List<Map<String, Object>>) result.get("contracts");
 
-        // ---- 生命周期阶段 ----
-        result.put("lifecycle", computeLifecycle(profile, summary, orders, reviews, workOrders, upgradeOrders, contracts));
+        // ---- 生命周期阶段（统一分群口径）----
+        result.put("lifecycle", computeLifecycle(id, profile, summary, orders, reviews, workOrders, upgradeOrders, contracts));
 
         // ---- 触达 / 互动记录时间线 ----
         result.put("touchRecords", buildTouchRecords(profile, orders, reviews, workOrders, upgradeOrders, contracts));
@@ -254,55 +279,71 @@ public class AdminProductController {
 
     // ==================================================================== 客户 360 派生（生命周期 / 触达记录）
 
-    private Map<String, Object> computeLifecycle(Map<String, Object> profile, Map<String, Object> summary,
+    private Map<String, Object> computeLifecycle(String id, Map<String, Object> profile, Map<String, Object> summary,
             List<Map<String, Object>> orders, List<Map<String, Object>> reviews,
             List<Map<String, Object>> workOrders, List<Map<String, Object>> upgradeOrders,
             List<Map<String, Object>> contracts) {
         Map<String, Object> lc = new LinkedHashMap<>();
-        long orderCount = ((Number) summary.getOrDefault("orderCount", 0)).longValue();
-        String level = str(profile.get("level"));
-        String levelLabel = str(profile.get("levelLabel"));
-        String contractStatus = str(profile.get("contractStatus"));
-        String contractEnd = str(profile.get("contractEnd"));
-
-        long lastActive = 0;
-        lastActive = maxTs(lastActive, orders, "createdAt");
-        lastActive = maxTs(lastActive, reviews, "createdAt");
-        lastActive = maxTs(lastActive, upgradeOrders, "createdAt");
-        lastActive = maxTs(lastActive, workOrders, "completeTime");
-
+        // 统一分群口径：复用 SEGMENT_CTE + SEGMENT_CASE（与数据智能模块完全一致）
+        Map<String, Object> seg = customerSegment(id);
+        String stage = str(seg.get("segment"));
+        long lastActive = seg.get("lastActive") == null ? 0 : ((Number) seg.get("lastActive")).longValue();
+        long contractDaysLeft = seg.get("contractDaysLeft") == null ? 9999 : ((Number) seg.get("contractDaysLeft")).longValue();
         long daysSince = lastActive == 0 ? 9999 : (System.currentTimeMillis() - lastActive) / 86_400_000L;
 
-        String stage, stageLabel, color;
-        List<String> reasons = new ArrayList<>();
-        if (orderCount == 0) {
-            stage = "LEAD"; stageLabel = "潜在客户"; color = "info";
-            reasons.add("尚未产生业务订单");
-        } else if ("生效中".equals(contractStatus) && contractEnd != null && withinDays(contractEnd, 90)) {
-            stage = "RENEW"; stageLabel = "待续约"; color = "warning";
-            reasons.add("合约将于 " + contractEnd + " 到期（≤90 天）");
-        } else if (daysSince > 180) {
-            stage = "CHURN_RISK"; stageLabel = "流失预警"; color = "danger";
-            reasons.add("近 " + daysSince + " 天无互动，存在流失风险");
-        } else if ("VIP".equals(level) || "GOLD".equals(level)) {
-            stage = "HIGH_VALUE"; stageLabel = "高价值客户"; color = "danger";
-            reasons.add(levelLabel + "高价值客户");
-        } else if (daysSince <= 30) {
-            stage = "GROWING"; stageLabel = "成长期"; color = "success";
-            reasons.add("近 " + daysSince + " 天内有互动");
-        } else {
-            stage = "STABLE"; stageLabel = "稳定期"; color = "success";
-            reasons.add("近 " + daysSince + " 天内有互动");
-        }
-        if (lastActive > 0) reasons.add(0, "最近互动：" + fmtTs(lastActive));
-
+        lc.put("segment", stage);
         lc.put("stage", stage);
-        lc.put("stageLabel", stageLabel);
-        lc.put("color", color);
+        lc.put("stageLabel", segLabel(stage));
+        lc.put("color", segColor(stage));
         lc.put("daysSince", daysSince);
         lc.put("lastActive", lastActive);
+        lc.put("churnRisk", "CHURN_RISK".equals(stage));
+        lc.put("riskScore", segRisk(stage, daysSince, contractDaysLeft));
+
+        List<String> reasons = new ArrayList<>();
+        if (lastActive > 0) reasons.add("最近互动：" + fmtTs(lastActive));
+        reasons.addAll(segReasons(stage, daysSince, contractDaysLeft));
         lc.put("reasons", reasons);
         return lc;
+    }
+
+    /** 单客户分群判定：与 IntelligenceController 共用 SEGMENT_CASE 口径，确保三页一致。 */
+    private Map<String, Object> customerSegment(String id) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                SEGMENT_CTE + " SELECT " + SEGMENT_CASE + " AS segment, last_active AS lastActive," +
+                " contract_days_left AS contractDaysLeft FROM cb", id);
+        return rows.isEmpty() ? new LinkedHashMap<>(Map.of("segment", "LEAD")) : rows.get(0);
+    }
+
+    private static String segLabel(String seg) {
+        return Map.of("LEAD", "潜在客户", "RENEW", "临期待续约", "CHURN_RISK", "流失预警",
+                "HIGH_VALUE", "高价值活跃", "GROWING", "成长期", "STABLE", "稳定期")
+                .getOrDefault(seg, seg);
+    }
+
+    private static String segColor(String seg) {
+        return Map.of("LEAD", "info", "GROWING", "success", "STABLE", "success",
+                "HIGH_VALUE", "danger", "RENEW", "warning", "CHURN_RISK", "danger")
+                .getOrDefault(seg, "info");
+    }
+
+    private static int segRisk(String seg, long daysSince, long contractDaysLeft) {
+        if ("CHURN_RISK".equals(seg)) return (int) Math.min(99, 70 + Math.max(0, daysSince - 180));
+        if ("RENEW".equals(seg)) return (int) Math.min(95, 50 + Math.max(0, 90 - contractDaysLeft));
+        if (daysSince > 120) return (int) Math.min(69, 40 + (daysSince - 120) / 10);
+        return 20;
+    }
+
+    private static List<String> segReasons(String seg, long daysSince, long contractDaysLeft) {
+        List<String> r = new ArrayList<>();
+        if ("CHURN_RISK".equals(seg)) {
+            r.add(daysSince >= 9999 ? "无业务互动记录" : "近 " + daysSince + " 天无互动，存在流失风险");
+        } else if ("RENEW".equals(seg)) {
+            r.add(contractDaysLeft >= 9999 ? "合约临期" : "合约将于 " + contractDaysLeft + " 天后到期");
+        } else if (daysSince > 120) {
+            r.add("近 " + daysSince + " 天互动较少");
+        }
+        return r;
     }
 
     private List<Map<String, Object>> buildTouchRecords(Map<String, Object> profile,
@@ -867,6 +908,14 @@ public class AdminProductController {
         addStage.accept("已完成", doneOrders);
         addStage.accept("升级申请", upgradeCount);
         addStage.accept("升级生效", effectiveUpgrades);
+        // 阶段转化率（US-2.3 深化）：相对顶层 + 相邻阶段，便于识别转化断点
+        for (int i = 0; i < funnel.size(); i++) {
+            long v = ((Number) funnel.get(i).get("value")).longValue();
+            long top = ((Number) funnel.get(0).get("value")).longValue();
+            long prev = i == 0 ? v : ((Number) funnel.get(i - 1).get("value")).longValue();
+            funnel.get(i).put("conversionFromTop", top == 0 ? 0 : Math.round(v * 1000.0 / top) / 10.0);
+            funnel.get(i).put("conversionFromPrev", prev == 0 ? 0 : Math.round(v * 1000.0 / prev) / 10.0);
+        }
         result.put("funnel", funnel);
 
         // ---- 套餐销量排行 ----

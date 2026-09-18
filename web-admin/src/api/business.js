@@ -91,6 +91,13 @@ export function salesReport(params) {
 export function financeReport(params) {
   return silent({ url: '/admin/finance/report', method: 'get', params })
 }
+// 报表下钻明细（US-2.2）：销售业绩 / 财务月报的底层订单与赔付
+export function salesReportDetail(params) {
+  return silent({ url: '/admin/sales/report/detail', method: 'get', params })
+}
+export function financeReportDetail(params) {
+  return silent({ url: '/admin/finance/report/detail', method: 'get', params })
+}
 
 // ---------- 性能监控 ----------
 export function monitorOverview() {
@@ -165,4 +172,8 @@ export function intelligenceCampaigns() {
 }
 export function intelligenceAutoTrigger(dryRun = false) {
   return request({ url: '/intelligence/auto-trigger', method: 'post', data: { dryRun } })
+}
+// 分群客户下钻（US-2.2）：点击数据智能分群饼图 / 流失柱图，返回该分群客户列表
+export function intelligenceSegmentCustomers(segment, limit = 50) {
+  return silent({ url: '/intelligence/segment-customers', method: 'get', params: { segment, limit } })
 }

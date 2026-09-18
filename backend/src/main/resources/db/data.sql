@@ -233,8 +233,8 @@ INSERT IGNORE INTO community (id, name, region, street, latitude, longitude, ins
 
 -- 上海演示订单（归属 上海分公司）
 INSERT IGNORE INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, amount, sales_name, community_id, community_name, order_type, status, created_time) VALUES
- ('B20260914004','C20260004','上海客户甲','13700000004','pkg1000','1000M 融合套餐',159,'上海运营','com_sh01','上海康桥花园','NEW_INSTALL','PAID', UNIX_TIMESTAMP('2026-09-14 09:30:00')*1000),
- ('B20260914005','C20260004','上海客户甲','13700000004','pkg500', '500M 融合套餐', 99,'上海运营','com_sh02','上海张江高科','RENEW',     'DONE', UNIX_TIMESTAMP('2026-09-10 14:00:00')*1000);
+ ('B20260914004','C20260003','何大军','13700000004','pkg1000','1000M 融合套餐',159,'上海运营','com_sh01','上海康桥花园','NEW_INSTALL','PAID', UNIX_TIMESTAMP('2026-09-14 09:30:00')*1000),
+ ('B20260914005','C20260003','何大军','13700000004','pkg500', '500M 融合套餐', 99,'上海运营','com_sh02','上海张江高科','RENEW',     'DONE', UNIX_TIMESTAMP('2026-09-10 14:00:00')*1000);
 
 -- 上海演示工单
 INSERT IGNORE INTO work_order (id, community_id, address, time_slot, customer_name, package_desc, status, adjacent_route, dept_id) VALUES

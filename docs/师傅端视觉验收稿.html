@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宽带业务管理系统 · 师傅端视觉验收稿（橙 #ea580c）</title>
+<style>
+  :root{
+    --brand:#ea580c; --brand-600:#c2410c; --brand-700:#9a3412;
+    --brand-50:#fff7ed; --brand-100:#ffedd5; --brand-300:#fed7aa;
+    --surface:#ffffff; --bg:#fff7ed;
+    --text:#1f2937; --text-sub:#6b7280; --text-mute:#9ca3af;
+    --border:#f3ece4; --border-strong:#f0d9c4;
+    --success:#16a34a; --success-bg:#dcfce7;
+    --warning:#d97706; --warning-bg:#fef3c7;
+    --danger:#dc2626; --danger-bg:#fee2e2;
+    --info:#0ea5e9; --info-bg:#e0f2fe;
+    --radius:20px; --radius-sm:12px; --shadow:0 4px 16px rgba(124,45,18,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:-apple-system,"PingFang SC",sans-serif;
+    background:#f3f4f6; color:var(--text);
+    padding:32px 16px 64px;
+  }
+  .page-head{max-width:1180px;margin:0 auto 28px;}
+  .page-head h1{font-size:24px;font-weight:700;color:#111827;}
+  .page-head .sub{margin-top:8px;color:#6b7280;font-size:14px;line-height:1.7;}
+  .page-head .tag{display:inline-block;background:var(--brand-100);color:var(--brand-700);
+    font-size:12px;padding:3px 10px;border-radius:999px;margin-right:8px;font-weight:600;}
+  .legend{margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:#4b5563;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:middle;}
+
+  .gallery{max-width:1180px;margin:0 auto;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:30px;}
+
+  .screen-wrap{display:flex;flex-direction:column;align-items:center;}
+  .screen-label{font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;text-align:center;}
+  .screen-label small{display:block;color:#9ca3af;font-weight:400;font-size:11px;margin-top:2px;}
+
+  /* 手机外框 */
+  .phone{width:300px;background:#0f172a;border-radius:40px;padding:10px;
+    box-shadow:0 18px 40px rgba(15,23,42,.25);position:relative;}
+  .phone .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);
+    width:120px;height:22px;background:#0f172a;border-radius:0 0 14px 14px;z-index:5;}
+  .screen{width:100%;height:640px;background:var(--bg);border-radius:32px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;}
+
+  /* 状态栏 */
+  .statusbar{height:30px;background:var(--brand);display:flex;align-items:center;
+    justify-content:space-between;padding:0 18px;color:#fff;font-size:11px;flex:0 0 auto;}
+  .statusbar .icons{display:flex;gap:5px;align-items:center;}
+
+  .scroll{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+  .content{overflow-y:auto;flex:1;}
+
+  /* 通用排版 */
+  .container{padding:14px;}
+  .container-lg{padding:16px 14px 24px;}
+  .nav-bar{font-size:17px;font-weight:600;padding:12px 4px;color:var(--text);}
+  .h1{font-size:20px;font-weight:700;}
+  .h2{font-size:16px;font-weight:600;}
+  .sub{color:var(--text-sub);font-size:13px;}
+  .muted{color:var(--text-mute);font-size:12px;}
+  .price{color:var(--brand);font-weight:700;}
+
+  /* 卡片 */
+  .card{background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:12px;
+    box-shadow:var(--shadow);}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .card-title{font-size:15px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;}
+  .card-title::before{content:"";width:4px;height:15px;background:var(--brand);border-radius:2px;margin-right:7px;}
+  .more{color:var(--brand);font-size:12px;}
+
+  /* 按钮 */
+  .btn-primary{background:var(--brand);color:#fff;border-radius:999px;text-align:center;
+    padding:12px 0;font-size:15px;font-weight:600;margin-top:8px;display:block;}
+  .btn-ghost{background:#fff;color:var(--brand);border:1px solid var(--brand);
+    border-radius:999px;text-align:center;padding:10px 0;font-size:14px;display:block;}
+  .btn-sm{padding:7px 14px;font-size:12px;display:inline-block;margin:0;}
+  .row-btn{display:flex;gap:8px;margin-top:8px;}
+
+  /* 标签 */
+  .tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:999px;line-height:1.4;}
+  .tag-default{background:var(--bg);color:var(--text-sub);}
+  .tag-primary{background:var(--brand-100);color:var(--brand-700);}
+  .tag-success{background:var(--success-bg);color:#15803d;}
+  .tag-warning{background:var(--warning-bg);color:#b45309;}
+  .tag-danger{background:var(--danger-bg);color:#b91c1c;}
+  .tag-info{background:var(--info-bg);color:#0369a1;}
+  .pill{display:inline-block;background:var(--brand-100);color:var(--brand-700);
+    font-size:11px;padding:3px 9px;border-radius:999px;margin:3px 5px 3px 0;}
+  .tags{display:flex;flex-wrap:wrap;}
+
+  /* 指标卡 */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .stat{background:var(--brand);color:#fff;border-radius:12px;padding:12px 6px;text-align:center;}
+  .stat .n{font-size:20px;font-weight:700;}
+  .stat .l{font-size:11px;opacity:.92;margin-top:2px;}
+
+  /* 工单条目 */
+  .wo{background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:12px;
+    box-shadow:var(--shadow);}
+  .wo-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .wo-id{font-weight:600;font-size:14px;}
+  .wo-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;}
+  .wo-row .muted{width:54px;flex:0 0 auto;}
+  .wo-addr{max-width:150px;text-align:right;color:var(--text);}
+  .wo-actions{display:flex;gap:8px;margin-top:6px;}
+
+  /* 进度条 */
+  .bar{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:4px;}
+  .bar>div{height:100%;background:var(--brand);}
+  .bar.full>div{background:var(--danger);}
+
+  /* 分段 */
+  .seg{display:flex;background:var(--bg);border-radius:999px;padding:3px;gap:3px;margin-bottom:10px;}
+  .seg .it{flex:1;text-align:center;padding:7px 0;font-size:12px;color:var(--text-sub);
+    border-radius:999px;}
+  .seg .it.on{background:var(--surface);color:var(--brand);font-weight:600;box-shadow:var(--shadow);}
+
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--brand),var(--brand-600));color:#fff;
+    border-radius:0 0 24px 24px;padding:18px 16px;}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .hero-hi{font-size:18px;font-weight:700;}
+  .hero-sub2{font-size:12px;opacity:.9;margin-top:4px;}
+  .hero-avatar{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.25);
+    display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .hero-name{font-size:20px;font-weight:700;}
+  .hero-sub{font-size:12px;opacity:.92;margin-top:4px;}
+
+  /* 输入 */
+  .input{background:#fffaf3;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    padding:10px;margin:6px 0;font-size:14px;width:100%;}
+  .field{display:flex;align-items:center;background:#fffaf3;border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);padding:10px 12px;margin:8px 0;}
+  .field-ic{font-size:18px;margin-right:8px;}
+  .field-input{flex:1;border:none;background:transparent;font-size:14px;outline:none;}
+  .code-btn{color:var(--brand);font-size:12px;background:var(--brand-100);padding:5px 10px;border-radius:999px;}
+
+  /* 登录 */
+  .login-wrap{height:100%;background:linear-gradient(160deg,#fff7ed,#ffe8d6);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .brand{text-align:center;margin-bottom:24px;}
+  .brand-logo{width:64px;height:64px;border-radius:20px;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 12px;
+    box-shadow:0 8px 20px rgba(124,45,18,.2);}
+  .brand-title{font-size:22px;font-weight:700;color:var(--brand-700);}
+  .brand-sub{font-size:13px;color:var(--text-sub);margin-top:4px;}
+  .login-card{background:#fff;border-radius:20px;padding:20px;width:100%;box-shadow:var(--shadow);}
+  .login-tip{text-align:center;color:var(--text-mute);font-size:12px;margin-top:12px;}
+
+  /* 底部 tabBar */
+  .tabbar{flex:0 0 auto;display:flex;background:#fff;border-top:1px solid var(--border);
+    padding:6px 0 calc(6px + 4px);}
+  .tabbar .tb{flex:1;text-align:center;font-size:11px;color:#94a3b8;}
+  .tabbar .tb.on{color:var(--brand);font-weight:600;}
+  .tabbar .tb .ic{font-size:20px;display:block;margin-bottom:2px;}
+
+  /* 底部操作条 */
+  .action-bar{flex:0 0 auto;background:#fff;padding:10px 14px;display:flex;gap:10px;
+    box-shadow:0 -4px 16px rgba(124,45,18,.08);}
+  .action-bar .btn-primary,.action-bar .btn-ghost{flex:1;margin-top:0;}
+
+  /* 步骤条 */
+  .step{display:flex;align-items:center;margin:6px 0;}
+  .step .dot{width:20px;height:20px;border-radius:50%;background:#e5e7eb;color:#94a3b8;
+    font-size:12px;text-align:center;line-height:20px;margin-right:8px;flex:0 0 auto;}
+  .step.done .dot{background:var(--brand);color:#fff;}
+
+  /* shift */
+  .shift{display:flex;justify-content:space-between;align-items:center;background:#fff;
+    border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);}
+  .shift-day{font-size:14px;font-weight:600;}
+  .shift-val{font-size:13px;color:var(--text-sub);}
+  .shift-val.rest{color:var(--text-mute);}
+
+  /* note */
+  .note{background:var(--brand-100);color:var(--brand-700);font-size:12px;
+    padding:10px 12px;border-radius:var(--radius-sm);margin-top:6px;line-height:1.6;}
+
+  /* empty */
+  .empty{padding:50px 20px;text-align:center;color:var(--text-mute);}
+  .empty .em-ic{font-size:48px;opacity:.45;}
+  .empty .em-t{font-size:14px;margin-top:10px;color:var(--text-sub);}
+
+  /* 服务确认 */
+  .svc{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;
+    border-bottom:1px solid var(--border);font-size:14px;}
+  .svc:last-child{border-bottom:none;}
+  .svc-state{font-size:12px;color:var(--text-mute);}
+  .svc-state.on{color:var(--success);font-weight:600;}
+  .measure{display:flex;gap:12px;}
+  .measure-item{flex:1;}
+  .divider{height:1px;background:var(--border);margin:10px 0;}
+
+  .footer-note{max-width:1180px;margin:40px auto 0;font-size:12px;color:#9ca3af;
+    border-top:1px solid #e5e7eb;padding-top:16px;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>宽带业务管理系统 · 师傅端视觉验收稿</h1>
+  <div class="sub">
+    <span class="tag">橙 #ea580c</span>
+    <span class="tag">broadband-worker</span>
+    本稿依据仓库真实 <code>app.wxss</code> / <code>app.json</code> / 8 个页面 <code>wxml</code> 还原，作为本环境（无微信开发者工具 / 浏览器）「截图验收」的可视化替代物。
+    请在微信开发者工具导入 <code>broadband-worker/</code> 后按本稿逐项核对，确认无误即可截图归档。
+  </div>
+  <div class="legend">
+    <span><i style="background:#ea580c"></i>品牌主色</span>
+    <span><i style="background:#16a34a"></i>成功/已完成</span>
+    <span><i style="background:#d97706"></i>进行中/警告</span>
+    <span><i style="background:#dc2626"></i>已满/危险</span>
+    <span><i style="background:#fff7ed;border:1px solid #f0d9c4"></i>页面底色</span>
+  </div>
+</div>
+
+<div class="gallery">
+
+  <!-- 1. 登录 -->
+  <div class="screen-wrap">
+    <div class="screen-label">登录 <small>pages/login/login</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="login-wrap">
+            <div class="brand">
+              <div class="brand-logo">👷</div>
+              <div class="brand-title">装维师傅端</div>
+              <div class="brand-sub">登录接单 · 回传完工</div>
+            </div>
+            <div class="login-card">
+              <div class="field"><span class="field-ic">📱</span>
+                <input class="field-input" placeholder="请输入手机号" value="138****6677"/></div>
+              <div class="field"><span class="field-ic">🔑</span>
+                <input class="field-input" placeholder="验证码" value="1234"/>
+                <span class="code-btn">获取验证码</span></div>
+              <div class="btn-primary">登录</div>
+              <div class="login-tip">演示验证码：1234</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 工单（首页 / tab1） -->
+  <div class="screen-wrap">
+    <div class="screen-label">工单（首页 · Tab 1）<small>pages/index/index</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container-lg">
+            <div class="hero">
+              <div class="hero-top">
+                <div>
+                  <div class="hero-hi">09-15 周二 · 师傅辛苦了</div>
+                  <div class="hero-sub2">今日工单与容量一览</div>
+                </div>
+                <div class="hero-avatar">👷</div>
+              </div>
+            </div>
+            <div class="grid3 stats" style="margin:12px 0;">
+              <div class="stat"><div class="n">6</div><div class="l">待接单</div></div>
+              <div class="stat"><div class="n">3</div><div class="l">施工中</div></div>
+              <div class="stat"><div class="n">9</div><div class="l">今日完工</div></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title" style="margin:0">今日工单</div>
+                <div class="more">全部 ›</div></div>
+              <div class="wo">
+                <div class="wo-top"><div class="wo-id">工单 #W1001</div>
+                  <span class="tag tag-warning">待上门</span></div>
+                <div class="wo-row"><span class="muted">客户</span><span>张伟</span></div>
+                <div class="wo-row"><span class="muted">地址</span><span class="wo-addr">阳光花园3栋2单元1801</span></div>
+                <div class="wo-row"><span class="muted">套餐</span><span>500M融合套餐</span></div>
+                <div class="wo-row"><span class="muted">时段</span><span>09:00-12:00</span></div>
+                <div class="wo-actions">
+                  <span class="btn-ghost btn-sm">查看</span>
+                  <span class="btn-primary btn-sm">开始完工</span>
+                </div>
+              </div>
+              <div class="wo">
+                <div class="wo-top"><div class="wo-id">工单 #W1002</div>
+                  <span class="tag tag-primary">施工中</span></div>
+                <div class="wo-row"><span class="muted">客户</span><span>李娜</span></div>
+                <div class="wo-row"><span class="muted">地址</span><span class="wo-addr">滨江苑5栋1单元602</span></div>
+                <div class="wo-row"><span class="muted">套餐</span><span>1000M极速套餐</span></div>
+                <div class="wo-row"><span class="muted">时段</span><span>14:00-18:00</span></div>
+                <div class="wo-actions">
+                  <span class="btn-ghost btn-sm">查看</span>
+                  <span class="btn-primary btn-sm">开始完工</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb on"><span class="ic">📋</span>工单</div>
+          <div class="tb"><span class="ic">📦</span>任务</div>
+          <div class="tb"><span class="ic">👤</span>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 任务（Tab 2） -->
+  <div class="screen-wrap">
+    <div class="screen-label">任务（Tab 2）<small>pages/order/order</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="nav-bar">工单任务</div>
+            <div class="seg">
+              <div class="it on">待接单</div>
+              <div class="it">施工中</div>
+              <div class="it">已完成</div>
+              <div class="it">已取消</div>
+            </div>
+            <div class="wo">
+              <div class="wo-top"><div class="wo-id">工单 #W1003</div>
+                <span class="tag tag-warning">待上门</span></div>
+              <div class="wo-row"><span class="muted">客户</span><span>王芳</span></div>
+              <div class="wo-row"><span class="muted">地址</span><span class="wo-addr">翠湖天地8栋3单元1102</span></div>
+            </div>
+            <div class="wo">
+              <div class="wo-top"><div class="wo-id">工单 #W1001</div>
+                <span class="tag tag-warning">待上门</span></div>
+              <div class="wo-row"><span class="muted">客户</span><span>张伟</span></div>
+              <div class="wo-row"><span class="muted">地址</span><span class="wo-addr">阳光花园3栋2单元1801</span></div>
+            </div>
+            <div class="empty" style="padding:30px 0;">
+              <div class="em-ic">📭</div>
+              <div class="em-t" style="font-size:13px">待接单 暂无更多工单</div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb"><span class="ic">📋</span>工单</div>
+          <div class="tb on"><span class="ic">📦</span>任务</div>
+          <div class="tb"><span class="ic">👤</span>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 工单详情 -->
+  <div class="screen-wrap">
+    <div class="screen-label">工单详情 <small>pages/order-detail/order-detail</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="card-head" style="padding-top:4px;">
+              <div class="h1">#W1002</div>
+              <span class="tag tag-primary">施工中</span>
+            </div>
+            <div class="card">
+              <div class="card-title">安装信息</div>
+              <div class="wo-row"><span class="muted">客户</span><span>李娜</span></div>
+              <div class="wo-row"><span class="muted">联系电话</span><span>138****6677</span></div>
+              <div class="wo-row"><span class="muted">地址</span><span class="wo-addr">滨江苑5栋1单元602</span></div>
+              <div class="wo-row"><span class="muted">套餐</span><span>1000M极速套餐</span></div>
+              <div class="wo-row"><span class="muted">上门时段</span><span>今日 14:00-18:00</span></div>
+            </div>
+            <div class="card">
+              <div class="card-title">服务项</div>
+              <div class="tags">
+                <span class="pill">光纤熔接</span><span class="pill">光猫调测</span>
+                <span class="pill">路由器配置</span><span class="pill">IPTV开通</span>
+                <span class="pill">网速测速</span><span class="pill">现场清理</span>
+              </div>
+            </div>
+            <div class="grid3">
+              <div class="btn-ghost">🧭 导航</div>
+              <div class="btn-ghost">📞 联系客户</div>
+            </div>
+            <div class="btn-primary">开始完工回传</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 容量看板 -->
+  <div class="screen-wrap">
+    <div class="screen-label">容量看板 <small>pages/capacity/capacity</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="nav-bar">容量看板</div>
+            <div class="card">
+              <div class="card-title">09-15 师傅时段容量</div>
+              <div style="margin:10px 0;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+                  <span>上午 09:00-12:00</span><span class="muted">3/4 单</span></div>
+                <div class="bar"><div style="width:75%"></div></div>
+              </div>
+              <div style="margin:10px 0;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+                  <span>下午 14:00-18:00</span><span class="muted">2/4 单</span></div>
+                <div class="bar"><div style="width:50%"></div></div>
+              </div>
+              <div style="margin:10px 0;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+                  <span>晚间 18:00-21:00</span><span class="muted">0/3 单</span></div>
+                <div class="bar"><div style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="note">📌 相邻小区每时段 3-4 单、非相邻 1-2 单；满容工单将自动顺延至下一时段。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 我的排班 -->
+  <div class="screen-wrap">
+    <div class="screen-label">我的排班 <small>pages/schedule/schedule</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="nav-bar">我的排班</div>
+            <div class="shift"><div class="shift-day">09-15 周二</div>
+              <div class="shift-val">09:00-12:00 / 14:00-18:00</div></div>
+            <div class="shift"><div class="shift-day">09-16 周三</div>
+              <div class="shift-val rest">休息</div></div>
+            <div class="shift"><div class="shift-day">09-17 周四</div>
+              <div class="shift-val">09:00-12:00 / 14:00-18:00</div></div>
+            <div class="shift"><div class="shift-day">09-18 周五</div>
+              <div class="shift-val">14:00-18:00 / 18:00-21:00</div></div>
+            <div class="shift"><div class="shift-day">09-19 周六</div>
+              <div class="shift-val">09:00-12:00</div></div>
+            <div class="shift"><div class="shift-day">09-20 周日</div>
+              <div class="shift-val rest">休息</div></div>
+            <div class="shift"><div class="shift-day">09-21 周一</div>
+              <div class="shift-val">09:00-12:00 / 14:00-18:00</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 完工确认 -->
+  <div class="screen-wrap">
+    <div class="screen-label">完工确认 <small>pages/confirm/confirm</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="card">
+              <div class="card-title">工单 #W1002 · 李娜</div>
+              <div class="muted">滨江苑5栋1单元602 · 1000M极速套餐</div>
+            </div>
+            <div class="card">
+              <div class="card-title">六项服务确认</div>
+              <div class="svc"><span>上门签到</span><span class="svc-state on">✓ 已完成</span></div>
+              <div class="svc"><span>光纤熔接</span><span class="svc-state on">✓ 已完成</span></div>
+              <div class="svc"><span>光猫调测</span><span class="svc-state on">✓ 已完成</span></div>
+              <div class="svc"><span>路由器配置</span><span class="svc-state">○ 待完成</span></div>
+              <div class="svc"><span>IPTV开通</span><span class="svc-state">○ 待完成</span></div>
+              <div class="svc"><span>现场清理</span><span class="svc-state">○ 待完成</span></div>
+            </div>
+            <div class="card">
+              <div class="card-title">装机测速</div>
+              <div class="measure">
+                <div class="measure-item"><span class="muted">下行速率</span>
+                  <input class="input" placeholder="Mbps" value="942"/></div>
+                <div class="measure-item"><span class="muted">上行速率</span>
+                  <input class="input" placeholder="Mbps" value="108"/></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">客户签名</div>
+              <input class="input" placeholder="请输入客户姓名" value="李娜"/>
+            </div>
+            <div class="btn-primary">提交完工</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. 我的（Tab 3） -->
+  <div class="screen-wrap">
+    <div class="screen-label">我的（Tab 3）<small>pages/profile/profile</small></div>
+    <div class="phone"><div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="icons">📶 🔋</span></div>
+        <div class="scroll">
+          <div class="content container">
+            <div class="hero">
+              <div class="hero-name">张师傅</div>
+              <div class="hero-sub">工号 WK0088 · 138****6677 · ⭐4.9</div>
+            </div>
+            <div class="grid3 stats" style="margin:12px 0;">
+              <div class="stat"><div class="n">326</div><div class="l">累计工单</div></div>
+              <div class="stat"><div class="n">89</div><div class="l">本月完工</div></div>
+              <div class="stat"><div class="n">98%</div><div class="l">好评率</div></div>
+            </div>
+            <div class="card">
+              <div class="card-title">客户评价标签</div>
+              <div class="tags">
+                <span class="pill">准时</span><span class="pill">专业</span>
+                <span class="pill">耐心</span><span class="pill">干净</span>
+                <span class="pill">沟通好</span>
+              </div>
+            </div>
+            <div class="btn-ghost" style="margin-top:12px">退出登录</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tb"><span class="ic">📋</span>工单</div>
+          <div class="tb"><span class="ic">📦</span>任务</div>
+          <div class="tb on"><span class="ic">👤</span>我的</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-note">
+  验收要点：① 三端主题色区分——客户端蓝 <code>#2563eb</code> / 师傅端橙 <code>#ea580c</code> / 后台靛 <code>#4f46e5</code>；
+  ② 师傅端 TabBar 为「工单 / 任务 / 我的」三页，其余 5 页（order-detail / confirm / capacity / schedule / login）为非 tab 页；
+  ③ 容量看板进度条满容（<code>used≥max</code>）变红，与派单规则「相邻 3-4 / 非相邻 1-2」一致；
+  ④ 登录页为手机号 + 验证码（演示 1234），与 §5.1 文档一致。
+  本稿为静态还原，字段文案以仓库 <code>broadband-worker</code> 源码为准；如与开发者工具实际渲染有像素级差异，以真机/工具为准。
+</div>
+
+</body>
+</html>

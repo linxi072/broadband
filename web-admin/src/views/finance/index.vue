@@ -2,9 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import { financeReport, slaCompensations } from '@/api/business'
+import DetailDrawer from '@/components/DetailDrawer.vue'
+import { financeReport, slaCompensations, financeReportDetail } from '@/api/business'
 import { loadResource, money } from '@/composables/useResource'
-import { demoFinance } from '@/mock/fallback'
+import { demoFinance, demoFinanceDetail } from '@/mock/fallback'
 
 const rows = ref([])
 const live = ref(false)
@@ -44,6 +45,33 @@ onMounted(async () => {
   comps.value = Array.isArray(c.data) ? c.data : []
   loading.value = false
 })
+
+// ---- 财务月度下钻（US-2.2）：点击趋势图某月份，查看该月底层订单 + 赔付明细
+const detail = ref([])
+const detailLoading = ref(false)
+const detailVisible = ref(false)
+const detailTitle = ref('')
+const detailColumns = [
+  { prop: 'type', label: '类型', width: 80 },
+  { prop: 'ref', label: '单号/工单', minWidth: 150 },
+  { prop: 'customer', label: '客户', width: 120 },
+  { prop: 'amount', label: '金额', width: 110, format: (r) => money(r.amount) },
+  { prop: 'status', label: '状态', width: 110 },
+  { prop: 'reason', label: '备注', minWidth: 200, format: (r) => r.reason || '—' },
+  { prop: 'createdDate', label: '日期', width: 120 }
+]
+
+async function onFinanceChartClick(params) {
+  if (!params || !params.name) return
+  const month = params.name
+  detailTitle.value = `财务明细下钻 · ${month}`
+  detailLoading.value = true
+  detailVisible.value = true
+  const r = await loadResource(() => financeReportDetail({ month }), () => demoFinanceDetail(month))
+  const d = r.data || {}
+  detail.value = d.rows || []
+  detailLoading.value = false
+}
 </script>
 
 <template>
@@ -64,8 +92,8 @@ onMounted(async () => {
     </div>
 
     <div class="card">
-      <div class="card-head"><h3>近 3 月收支趋势</h3><SourceTag :live="live" /></div>
-      <div class="card-body"><ChartBox :option="trendOption" height="280px" /></div>
+      <div class="card-head"><h3>近 3 月收支趋势<span class="hint">点击月份下钻明细</span></h3><SourceTag :live="live" /></div>
+      <div class="card-body"><ChartBox :option="trendOption" height="280px" @chart-click="onFinanceChartClick" /></div>
     </div>
 
     <div class="card">
@@ -115,6 +143,15 @@ onMounted(async () => {
         <template #empty><EmptyState icon="🛡" title="暂无赔付记录" desc="SLA 超时触发赔付后将在此留痕" /></template>
       </el-table>
     </div>
+
+    <DetailDrawer
+      v-model:visible="detailVisible"
+      :title="detailTitle"
+      :columns="detailColumns"
+      :rows="detail"
+      :loading="detailLoading"
+      :live="live"
+    />
   </div>
 </template>
 
@@ -132,5 +169,12 @@ onMounted(async () => {
 
 .up {
   color: var(--bd-up);
+}
+
+.hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--bd-text-mute);
+  margin-left: 8px;
 }
 </style>

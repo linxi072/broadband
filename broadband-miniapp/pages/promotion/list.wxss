@@ -1,0 +1,7 @@
+/* pages/promotion/list.wxss */
+.promo { display: flex; align-items: center; padding: 24rpx; }
+.promo-cover { width: 96rpx; height: 96rpx; border-radius: 20rpx; background: var(--c-50); color: var(--c-700); display: flex; align-items: center; justify-content: center; font-size: 48rpx; margin-right: 20rpx; flex-shrink: 0; }
+.promo-body { flex: 1; min-width: 0; }
+.promo-title { font-size: 30rpx; font-weight: 600; color: var(--ink-900); }
+.promo-sub { font-size: 24rpx; color: var(--text-sub); margin: 8rpx 0 12rpx; }
+.promo-arrow { color: var(--text-mute); font-size: 40rpx; margin-left: 8rpx; }

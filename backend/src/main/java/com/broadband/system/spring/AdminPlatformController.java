@@ -9,18 +9,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.broadband.system.service.SysDepartmentService;
+
 import javax.sql.DataSource;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadMXBean;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * 平台级运营聚合接口（数据看板 / 流量总览 / 性能监控）。
@@ -35,9 +40,14 @@ public class AdminPlatformController {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ApiMetricsFilter metrics;
     @Autowired private DataSource dataSource;
+    @Autowired private SysDepartmentService departmentService;
 
     @Value("${server.port:8082}")
     private int serverPort;
+
+    private static final java.util.Map<String, String> ORDER_TYPE_LABELS = java.util.Map.of(
+            "NEW_INSTALL", "新装宽带", "MOVE", "宽带移机", "REPAIR", "故障报修",
+            "SPEED_UP", "宽带提速", "RENEW", "续费");
 
     // ==================================================================== 数据看板
 
@@ -108,6 +118,14 @@ public class AdminPlatformController {
                 WHERE 1 = 1
                 """);
         List<Object> args = new ArrayList<>();
+
+        // 数据权限：运营人员仅看本部门及下级部门订单；管理员（deptId 为空）看全部
+        List<String> scope = dataScopeDeptIds();
+        if (scope != null) {
+            sql.append(" AND o.dept_id IN (").append(placeholders(scope)).append(")");
+            args.addAll(scope);
+        }
+
         if (status != null && !status.isBlank()) {
             sql.append(" AND o.status = ?");
             args.add(status);
@@ -121,6 +139,22 @@ public class AdminPlatformController {
         }
         sql.append(" ORDER BY o.created_time DESC LIMIT 500");
         return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    /** 当前登录用户的数据权限部门集合；null 表示不限定（看全部）。 */
+    private List<String> dataScopeDeptIds() {
+        var me = AuthController.current();
+        if (me == null || me.user.deptId == null || me.user.deptId.isEmpty()) return null;
+        return departmentService.visibleDeptIds(me.user.deptId);
+    }
+
+    private static String placeholders(List<String> list) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(',');
+            sb.append('?');
+        }
+        return sb.toString();
     }
 
     // ==================================================================== 流量总览
@@ -261,6 +295,149 @@ public class AdminPlatformController {
         out.put("nodes", nodes);
 
         return out;
+    }
+
+    // ==================================================================== 装维 SLA 履约看板
+
+    /** SLA 履约看板：汇总指标 + 分类型达标率 + 近 14 日超时分布 + 近 6 月赔付趋势 + 最近赔付。 */
+    @GetMapping("/sla/dashboard")
+    @PreAuthorize("hasAuthority('sla:view')")
+    public Map<String, Object> slaDashboard() {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        long total = count("SELECT COUNT(*) FROM sla_record");
+        long met = count("SELECT COUNT(*) FROM sla_record WHERE sla_status = 'MET'");
+        long overtime = count("SELECT COUNT(*) FROM sla_record WHERE sla_status = 'OVERTIME'");
+        double slaRate = total == 0 ? 100.0 : round1(met * 100.0 / total);
+        long pendingComp = count("SELECT COUNT(*) FROM compensation WHERE status IN ('PENDING','VERIFYING')");
+        long totalComp = sum("SELECT COALESCE(SUM(comp_amount),0) FROM compensation");
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("total", total);
+        summary.put("met", met);
+        summary.put("overtime", overtime);
+        summary.put("slaRate", slaRate);
+        summary.put("avgResponseMin", avgResponseMinutes());
+        summary.put("totalCompAmount", round1(totalComp));
+        summary.put("pendingCompCount", pendingComp);
+        out.put("summary", summary);
+
+        List<Map<String, Object>> byType = new ArrayList<>();
+        for (Map<String, Object> r : jdbc.queryForList("""
+                SELECT order_type AS orderType,
+                       COUNT(*) AS total,
+                       SUM(CASE WHEN sla_status = 'MET' THEN 1 ELSE 0 END) AS met,
+                       SUM(CASE WHEN sla_status = 'OVERTIME' THEN 1 ELSE 0 END) AS overtime
+                FROM sla_record GROUP BY order_type
+                """)) {
+            String ot = String.valueOf(r.get("orderType"));
+            long t = num(r.get("total"));
+            long m = num(r.get("met"));
+            long o = num(r.get("overtime"));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orderType", ot);
+            row.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(ot, ot));
+            row.put("total", t);
+            row.put("met", m);
+            row.put("overtime", o);
+            row.put("slaRate", t == 0 ? 100.0 : round1(m * 100.0 / t));
+            byType.add(row);
+        }
+        out.put("byType", byType);
+
+        List<Map<String, Object>> overtimeByDay = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        for (int i = 13; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            long from = d.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long to = d.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long ot = count("SELECT COUNT(*) FROM sla_record WHERE sla_status='OVERTIME' AND created_time >= ? AND created_time < ?", from, to);
+            long mt = count("SELECT COUNT(*) FROM sla_record WHERE sla_status='MET' AND created_time >= ? AND created_time < ?", from, to);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", String.format("%02d-%02d", d.getMonthValue(), d.getDayOfMonth()));
+            row.put("overtime", ot);
+            row.put("met", mt);
+            overtimeByDay.add(row);
+        }
+        out.put("overtimeByDay", overtimeByDay);
+
+        List<Map<String, Object>> compTrend = new ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            LocalDate d = today.minusMonths(i);
+            long from = d.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long to = d.plusMonths(1).withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            double amt = sum("SELECT COALESCE(SUM(comp_amount),0) FROM compensation WHERE created_time >= ? AND created_time < ?", from, to);
+            long cnt = count("SELECT COUNT(*) FROM compensation WHERE created_time >= ? AND created_time < ?", from, to);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("month", String.format("%d-%02d", d.getYear(), d.getMonthValue()));
+            row.put("compAmount", round1(amt));
+            row.put("compCount", cnt);
+            compTrend.add(row);
+        }
+        out.put("compTrend", compTrend);
+
+        out.put("recentCompensations", jdbc.queryForList("""
+                SELECT id, order_id AS orderId, cust_name AS custName, order_type AS orderType,
+                       comp_type AS compType, comp_amount AS compAmount, reason, status, created_time AS createdTime
+                FROM compensation ORDER BY created_time DESC LIMIT 8
+                """));
+
+        // ---- 超时热力：按 星期 × 小时 统计 OVERTIME 工单分布（看板「超时热力」）----
+        int[][] matrix = new int[7][24]; // 行=周一~周日，列=0~23 时
+        for (Map<String, Object> r : jdbc.queryForList("""
+                SELECT COALESCE(complete_time, created_time) AS ts
+                FROM sla_record WHERE sla_status = 'OVERTIME'
+                AND COALESCE(complete_time, created_time) > 0
+                """)) {
+            Object ts = r.get("ts");
+            long ms = ts instanceof Number ? ((Number) ts).longValue() : 0;
+            if (ms <= 0) continue;
+            LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault());
+            matrix[ldt.getDayOfWeek().getValue() - 1][ldt.getHour()]++;
+        }
+        List<List<Integer>> values = new ArrayList<>();
+        for (int d = 0; d < 7; d++) {
+            List<Integer> row = new ArrayList<>();
+            for (int h = 0; h < 24; h++) row.add(matrix[d][h]);
+            values.add(row);
+        }
+        Map<String, Object> heatmap = new LinkedHashMap<>();
+        heatmap.put("days", java.util.List.of("周一", "周二", "周三", "周四", "周五", "周六", "周日"));
+        heatmap.put("hours", IntStream.range(0, 24).boxed().toList());
+        heatmap.put("values", values);
+        out.put("heatmap", heatmap);
+
+        return out;
+    }
+
+    /**
+     * SLA 超时热力下钻：返回指定「星期 × 时段」单元的超时工单明细。
+     * 前端点击热力图单元格时调用（dayOfWeek 1..7 周一为 1；hour 0..23）。
+     */
+    @GetMapping("/sla/overtime-detail")
+    @PreAuthorize("hasAuthority('sla:view')")
+    public List<Map<String, Object>> slaOvertimeDetail(@RequestParam int dayOfWeek, @RequestParam int hour) {
+        List<Map<String, Object>> rows = jdbc.queryForList("""
+                SELECT sr.id, sr.order_id AS orderId, sr.order_type AS orderType,
+                       sr.accept_time AS acceptTime, sr.complete_time AS completeTime, sr.created_time AS createdTime,
+                       bo.customer_name AS customerName, bo.community_name AS community
+                FROM sla_record sr
+                LEFT JOIN biz_order bo ON bo.id = sr.order_id
+                WHERE sr.sla_status = 'OVERTIME'
+                """);
+        List<Map<String, Object>> matched = new ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            Object ts = r.get("completeTime");
+            if (ts == null || ((Number) ts).longValue() <= 0) ts = r.get("createdTime");
+            long ms = ts instanceof Number ? ((Number) ts).longValue() : 0;
+            if (ms <= 0) continue;
+            LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault());
+            if (ldt.getDayOfWeek().getValue() == dayOfWeek && ldt.getHour() == hour) {
+                r.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(String.valueOf(r.get("orderType")), String.valueOf(r.get("orderType"))));
+                matched.add(r);
+            }
+        }
+        return matched;
     }
 
     // ==================================================================== 工具

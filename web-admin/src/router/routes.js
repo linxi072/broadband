@@ -43,6 +43,12 @@ export const navConfig = [
         perm: 'package:edit',
         routePath: '/package/edit/:id?',
         component: () => import('@/views/package/edit.vue')
+      },
+      {
+        title: '营销看板',
+        path: '/package/marketing',
+        perm: 'package:view',
+        component: () => import('@/views/package/marketing.vue')
       }
     ]
   },
@@ -110,6 +116,13 @@ export const navConfig = [
     component: () => import('@/views/sla/index.vue')
   },
   {
+    title: '数据智能',
+    path: '/intelligence',
+    icon: '🧠',
+    perm: 'intelligence:view',
+    component: () => import('@/views/intelligence/index.vue')
+  },
+  {
     title: '流量监控',
     path: '/traffic',
     icon: '📶',
@@ -164,6 +177,12 @@ export const navConfig = [
         path: '/system/log',
         perm: 'system:log',
         component: () => import('@/views/system/log.vue')
+      },
+      {
+        title: '部门管理',
+        path: '/system/department',
+        perm: 'system:dept',
+        component: () => import('@/views/system/department.vue')
       }
     ]
   },

@@ -46,6 +46,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!-- 监控（G6 监控深化）：Spring Boot Actuator + Micrometer Prometheus 注册表。
+             /actuator/prometheus 供 Prometheus 抓取；HTTP/JVM/GC/线程/连接池指标由 Micrometer 自动采集。
+             版本由 spring-boot-starter-parent 3.2.1 统一管理，无需显式指定。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

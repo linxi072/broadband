@@ -53,7 +53,20 @@ public class SecurityConfig {
             "/api/order/tracking",
             "/api/review/create",
             "/api/review/my",
-            "/api/traffic/usage"
+            "/api/traffic/usage",
+            "/api/repair/create",
+            "/api/repair/my",
+            // V1.14 运营留存（C 端开放层）
+            "/api/account/summary",
+            "/api/account/bills",
+            "/api/points/balance",
+            "/api/points/sign",
+            "/api/points/tasks",
+            "/api/points/mall",
+            "/api/points/redeem",
+            "/api/promotions",
+            "/api/support/faq",
+            "/api/support/ticket"
     };
 
     @Value("${app.security.protect-client-api:false}")
@@ -77,6 +90,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
+                                           MustChangePasswordFilter mustChangePasswordFilter,
                                            RestAuthHandlers handlers) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
@@ -89,12 +103,17 @@ public class SecurityConfig {
             .authorizeHttpRequests(reg -> {
                 reg.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                 reg.requestMatchers("/api/auth/login", "/api/auth/miniapp-login", "/api/auth/worker-login", "/error").permitAll();
+                // 监控（G6）：仅暴露 health/info/prometheus 三个只读端点，prometheus 由内网抓取，不对外网开放。
+                reg.requestMatchers("/actuator/**").permitAll();
+                // 数据字典 / 参数配置 开放读取（C 端小程序下拉与参数获取用，免鉴权）
+                reg.requestMatchers("/api/dict/public/**", "/api/config/public/**").permitAll();
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }
                 reg.anyRequest().authenticated();
             })
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(mustChangePasswordFilter, JwtAuthFilter.class);
 
         return http.build();
     }

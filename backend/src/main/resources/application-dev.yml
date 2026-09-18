@@ -1,0 +1,22 @@
+# ============================================================================
+# 开发环境 profile（spring.profiles.active=dev）
+#   本地联调：放开全部只读 actuator 端点、打印 SQL、debug 日志。
+#   敏感项仍走环境变量（DB_PASSWORD 等），不在此落明文。
+# ============================================================================
+spring:
+  datasource:
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      continue-on-error: false
+
+logging:
+  level:
+    com.broadband: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics

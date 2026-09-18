@@ -153,7 +153,9 @@ INSERT IGNORE INTO package_param_option (id, param_id, option_value, extra_fee, 
 INSERT IGNORE INTO customer (id, name, phone, level, package_id, community_id, address, status, created_time) VALUES
  ('demo',    '演示客户', '13800000000', 'GOLD',   'pkg500',  'com_ns01', '深圳市南山区科技园路1号 3栋802',   'ACTIVE', UNIX_TIMESTAMP('2026-04-01 10:00:00') * 1000),
  ('C20260002', '林小雨', '13800000002', 'SILVER', 'pkg1000', 'com_ns02', '深圳市南山区科技园路9号 8栋601',   'ACTIVE', UNIX_TIMESTAMP('2026-05-12 14:30:00') * 1000),
- ('C20260003', '何大军', '13800000003', 'NORMAL', 'pkg300',  'com_ft01', '深圳市福田区香蜜湖路88号 1栋1601','ACTIVE', UNIX_TIMESTAMP('2026-06-20 09:15:00') * 1000);
+ ('C20260003', '何大军', '13800000003', 'NORMAL', 'pkg300',  'com_ft01', '深圳市福田区香蜜湖路88号 1栋1601','ACTIVE', UNIX_TIMESTAMP('2026-06-20 09:15:00') * 1000),
+ ('C20260004', '陈默',   '13800000004', 'SILVER', 'pkg300',  'com_ft01', '深圳市福田区福华路18号 2栋503',  'ACTIVE', UNIX_TIMESTAMP('2024-01-10 10:00:00') * 1000),
+ ('C20260005', '赵敏',   '13800000005', 'GOLD',   'pkg1000', 'com_ns02', '深圳市南山区科技园路9号 8栋601',  'ACTIVE', UNIX_TIMESTAMP('2025-01-08 10:00:00') * 1000);
 
 -- ---------------------------------------------------------------------------
 -- 客户合约（demo 剩余约 18 个月，用于升级补差折算）
@@ -161,7 +163,12 @@ INSERT IGNORE INTO customer (id, name, phone, level, package_id, community_id, a
 INSERT IGNORE INTO customer_contract (id, customer_id, package_id, monthly_fee, start_date, end_date, status) VALUES
  ('ct_demo',   'demo',      'pkg500',   99, '2026-04-01', '2028-03-31', 'ACTIVE'),
  ('ct_c0002',  'C20260002', 'pkg1000', 159, '2026-05-12', '2028-05-11', 'ACTIVE'),
- ('ct_c0003',  'C20260003', 'pkg300',   69, '2026-06-20', '2027-06-19', 'ACTIVE');
+ ('ct_c0003',  'C20260003', 'pkg300',   69, '2026-06-20', '2027-06-19', 'ACTIVE'),
+ ('ct_c0005',  'C20260005', 'pkg1000', 159, '2025-01-08', '2026-11-15', 'ACTIVE');
+
+-- 演示「流失预警」：陈默(C20260004) 仅 2024 年初有一次历史签到，之后无任何互动（>180 天）
+INSERT IGNORE INTO points_record (id, customer_id, type, amount, remark, created_time) VALUES
+ ('pr_c0004_1', 'C20260004', 'SIGN', 5, '历史签到', UNIX_TIMESTAMP('2024-03-01 10:00:00') * 1000);
 
 -- ---------------------------------------------------------------------------
 -- 流量用量（当期 2026-09）
@@ -204,6 +211,56 @@ INSERT IGNORE INTO review (id, order_id, customer_name, worker_name, score, tags
  ('RV20260911001','WO2026091101','王女士','李强',3,'迟到',          'COMPLAINT','预约下午上门，实际晚上才到，影响了当天安排。','PROCESSING', UNIX_TIMESTAMP('2026-09-11 20:05:00')*1000),
  ('RV20260910001','WO2026091001','赵女士','王芳',4,'专业',          'REVIEW','布线整齐，测速达标。','CLOSED', UNIX_TIMESTAMP('2026-09-10 17:10:00')*1000);
 
+-- ---------------------------------------------------------------------------
+-- 部门（按区域划分：华南大区 > 深圳 / 广州分公司；华东大区 > 上海分公司）
+-- 树形：parent_id 为空为区域根；sys_user / community / 订单 经 dept_id 归属，
+-- 实现「运营人员只能看本部门及下级部门数据」的行级隔离。
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO sys_department (id, parent_id, name, region, sort_order, status, created_time) VALUES
+ ('D1', NULL, '华南大区',   '华南', 1, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D2', 'D1', '深圳分公司', '华南', 2, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D3', 'D1', '广州分公司', '华南', 3, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D4', NULL, '华东大区',   '华东', 4, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('D5', 'D4', '上海分公司', '华东', 5, 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 已存在小区归属部门（深圳片区 -> 深圳分公司）
+UPDATE community SET dept_id = 'D2' WHERE region IN ('南山','福田','宝安') AND (dept_id IS NULL OR dept_id = '');
+
+-- 上海演示小区（归属 上海分公司，用于验证跨区数据隔离）
+INSERT IGNORE INTO community (id, name, region, street, latitude, longitude, installable, port_total, port_used, dept_id) VALUES
+ ('com_sh01','上海康桥花园','浦东','康桥路',31.1500,121.5500,1,200,120,'D5'),
+ ('com_sh02','上海张江高科','浦东','张江路',31.2000,121.6000,1,180, 90,'D5');
+
+-- 上海演示订单（归属 上海分公司）
+INSERT IGNORE INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, amount, sales_name, community_id, community_name, order_type, status, created_time) VALUES
+ ('B20260914004','C20260003','何大军','13700000004','pkg1000','1000M 融合套餐',159,'上海运营','com_sh01','上海康桥花园','NEW_INSTALL','PAID', UNIX_TIMESTAMP('2026-09-14 09:30:00')*1000),
+ ('B20260914005','C20260003','何大军','13700000004','pkg500', '500M 融合套餐', 99,'上海运营','com_sh02','上海张江高科','RENEW',     'DONE', UNIX_TIMESTAMP('2026-09-10 14:00:00')*1000);
+
+-- 上海演示工单
+INSERT IGNORE INTO work_order (id, community_id, address, time_slot, customer_name, package_desc, status, adjacent_route, dept_id) VALUES
+ ('WO2026091401','com_sh01','康桥路1号 2栋501','2026-09-15#AM','上海客户甲','1000M 融合套餐','PENDING',NULL,'D5');
+
+-- 订单 / 工单 dept_id 经 community 推导（幂等：仅补齐未归属的）
+UPDATE biz_order b JOIN community c ON c.id = b.community_id SET b.dept_id = c.dept_id WHERE b.dept_id IS NULL OR b.dept_id = '';
+-- 订单片区：经 community 推导（消除销售页「负责片区」空值，幂等）
+UPDATE biz_order b JOIN community c ON c.id = b.community_id SET b.region = c.region WHERE b.region IS NULL OR b.region = '';
+UPDATE work_order w JOIN biz_order b ON b.id = w.biz_order_id SET w.dept_id = b.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
+-- 兜底：未关联 biz_order 的工单，直接按所属小区归属部门
+UPDATE work_order w JOIN community c ON c.id = w.community_id SET w.dept_id = c.dept_id WHERE w.dept_id IS NULL OR w.dept_id = '';
+
+-- ---------------------------------------------------------------------------
+-- 退款 / 发票演示数据（对账口径：REFUND 计入退款，CANCELLED 计入取消）
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, amount, sales_name, community_id, community_name, order_type, status, created_time) VALUES
+ ('B20260901001','demo',     '演示客户','13800000000','pkg500', '500M 融合套餐',  99,'刘伟','com_ns01','科技园小区','NEW_INSTALL','REFUND', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+INSERT IGNORE INTO order_refund (id, order_id, order_no, customer_id, customer_name, amount, reason, channel, status, refund_no, operator, created_time, handled_time) VALUES
+ ('RF20260901001','B20260901001','B20260901001','demo','演示客户',99,'客户搬家，申请退款','WECHAT_MOCK','REFUNDED','RN20260902001','财务', UNIX_TIMESTAMP('2026-09-02 10:00:00')*1000, UNIX_TIMESTAMP('2026-09-02 10:30:00')*1000);
+
+INSERT IGNORE INTO invoice_apply (id, order_id, order_no, customer_name, title, tax_no, amount, status, invoice_no, pdf_url, operator, created_time, opened_time) VALUES
+ ('IN20260901001','B20260701001','B20260701001','林小雨','林小雨','',159,'OPENED','INV20260901001','/assets/invoice/INV20260901001.pdf','财务', UNIX_TIMESTAMP('2026-09-05 14:00:00')*1000, UNIX_TIMESTAMP('2026-09-05 14:20:00')*1000),
+ ('IN20260901002','B20260701002','B20260701002','何大军','何大军','', 69,'PENDING',NULL,NULL,NULL, UNIX_TIMESTAMP('2026-09-06 11:00:00')*1000, NULL);
+
 -- ===========================================================================
 -- RBAC 种子：角色 / 菜单权限 / 用户 / 授权
 -- 说明：用户密码留空，由后端 RbacInitializer 首次启动时写入 BCrypt 哈希
@@ -227,6 +284,7 @@ INSERT IGNORE INTO sys_menu (id, parent_id, name, path, perm, type, sort_order) 
  ('M4',  NULL, '套餐管理',      '/package',          NULL,             'DIR',   4),
  ('M41', 'M4', '套餐列表',      '/package',          'package:view',   'MENU',  1),
  ('M42', 'M4', '新增/编辑套餐', '/package/edit',     'package:edit',   'MENU',  2),
+ ('M43', 'M4', '营销看板',      '/package/marketing', 'package:view',   'MENU',  3),
  ('M5',  NULL, '套餐升级',      '/package/upgrade',  'upgrade:view',   'MENU',  5),
  ('M6',  NULL, '小区覆盖管理',  '/community',        NULL,             'DIR',   6),
  ('M61', 'M6', '小区列表',      '/community',        'community:view', 'MENU',  1),
@@ -246,6 +304,7 @@ INSERT IGNORE INTO sys_menu (id, parent_id, name, path, perm, type, sort_order) 
  ('M132','M13','角色管理',      '/system/role',      'system:role',    'MENU', 2),
  ('M133','M13','菜单权限',      '/system/menu',      'system:menu',    'MENU', 3),
  ('M134','M13','操作日志',      '/system/log',       'system:log',     'MENU', 4),
+ ('M44','M13','部门管理',      '/system/department','system:dept',   'MENU', 5),
  ('M14', NULL, '性能监控',      '/monitor',          'monitor:view',   'MENU', 14);
 
 -- 角色授权（管理员：全部菜单）
@@ -254,9 +313,9 @@ INSERT IGNORE INTO sys_role_menu (role_id, menu_id) VALUES
  ('R_ADMIN','M5'),('R_ADMIN','M6'),('R_ADMIN','M61'),('R_ADMIN','M62'),('R_ADMIN','M7'),('R_ADMIN','M71'),
  ('R_ADMIN','M72'),('R_ADMIN','M73'),('R_ADMIN','M74'),('R_ADMIN','M8'),('R_ADMIN','M9'),('R_ADMIN','M10'),
  ('R_ADMIN','M11'),('R_ADMIN','M12'),('R_ADMIN','M13'),('R_ADMIN','M131'),('R_ADMIN','M132'),('R_ADMIN','M133'),
- ('R_ADMIN','M134'),('R_ADMIN','M14'),
+ ('R_ADMIN','M134'),('R_ADMIN','M14'),('R_ADMIN','M43'),('R_ADMIN','M44'),
  -- 运营专员：业务模块（不含财务 / 权限管理 / 性能监控）
- ('R_OPERATOR','M1'),('R_OPERATOR','M2'),('R_OPERATOR','M3'),('R_OPERATOR','M4'),('R_OPERATOR','M41'),
+ ('R_OPERATOR','M1'),('R_OPERATOR','M2'),('R_OPERATOR','M3'),('R_OPERATOR','M4'),('R_OPERATOR','M41'),('R_OPERATOR','M43'),
  ('R_OPERATOR','M42'),('R_OPERATOR','M5'),('R_OPERATOR','M6'),('R_OPERATOR','M61'),('R_OPERATOR','M62'),
  ('R_OPERATOR','M7'),('R_OPERATOR','M71'),('R_OPERATOR','M72'),('R_OPERATOR','M73'),('R_OPERATOR','M74'),
  ('R_OPERATOR','M8'),('R_OPERATOR','M9'),('R_OPERATOR','M10'),('R_OPERATOR','M11'),
@@ -267,16 +326,73 @@ INSERT IGNORE INTO sys_role_menu (role_id, menu_id) VALUES
  -- 销售
  ('R_SALES','M1'),('R_SALES','M2'),('R_SALES','M3'),('R_SALES','M11');
 
--- 用户（password 留空 = 待 RbacInitializer 写入初始密码）
-INSERT IGNORE INTO sys_user (id, username, password, name, dept, status, created_time) VALUES
- ('U_ADMIN',   'admin',    '', '超级管理员', '信息技术部', 'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_LIUWEI',  'liuwei',   '', '刘伟',       '运营中心',   'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_ZHAOMIN', 'zhaomin',  '', '赵敏',       '财务部',     'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
- ('U_WANGFANG','wangfang', '', '王芳',       '客服中心',   'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+-- 用户（password 留空 = 待 RbacInitializer 写入初始密码；dept_id 关联 sys_department）
+-- admin 无部门 -> 看全部；其余按所属分公司隔离（深圳 D2 / 上海 D5）
+INSERT IGNORE INTO sys_user (id, username, password, name, dept_id, status, created_time) VALUES
+ ('U_ADMIN',   'admin',    '', '超级管理员', NULL,    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_LIUWEI',  'liuwei',   '', '刘伟',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_ZHAOMIN', 'zhaomin',  '', '赵敏',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_WANGFANG','wangfang', '', '王芳',       'D2',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000),
+ ('U_SH',      'shanghai', '', '上海运营',   'D5',    'ENABLED', UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 幂等补全（已存在用户不会被 INSERT 覆盖，用 UPDATE 同步部门归属）
+UPDATE sys_user SET dept_id = NULL WHERE username = 'admin';
+-- T-02 安全治理：默认管理员首次登录强制改密（幂等，重复执行无副作用）
+UPDATE sys_user SET must_change_password = 1 WHERE username = 'admin';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'liuwei';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'zhaomin';
+UPDATE sys_user SET dept_id = 'D2'  WHERE username = 'wangfang';
+UPDATE sys_user SET dept_id = 'D5'  WHERE username = 'shanghai';
 
 -- 用户角色
 INSERT IGNORE INTO sys_user_role (user_id, role_id) VALUES
  ('U_ADMIN','R_ADMIN'),
  ('U_LIUWEI','R_OPERATOR'),
  ('U_ZHAOMIN','R_FINANCE'),
- ('U_WANGFANG','R_CS');
+ ('U_WANGFANG','R_CS'),
+ ('U_SH','R_OPERATOR');
+
+-- ===========================================================================
+-- V1.14 运营与留存种子：积分任务 / 积分商城 / 优惠活动 / 在线客服 FAQ
+-- ===========================================================================
+
+-- 积分任务（签到/完善资料/首评/邀请好友）
+INSERT IGNORE INTO points_task (id, task_key, name, points, description, sort_order, status) VALUES
+ ('PT_SIGNIN',     'signin',       '每日签到',     5,   '连续签到每日得 5 分，连续 7 天额外 +20', 1, 'ENABLED'),
+ ('PT_PROFILE',    'profile',      '完善资料',     20,  '补全联系地址与实名信息',               2, 'ENABLED'),
+ ('PT_FIRSTREVIEW','first_review', '首单评价',     30,  '完成第一笔订单的服务评价',             3, 'ENABLED'),
+ ('PT_INVITE',     'invite',       '邀请好友',     50,  '邀请好友成功办理宽带得 50 分',          4, 'ENABLED');
+
+-- 积分商城（兑换项：提速包 / 体验券 / 实物）
+INSERT IGNORE INTO points_mall_item (id, name, cost, stock, coupon_type, coupon_value, image, status) VALUES
+ ('PM_SPEED500', '提速至 500M（7 天）', 200, -1, 'SPEED_UP', '500M/7d', '/assets/mall/speed500.png', 'ON_SHELF'),
+ ('PM_VOUCHER10','10 元话费抵扣券',     300, -1, 'VOUCHER',  '10',      '/assets/mall/voucher10.png','ON_SHELF'),
+ ('PM_GIFT',     '宽带定制抱枕（实物）', 800, 50, 'PHYSICAL', '实物周边', '/assets/mall/gift.png',    'ON_SHELF');
+
+-- 演示客户积分账户（初始 120 分，便于验证兑换）
+INSERT IGNORE INTO points_account (customer_id, balance, total_earned, total_spent, sign_date, sign_streak, created_time) VALUES
+ ('demo', 120, 120, 0, NULL, 0, UNIX_TIMESTAMP('2026-09-01 09:00:00')*1000);
+
+-- 优惠活动（包年趸交买 N 送 N / 限时新装赠礼 / 融合套餐折扣）
+INSERT IGNORE INTO promotion (id, title, subtitle, cover, type, target, start_date, end_date, rule_json, status) VALUES
+ ('PR_ANNUAL', '包年趸交 买 12 送 2', '一次缴清 14 个月，月均低至 8.3 折', '/assets/pro/annual.png', 'ANNUAL', 'ALL',
+  '2026-09-01', '2026-12-31', '{"kind":"buy_x_get_y","buy":12,"get":2,"unit":"month"}', 'ONLINE'),
+ ('PR_NEW_GIFT', '新装宽带 限时赠礼', '9 月新装送 FTTR 全屋光纤 + 看家 1 年', '/assets/pro/newgift.png', 'NEW_INSTALL', 'ALL',
+  '2026-09-01', '2026-09-30', '{"kind":"gift","items":["FTTR","SEE"]}', 'ONLINE'),
+ ('PR_COMBO', '融合套餐 直降 100', '1000M 融合套餐首年每月立减 100 元', '/assets/pro/combo.png', 'COMBO', 'pkg1000',
+  '2026-09-10', '2026-11-10', '{"kind":"cut","amount":100,"unit":"month"}', 'ONLINE');
+
+-- 在线客服 FAQ（网络 / 账单 / 报修 / 账户）
+INSERT IGNORE INTO support_faq (id, category, question, answer, sort_order) VALUES
+ ('FAQ_NET01','网络','无法上网怎么办？','请先重启光猫与路由器，观察光猫 LOS 指示灯是否红色；仍异常请在「我的-故障报修」提交报修，师傅将尽快上门。',1),
+ ('FAQ_NET02','网络','网速慢如何自查？','进入「流量监控」查看实时速率；建议有线测速对比无线，排除 WiFi 干扰。持续不达标可提交提速或报修。',2),
+ ('FAQ_BILL01','账单','账单怎么查看？','进入「我的-账户账单」可查看每月消费、合约到期与历史账单明细。',3),
+ ('FAQ_BILL02','账单','发票如何开具？','在订单详情或账单页申请电子发票，财务审核后可在「我的发票」下载 PDF。',4),
+ ('FAQ_REPAIR01','报修','报修后多久上门？','承诺当日修（24 小时内），派单后可在报修详情查看进度与 SLA 倒计时。',5),
+ ('FAQ_ACC01','账户','积分有什么用？','积分可在「积分商城」兑换提速包、话费券与实物周边，签到与完成任务可获取积分。',6);
+
+-- 营销自动化规则（V1.15 数据智能）：按分群触发挽留/续约/关怀动作
+INSERT IGNORE INTO mkt_campaign (id, name, trigger_type, action_type, target_item, status, description, created_time, updated_time) VALUES
+ ('MK_CHURN','流失预警挽留','CHURN_RISK','GRANT_COUPON','PM_VOUCHER10','ENABLED','对 180 天无互动或已流失风险客户自动发放 10 元现金券挽留',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000),
+ ('MK_RENEW','临期客户续约推送','RENEW','SEND_PROMO','PR_ANNUAL','ENABLED','对 90 天内合约到期客户推送年度套餐续约优惠',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000),
+ ('MK_VIP','高价值客户专属提速','HIGH_VALUE','GRANT_COUPON','PM_SPEED500','ENABLED','对近 30 天活跃的高价值(VIP/四星)客户发放提速至 500M 券',UNIX_TIMESTAMP()*1000,UNIX_TIMESTAMP()*1000);

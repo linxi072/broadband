@@ -73,8 +73,9 @@ public class ClientOrderController {
         String pkgName = String.valueOf(pkg.get("name"));
         int amount = ((Number) pkg.get("monthly_fee")).intValue();
 
-        Map<String, Object> com = one("SELECT name FROM community WHERE id = ?", communityId);
+        Map<String, Object> com = one("SELECT name, dept_id FROM community WHERE id = ?", communityId);
         String communityName = com == null ? "" : String.valueOf(com.get("name"));
+        String deptId = com == null ? null : str((Object) com.get("dept_id"), null);
 
         String customerName = contactName;
         String phone = contactPhone;
@@ -94,10 +95,10 @@ public class ClientOrderController {
         String orderId = "B" + System.currentTimeMillis();
         long now = System.currentTimeMillis();
         jdbc.update("INSERT INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name, "
-                + "amount, community_id, community_name, order_type, status, created_time) "
-                + "VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?)",
+                + "amount, community_id, community_name, order_type, status, dept_id, created_time) "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?, ?)",
                 orderId, customerId, customerName, phone, packageId, pkgName, amount,
-                communityId, communityName, orderType, now);
+                communityId, communityName, orderType, deptId, now);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
@@ -157,6 +158,55 @@ public class ClientOrderController {
         resp.put("transactionId", pr.transactionId);
         resp.put("channel", pr.channel);
         resp.put("status", "PAID");
+        return resp;
+    }
+
+    /**
+     * 申请退款（退款 / 对账状态机入口，C 端）。
+     * 仅「已支付 / 安装中 / 已完成」订单可发起；幂等：已存在 PENDING/REFUNDED 退款单则直接返回。
+     * 入参 {orderId, reason?}；返回 {ok, refundId, orderId, amount, status}。
+     */
+    @PostMapping("/refund")
+    public Map<String, Object> refund(@RequestBody Map<String, Object> body,
+                                      @AuthenticationPrincipal CustomerPrincipal cp) {
+        String orderId = str(body.get("orderId"), null);
+        String reason = str(body.get("reason"), "客户申请退款");
+        if (isBlank(orderId)) throw new IllegalArgumentException("orderId 必填");
+
+        Map<String, Object> order = one("SELECT id, status, customer_id, customer_name, amount "
+                + "FROM biz_order WHERE id = ?", orderId);
+        if (order == null) throw new IllegalArgumentException("订单不存在：" + orderId);
+
+        String status = String.valueOf(order.get("status"));
+        if (!List.of("PAID", "INSTALLING", "DONE").contains(status)) {
+            throw new IllegalStateException("仅「已支付/安装中/已完成」订单可申请退款，当前：" + status);
+        }
+        String existing = jdbc.queryForList(
+                "SELECT id FROM order_refund WHERE order_id = ? AND status IN ('PENDING','REFUNDED') LIMIT 1",
+                String.class, orderId).stream().findFirst().orElse(null);
+        if (existing != null) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("ok", true);
+            r.put("alreadyRequested", true);
+            r.put("refundId", existing);
+            r.put("orderId", orderId);
+            return r;
+        }
+
+        String refundId = "RF" + System.currentTimeMillis();
+        int amount = ((Number) order.get("amount")).intValue();
+        String cid = str(order.get("customer_id"), cp != null ? cp.id : null);
+        String cname = str(order.get("customer_name"), "客户");
+        jdbc.update("INSERT INTO order_refund (id, order_id, order_no, customer_id, customer_name, amount, reason, channel, status, created_time) "
+                + "VALUES (?,?,?,?,?,?,?, 'WECHAT_MOCK', 'PENDING', ?)",
+                refundId, orderId, orderId, cid, cname, amount, reason, System.currentTimeMillis());
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("refundId", refundId);
+        resp.put("orderId", orderId);
+        resp.put("amount", amount);
+        resp.put("status", "PENDING");
         return resp;
     }
 

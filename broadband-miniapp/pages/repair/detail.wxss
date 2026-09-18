@@ -1,0 +1,90 @@
+/* pages/repair/detail.wxss */
+.page {
+  min-height: 100vh;
+  background: #f5f7fb;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+.card {
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 4rpx 18rpx rgba(37, 99, 235, 0.05);
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.cat {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e293b;
+}
+.status {
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+.status-PENDING { background: #fef3c7; color: #b45309; }
+.status-ASSIGNED { background: #dbeafe; color: #1d4ed8; }
+.status-INSTALLING { background: #ede9fe; color: #6d28d9; }
+.status-DONE { background: #dcfce7; color: #15803d; }
+.status-CANCELLED { background: #f1f5f9; color: #64748b; }
+.row {
+  display: flex;
+  font-size: 26rpx;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+.k { color: #94a3b8; width: 150rpx; flex-shrink: 0; }
+.v { color: #334155; flex: 1; }
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 20rpx;
+}
+.timeline { padding-left: 8rpx; }
+.step {
+  display: flex;
+  gap: 18rpx;
+  position: relative;
+  padding-bottom: 28rpx;
+}
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 9rpx;
+  top: 24rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: #e2e8f0;
+}
+.dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-top: 8rpx;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.step.done .dot { background: #2563eb; }
+.step-body { display: flex; flex-direction: column; }
+.step-title { font-size: 28rpx; color: #1e293b; }
+.step-desc { font-size: 24rpx; color: #94a3b8; margin-top: 4rpx; }
+.sla {
+  display: flex;
+  justify-content: space-between;
+  font-size: 26rpx;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+.sla-status { font-weight: 600; }
+.sla-OVERTIME { color: #dc2626; }
+.sla-MET { color: #15803d; }
+.sla-PENDING { color: #94a3b8; }
+.empty { margin-top: 120rpx; text-align: center; color: #94a3b8; font-size: 28rpx; }

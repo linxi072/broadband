@@ -13,12 +13,19 @@ public class WorkOrder {
     public String packageDesc;
     public WorkOrderStatus status = WorkOrderStatus.PENDING;
 
+    // V1.13 故障报修：工单类型 + 报修字段
+    public String type = "INSTALL";       // INSTALL/REPAIR/MOVE/SPEED_UP/RENEW
+    public String faultCategory;          // 故障类型（关联数据字典 fault_category）
+    public String faultDesc;              // 故障描述
+    public String contactPhone;           // 报修联系电话
+
     // 派单结果回填字段
     public String workerId;        // 指派师傅
     public String clusterId;       // 相邻聚类簇 ID
     public Boolean adjacentRoute;  // 是否走相邻合并路线（true=合并；false=非相邻独立）
 
     public String bizOrderId;      // 关联业务订单 biz_order.id（业务闭环追溯）
+    public String deptId;        // 归属部门（按区域划分，数据权限用）
 
     public WorkOrder() {}
 

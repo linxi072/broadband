@@ -1,0 +1,39 @@
+<!-- pages/repair/detail.wxml -->
+<view class="page" wx:if="{{wo}}">
+  <view class="card">
+    <view class="card-top">
+      <text class="cat">{{wo.faultCategoryText || wo.faultCategory}}</text>
+      <text class="status status-{{wo.status}}">{{wo.statusText}}</text>
+    </view>
+    <view class="row"><text class="k">故障描述</text><text class="v">{{wo.faultDesc}}</text></view>
+    <view class="row"><text class="k">报修小区</text><text class="v">{{wo.community}} {{wo.address}}</text></view>
+    <view class="row"><text class="k">预约时段</text><text class="v">{{wo.timeSlotText}}</text></view>
+    <view class="row"><text class="k">联系电话</text><text class="v">{{wo.contactPhone}}</text></view>
+    <view class="row"><text class="k">负责师傅</text><text class="v">{{wo.worker}}</text></view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">处理进度</view>
+    <view class="timeline">
+      <view class="step {{item.done ? 'done' : ''}}" wx:for="{{timeline}}" wx:key="title">
+        <view class="dot"></view>
+        <view class="step-body">
+          <text class="step-title">{{item.title}}</text>
+          <text class="step-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{sla.length > 0}}">
+    <view class="card-title">SLA 评估</view>
+    <view class="sla" wx:for="{{sla}}" wx:key="id">
+      <text>{{item.orderType === 'REPAIR' ? '报修-时限类' : item.orderType}}</text>
+      <text class="sla-status sla-{{item.slaStatus}}">{{item.slaStatus === 'OVERTIME' ? '超时' : (item.slaStatus === 'MET' ? '达标' : '待判定')}}</text>
+    </view>
+  </view>
+</view>
+
+<view class="page" wx:else>
+  <view class="empty">加载中...</view>
+</view>

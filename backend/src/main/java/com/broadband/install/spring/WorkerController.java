@@ -307,6 +307,22 @@ public class WorkerController {
             jdbc.update("UPDATE biz_order SET status = 'DONE' WHERE id = ?", bizId);
         }
 
+        // 评价闭环增强：完工后自动生成「服务评价」推送（TO_EVALUATE），引导客户对本次服务评分。
+        // 落库到 review 表，客户在「我的评价」中可见「待评价」项并通过 /api/review/submit/{id} 回填。
+        if (bizId != null) {
+            String existing = jdbc.queryForList(
+                    "SELECT id FROM review WHERE order_id = ? AND status = 'TO_EVALUATE' LIMIT 1",
+                    String.class, bizId).stream().findFirst().orElse(null);
+            if (existing == null) {
+                String workerName = order.get("worker") == null ? null : String.valueOf(order.get("worker"));
+                String custName = order.get("customer") == null ? null : String.valueOf(order.get("customer"));
+                String reviewId = "RV" + System.currentTimeMillis();
+                jdbc.update("INSERT INTO review (id, order_id, customer_name, worker_name, score, tags, type, content, status, created_time) "
+                        + "VALUES (?,?,?,?, 0, NULL, 'REVIEW', '本次服务已完成，请对本次服务进行评价', 'TO_EVALUATE', ?)",
+                        reviewId, bizId, custName, workerName, System.currentTimeMillis());
+            }
+        }
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
         resp.put("id", id);

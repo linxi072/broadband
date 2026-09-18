@@ -1,0 +1,20 @@
+<!-- pages/promotion/detail.wxml -->
+<view class="page" wx:if="{{p}}">
+  <view class="card">
+    <view class="card-title">{{p.title}}</view>
+    <view class="sub-title">{{p.subtitle}}</view>
+    <view class="row"><text class="k">活动类型</text><text class="v">{{p.type}}</text></view>
+    <view class="row"><text class="k">活动周期</text><text class="v">{{p.startDate}} ~ {{p.endDate}}</text></view>
+    <view class="row"><text class="k">适用对象</text><text class="v">{{p.target || 'ALL'}}</text></view>
+  </view>
+
+  <view class="card" wx:if="{{rules.length > 0}}">
+    <view class="card-title">活动规则</view>
+    <view class="rule" wx:for="{{rules}}" wx:key="*this">{{item}}</view>
+  </view>
+
+  <view class="note">活动最终解释权归运营商所有，详情以办理页面为准。</view>
+</view>
+
+<view class="page" wx:elif="{{loading}}"><view class="empty">加载中...</view></view>
+<view class="page" wx:else><view class="empty">活动不存在</view></view>

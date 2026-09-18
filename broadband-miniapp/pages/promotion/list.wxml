@@ -1,0 +1,25 @@
+<!-- pages/promotion/list.wxml -->
+<view class="page">
+  <view class="seg">
+    <view class="it {{typeIdx === idx ? 'on' : ''}}" wx:for="{{types}}" wx:key="key" wx:for-index="idx" data-idx="{{idx}}" bindtap="onSeg">{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+  <view wx:elif="{{list.length === 0}}" class="empty">
+    <view class="em-ic">🎉</view><view class="em-t">暂无进行中的活动</view>
+  </view>
+  <view wx:else>
+    <view class="item promo" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
+      <view class="promo-cover">{{item.type === 'ANNUAL' ? '📅' : (item.type === 'NEW_INSTALL' ? '🎁' : '🔗')}}</view>
+      <view class="promo-body">
+        <view class="promo-title">{{item.title}}</view>
+        <view class="promo-sub">{{item.subtitle}}</view>
+        <view class="meta">
+          <text>{{item.startDate}} ~ {{item.endDate}}</text>
+          <text class="pill">进行中</text>
+        </view>
+      </view>
+      <view class="promo-arrow">›</view>
+    </view>
+  </view>
+</view>

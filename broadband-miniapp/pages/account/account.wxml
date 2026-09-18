@@ -1,0 +1,29 @@
+<!-- pages/account/account.wxml -->
+<view class="container safe-bottom" wx:if="{{summary}}">
+  <view class="acc-hd">
+    <view class="avatar">{{c.name ? c.name[0] : '客'}}</view>
+    <view class="acc-info">
+      <view class="acc-name">{{c.name}}</view>
+      <view class="acc-sub">{{c.level}} · 客户号 {{summary.customerId}}</view>
+    </view>
+  </view>
+
+  <view class="grid3">
+    <view class="stat"><view class="n">{{summary.points}}</view><view class="l">积分余额</view></view>
+    <view class="stat"><view class="n">¥{{summary.monthConsume}}</view><view class="l">本月消费</view></view>
+    <view class="stat"><view class="n" style="font-size:28rpx">{{summary.contractEnd || '—'}}</view><view class="l">合约到期</view></view>
+  </view>
+
+  <view class="card-title">快捷入口</view>
+  <view class="tiles-row">
+    <view class="tile" data-url="/pages/account/bills" bindtap="go"><view class="ic">🧾</view><view class="lb">账单明细</view></view>
+    <view class="tile" data-url="/pages/points/points" bindtap="go"><view class="ic">🎁</view><view class="lb">积分成长</view></view>
+    <view class="tile" data-url="/pages/points/mall" bindtap="go"><view class="ic">🛍️</view><view class="lb">积分商城</view></view>
+    <view class="tile" data-url="/pages/promotion/list" bindtap="go"><view class="ic">🎉</view><view class="lb">优惠活动</view></view>
+  </view>
+  <view class="tile tile-wide" data-url="/pages/support/support" bindtap="go"><view class="ic">💡</view><view class="lb">帮助与客服 ›</view></view>
+</view>
+
+<view class="container" wx:else>
+  <view class="loading"><view class="spinner"></view><view class="muted" style="margin-top:16rpx">加载中...</view></view>
+</view>

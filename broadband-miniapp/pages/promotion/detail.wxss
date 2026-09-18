@@ -1,0 +1,4 @@
+/* pages/promotion/detail.wxss */
+.row .k { color: var(--text-sub); font-size: 26rpx; }
+.row .v { color: var(--ink-900); font-size: 26rpx; }
+.rule { font-size: 27rpx; color: var(--ink-700); padding: 10rpx 0; line-height: 1.6; }

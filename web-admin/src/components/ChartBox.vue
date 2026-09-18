@@ -6,6 +6,7 @@ const props = defineProps({
   option: { type: Object, required: true },
   height: { type: String, default: '280px' }
 })
+const emit = defineEmits(['chart-click'])
 
 const el = ref(null)
 let chart = null
@@ -28,6 +29,7 @@ onMounted(() => {
   if (!el.value) return
   chart = echarts.init(el.value)
   render()
+  chart.on('click', (params) => emit('chart-click', params))
   ro = new ResizeObserver(() => chart && chart.resize())
   ro.observe(el.value)
 })

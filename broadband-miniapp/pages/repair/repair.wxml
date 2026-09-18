@@ -1,0 +1,22 @@
+<!-- pages/repair/repair.wxml -->
+<view class="page">
+  <view class="card">
+    <view class="card-title">故障报修</view>
+    <view class="field">
+      <text class="label">故障类型</text>
+      <picker mode="selector" range="{{categories}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="picker">{{categories[categoryIndex].label || '请选择故障类型'}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <text class="label">故障描述</text>
+      <textarea class="textarea" placeholder="请描述具体故障现象，如：昨晚开始频繁断网、网速明显变慢" value="{{faultDesc}}" bindinput="onDescInput" maxlength="200" />
+    </view>
+    <view class="field">
+      <text class="label">联系电话</text>
+      <input class="input" placeholder="方便师傅联系您" value="{{contactPhone}}" bindinput="onPhoneInput" type="number" />
+    </view>
+    <button class="submit" bindtap="submit">提交报修</button>
+  </view>
+  <view class="tip">提交后系统将自动派单，可在「我的报修」中查看实时进度</view>
+</view>

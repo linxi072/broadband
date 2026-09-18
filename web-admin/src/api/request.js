@@ -32,7 +32,13 @@ service.interceptors.response.use(
       msg = status === 401 ? '账号或密码错误' : msg
     } else if (status === 401) {
       msg = '登录状态已失效，请重新登录'
-      if (!redirecting) {
+      // 已在登录页（或登录页的连通性探测返回 401）时，不得整页跳回 /login，
+      // 否则会与登录页 onMounted 的 ping 形成「401 → 跳转 → ping → 401」的死循环刷新。
+      // 静默探测（silent）同样不触发跳转，由调用方自行降级处理。
+      const onLoginPage =
+        typeof window !== 'undefined' &&
+        (window.location.pathname === '/login' || window.location.pathname.startsWith('/login'))
+      if (!redirecting && !silent && !isLogin && !onLoginPage) {
         redirecting = true
         localStorage.removeItem(TOKEN_KEY)
         setTimeout(() => {

@@ -1,0 +1,42 @@
+<!-- pages/points/mall.wxml -->
+<view class="page">
+  <view class="header">
+    <text class="title">积分商城</text>
+    <text class="add">我的积分：{{balance}}</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+  <view wx:elif="{{items.length === 0}}" class="empty">
+    <view class="em-ic">🛍️</view><view class="em-t">暂无在售商品</view>
+  </view>
+  <view wx:else>
+    <view class="mall" wx:for="{{items}}" wx:key="id" wx:for-item="it">
+      <view class="mall-body">
+        <view class="mall-name">{{it.name}}</view>
+        <view class="mall-sub">
+          <text class="pill" wx:if="{{it.couponValue}}">{{it.couponValue}}</text>
+          <text class="badge-line" wx:if="{{it.stock > 0}}">库存 {{it.stock}}</text>
+          <text class="badge-line" wx:elif="{{it.stock === -1}}">无限量</text>
+          <text class="badge-line" wx:else>已售罄</text>
+        </view>
+      </view>
+      <view class="mall-side">
+        <view class="mall-cost">{{it.cost}}<text class="mall-cost-u">分</text></view>
+        <view class="btn-ghost {{it.stock === 0 || balance < it.cost ? 'off' : ''}}" data-item="{{it}}" bindtap="redeem">
+          {{it.stock === 0 ? '已售罄' : (balance < it.cost ? '积分不足' : '兑换')}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{result}}" class="mask" bindtap="closeResult">
+    <view class="dialog" catchtap="noop">
+      <view class="dialog-ic">🎉</view>
+      <view class="dialog-t">兑换成功</view>
+      <view class="dialog-p">{{result.name}}</view>
+      <view class="dialog-code">券码：{{result.code}}</view>
+      <view class="dialog-bal">剩余积分：{{result.balance}}</view>
+      <view class="btn-primary" bindtap="closeResult">知道了</view>
+    </view>
+  </view>
+</view>

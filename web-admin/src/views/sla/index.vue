@@ -2,18 +2,21 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import StatCard from '@/components/StatCard.vue'
-import { slaBoard, slaRules, slaCompensations, slaEvaluate } from '@/api/business'
+import ChartBox from '@/components/ChartBox.vue'
+import { slaDashboard, slaRules, slaCompensations, slaEvaluate, slaOvertimeDetail } from '@/api/business'
 import { loadResource, money, fmtTime } from '@/composables/useResource'
+import { demoSlaDashboard, demoSlaOvertimeDetail } from '@/mock/fallback'
 
 const ORDER_TYPE = { NEW_INSTALL: '新装宽带', MOVE: '宽带移机', REPAIR: '故障报修', SPEED_UP: '宽带提速', RENEW: '续费' }
 const COMP_TYPE = { VOUCHER: '流量券/电子券', CASH: '现金/话费', FEE_WAIVE: '费用减免' }
 const EVAL_TYPE = { TIME: '时限类', SPEED: '速率类' }
 const COMP_UNIT = { PER_ORDER: '每单固定', PER_OVERTIME_HOUR: '每超时小时' }
+const COMP_STATUS = { PENDING: '待处理', VERIFYING: '核实中', PAID: '已赔付', REJECTED: '已驳回' }
 
-const tab = ref('board')
+const tab = ref('overview')
 
-const board = ref(null)
-const boardLive = ref(false)
+const dashboard = ref(null)
+const dashboardLive = ref(false)
 const rules = ref([])
 const rulesLive = ref(false)
 const comps = ref([])
@@ -31,16 +34,115 @@ const form = reactive({
 const evaluating = ref(false)
 const evalResult = ref(null)
 
-const stats = computed(() => ({
-  rate: board.value ? board.value.slaRate : 0,
-  sameDay: board.value ? board.value.sameDayInstalled : 0,
-  slowPay: board.value ? board.value.slowPayCount : 0,
-  outage: board.value ? board.value.outageWorryCount : 0,
-  resp: board.value ? board.value.avgResponseMin : 0,
-  comp: board.value ? board.value.monthCompAmount : 0
-}))
+// ---- 超时热力下钻
+const overtimeDetail = ref([])
+const overtimeDetailLoading = ref(false)
+const overtimeDetailVisible = ref(false)
+const overtimeDetailTitle = ref('')
+async function onHeatmapClick(params) {
+  if (!params || params.seriesType !== 'heatmap') return
+  const d = params.data[1]
+  const h = params.data[0]
+  const v = params.data[2]
+  const days = (dashboard.value && dashboard.value.heatmap && dashboard.value.heatmap.days) || []
+  overtimeDetailTitle.value = `${days[d] || ''} ${String(h).padStart(2, '0')}:00 超时明细（${v} 单）`
+  overtimeDetailLoading.value = true
+  overtimeDetailVisible.value = true
+  const r = await loadResource(() => slaOvertimeDetail(d + 1, h), () => demoSlaOvertimeDetail(d + 1, h))
+  overtimeDetail.value = r.data || []
+  overtimeDetailLoading.value = false
+}
 
-const recent = computed(() => (board.value && board.value.recentCompensations) || comps.value.slice(0, 6))
+const summary = computed(() => dashboard.value?.summary || {})
+const recent = computed(() => (dashboard.value && dashboard.value.recentCompensations) || comps.value.slice(0, 6))
+
+// ---- 图表配置
+const byTypeOption = computed(() => {
+  const list = dashboard.value?.byType || []
+  return {
+    tooltip: { trigger: 'axis', valueFormatter: (v) => v + '%' },
+    grid: { left: 44, right: 16, top: 16, bottom: 28 },
+    xAxis: { type: 'category', data: list.map((x) => x.orderTypeLabel), axisLabel: { interval: 0 } },
+    yAxis: { type: 'value', max: 100, name: '%', axisLabel: { formatter: '{value}' } },
+    series: [{
+      type: 'bar',
+      data: list.map((x) => x.slaRate),
+      itemStyle: { color: '#4f46e5', borderRadius: [4, 4, 0, 0] },
+      label: { show: true, position: 'top', formatter: '{c}%' }
+    }]
+  }
+})
+
+const overtimeOption = computed(() => {
+  const list = dashboard.value?.overtimeByDay || []
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['达标', '超时'] },
+    grid: { left: 40, right: 16, top: 28, bottom: 24 },
+    xAxis: { type: 'category', data: list.map((x) => x.date) },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '达标', type: 'bar', stack: 't', data: list.map((x) => x.met), itemStyle: { color: '#22c55e' } },
+      { name: '超时', type: 'bar', stack: 't', data: list.map((x) => x.overtime), itemStyle: { color: '#ef4444' } }
+    ]
+  }
+})
+
+const compTrendOption = computed(() => {
+  const list = dashboard.value?.compTrend || []
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['赔付金额(元)', '赔付单数'] },
+    grid: { left: 50, right: 50, top: 28, bottom: 24 },
+    xAxis: { type: 'category', data: list.map((x) => x.month) },
+    yAxis: [
+      { type: 'value', name: '元' },
+      { type: 'value', name: '单' }
+    ],
+    series: [
+      { name: '赔付金额(元)', type: 'line', smooth: true, data: list.map((x) => x.compAmount), itemStyle: { color: '#f59e0b' }, areaStyle: { opacity: 0.12 } },
+      { name: '赔付单数', type: 'bar', yAxisIndex: 1, data: list.map((x) => x.compCount), itemStyle: { color: '#4f46e5', borderRadius: [4, 4, 0, 0] } }
+    ]
+  }
+})
+
+// ---- 超时热力：星期 × 时段（0~23 时）的超时工单分布 ----
+const heatmapOption = computed(() => {
+  const hm = dashboard.value?.heatmap
+  if (!hm || !Array.isArray(hm.values)) return { series: [] }
+  const days = hm.days || []
+  const hours = hm.hours || []
+  const values = hm.values
+  const data = []
+  let max = 0
+  for (let d = 0; d < days.length; d++) {
+    for (let h = 0; h < hours.length; h++) {
+      const v = (values[d] && values[d][h]) || 0
+      if (v > max) max = v
+      data.push([h, d, v])
+    }
+  }
+  return {
+    tooltip: {
+      position: 'top',
+      formatter: (p) => `${days[p.data[1]]} ${String(hours[p.data[0]]).padStart(2, '0')}:00 超时 ${p.data[2]} 单`
+    },
+    grid: { left: 48, right: 16, top: 12, bottom: 58 },
+    xAxis: { type: 'category', data: hours.map((h) => String(h).padStart(2, '0')), splitArea: { show: true }, axisLabel: { interval: 2 } },
+    yAxis: { type: 'category', data: days, splitArea: { show: true } },
+    visualMap: {
+      min: 0, max: Math.max(max, 1), calculable: true, orient: 'horizontal',
+      left: 'center', bottom: 0, show: false,
+      inRange: { color: ['#eef2ff', '#a5b4fc', '#4f46e5', '#dc2626'] }
+    },
+    series: [{
+      name: '超时', type: 'heatmap', data,
+      label: { show: false },
+      itemStyle: { borderColor: '#fff', borderWidth: 1 },
+      emphasis: { itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.3)' } }
+    }]
+  }
+})
 
 async function onEvaluate() {
   evaluating.value = true
@@ -58,7 +160,7 @@ async function onEvaluate() {
   if (r.live) {
     evalResult.value = r.data
     ElMessage.success('评估完成（已落库 sla_record / compensation）')
-    loadBoard()
+    loadDashboard()
     loadComps()
   } else {
     evalResult.value = null
@@ -66,10 +168,10 @@ async function onEvaluate() {
   }
 }
 
-async function loadBoard() {
-  const r = await loadResource(() => slaBoard(), null)
-  board.value = r.data
-  boardLive.value = r.live
+async function loadDashboard() {
+  const r = await loadResource(() => slaDashboard(), () => demoSlaDashboard())
+  dashboard.value = r.data
+  dashboardLive.value = r.live
 }
 
 async function loadRules() {
@@ -86,7 +188,7 @@ async function loadComps() {
 
 onMounted(async () => {
   loading.value = true
-  await Promise.all([loadBoard(), loadRules(), loadComps()])
+  await Promise.all([loadDashboard(), loadRules(), loadComps()])
   loading.value = false
 })
 </script>
@@ -100,24 +202,44 @@ onMounted(async () => {
           当日装 / 当日修时限承诺 + 装机网速达标校验，超时或不达标自动触发赔付
         </p>
       </div>
-      <SourceTag :live="boardLive" />
-    </div>
-
-    <div class="stat-grid">
-      <StatCard label="SLA 达标率" :value="stats.rate" unit="%" tone="down" foot="承诺时限内完成" />
-      <StatCard label="当日装完成" :value="stats.sameDay" unit=" 单" foot="24h 内完工" />
-      <StatCard label="慢必赔单" :value="stats.slowPay" unit=" 单" tone="warn" foot="超时触发" />
-      <StatCard label="断网无忧" :value="stats.outage" unit=" 单" tone="warn" foot="报修超时" />
-      <StatCard label="平均响应" :value="stats.resp" unit=" min" foot="受理 → 上门" />
-      <StatCard label="本月赔付" :value="money(stats.comp)" tone="up" foot="流量券 + 话费" />
+      <SourceTag :live="dashboardLive" />
     </div>
 
     <el-tabs v-model="tab">
-      <el-tab-pane label="赔付工单" name="board">
+      <!-- 履约看板 -->
+      <el-tab-pane label="履约看板" name="overview">
+        <div class="stat-grid">
+          <StatCard label="SLA 达标率" :value="summary.slaRate ?? 0" unit="%" tone="down" foot="承诺时限内完成" />
+          <StatCard label="评估总数" :value="summary.total ?? 0" foot="累计评估工单" />
+          <StatCard label="超时工单" :value="summary.overtime ?? 0" tone="warn" foot="触发赔付" />
+          <StatCard label="待处理赔付" :value="summary.pendingCompCount ?? 0" tone="warn" foot="核实 / 待赔付" />
+          <StatCard label="平均响应" :value="summary.avgResponseMin ?? 0" unit=" min" foot="受理 → 完工" />
+          <StatCard label="累计赔付" :value="money(summary.totalCompAmount)" tone="up" foot="流量券 + 话费" />
+        </div>
+
+        <div class="charts">
+          <div class="card chart-card">
+            <div class="card-head"><h3>分业务类型达标率</h3></div>
+            <ChartBox :option="byTypeOption" height="280px" />
+          </div>
+          <div class="card chart-card">
+            <div class="card-head"><h3>近 14 日 超时 vs 达标</h3></div>
+            <ChartBox :option="overtimeOption" height="280px" />
+          </div>
+          <div class="card chart-card span2">
+            <div class="card-head"><h3>超时热力（星期 × 时段）<span class="hint">点击单元格下钻明细</span></h3></div>
+            <ChartBox :option="heatmapOption" height="300px" @chart-click="onHeatmapClick" />
+          </div>
+          <div class="card chart-card span2">
+            <div class="card-head"><h3>近 6 月 赔付趋势</h3></div>
+            <ChartBox :option="compTrendOption" height="280px" />
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-head">
-            <h3>近期赔付工单</h3>
-            <SourceTag :live="boardLive || compsLive" />
+            <h3>最近赔付工单</h3>
+            <SourceTag :live="dashboardLive || compsLive" />
           </div>
           <el-table v-loading="loading" :data="recent" style="width: 100%">
             <el-table-column prop="orderId" label="工单号" min-width="130" />
@@ -129,11 +251,16 @@ onMounted(async () => {
               <template #default="{ row }">{{ COMP_TYPE[row.compType] || row.compType || '—' }}</template>
             </el-table-column>
             <el-table-column label="赔付额度" width="110">
-              <template #default="{ row }">
-                <b class="up">{{ row.compAmount }}</b>
-              </template>
+              <template #default="{ row }"><b class="up">{{ row.compAmount }}</b></template>
             </el-table-column>
             <el-table-column prop="reason" label="触发原因" min-width="220" show-overflow-tooltip />
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'PAID' ? 'success' : 'warning'" size="small" effect="light">
+                  {{ COMP_STATUS[row.status] || row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="时间" width="150">
               <template #default="{ row }">{{ fmtTime(row.createdTime) }}</template>
             </el-table-column>
@@ -142,6 +269,7 @@ onMounted(async () => {
         </div>
       </el-tab-pane>
 
+      <!-- 赔付规则 -->
       <el-tab-pane label="赔付规则" name="rules">
         <div class="card">
           <div class="card-head">
@@ -185,6 +313,7 @@ onMounted(async () => {
         </div>
       </el-tab-pane>
 
+      <!-- 评估工具 -->
       <el-tab-pane label="评估工具" name="eval">
         <div class="cols">
           <div class="card">
@@ -252,6 +381,23 @@ onMounted(async () => {
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <el-drawer v-model="overtimeDetailVisible" :title="overtimeDetailTitle" size="48%" :append-to-body="true">
+      <el-table v-loading="overtimeDetailLoading" :data="overtimeDetail" empty-text="该时段无超时工单">
+        <el-table-column prop="orderId" label="工单号" min-width="140" />
+        <el-table-column label="类型" width="110">
+          <template #default="{ row }">{{ row.orderTypeLabel || row.orderType || '—' }}</template>
+        </el-table-column>
+        <el-table-column prop="customerName" label="客户" width="100" />
+        <el-table-column prop="community" label="小区" min-width="120" />
+        <el-table-column label="受理时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.acceptTime) }}</template>
+        </el-table-column>
+        <el-table-column label="完工时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.completeTime) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 
@@ -264,9 +410,17 @@ onMounted(async () => {
 }
 
 .stat-grid {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
+
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.span2 { grid-column: span 2; }
 
 .cols {
   display: grid;
@@ -290,6 +444,13 @@ onMounted(async () => {
   color: var(--bd-up);
 }
 
+.hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--bd-text-mute);
+  margin-left: 8px;
+}
+
 .summary {
   margin: 0;
   padding: 10px 12px;
@@ -301,8 +462,8 @@ onMounted(async () => {
 }
 
 @media (max-width: 1100px) {
-  .cols {
-    grid-template-columns: 1fr;
-  }
+  .charts { grid-template-columns: 1fr; }
+  .span2 { grid-column: span 1; }
+  .cols { grid-template-columns: 1fr; }
 }
 </style>

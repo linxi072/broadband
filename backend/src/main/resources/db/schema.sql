@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS biz_order (
   community_id   VARCHAR(32)           COMMENT '小区ID',
   community_name VARCHAR(128)          COMMENT '小区名称',
   order_type     VARCHAR(24)  NOT NULL DEFAULT 'NEW_INSTALL' COMMENT 'NEW_INSTALL/MOVE/RENEW/SPEED_UP/REPAIR/ADDON',
-  status         VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/INSTALLING/DONE/CANCELLED',
+  status         VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/INSTALLING/DONE/CANCELLED/REFUND',
   created_time   BIGINT       NOT NULL DEFAULT 0 COMMENT '下单时间（毫秒）',
   PRIMARY KEY (id),
   KEY idx_order_status (status),
@@ -369,7 +369,7 @@ CREATE TABLE IF NOT EXISTS review (
   tags          VARCHAR(255)          COMMENT '评价标签（逗号分隔）',
   type          VARCHAR(16)  NOT NULL DEFAULT 'REVIEW' COMMENT 'REVIEW=评价 / COMPLAINT=投诉',
   content       VARCHAR(512)          COMMENT '内容',
-  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/VISITED/CLOSED',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/VISITED/CLOSED/TO_EVALUATE',
   created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
   PRIMARY KEY (id),
   KEY idx_review_status (status),
@@ -392,6 +392,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
   name         VARCHAR(64)  NOT NULL COMMENT '姓名',
   dept         VARCHAR(64)           COMMENT '部门',
   status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  must_change_password TINYINT NOT NULL DEFAULT 0 COMMENT '首次登录必须改密 0/1（默认管理员种子置 1）',
   created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
   PRIMARY KEY (id),
   UNIQUE KEY uk_sys_user_username (username)
@@ -464,3 +465,407 @@ CREATE TABLE IF NOT EXISTS sys_oper_log (
   KEY idx_log_created (created_time),
   KEY idx_log_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志';
+
+-- ---------------------------------------------------------------------------
+-- 27. 部门（按区域划分：华南大区 > 深圳分公司 / 广州分公司；华东大区 > 上海分公司）
+--     树形结构：parent_id 为空表示区域根节点；sys_user / community / 订单 通过 dept_id 归属部门，
+--     用于「运营人员只能看到本部门及下级部门数据」的数据权限（行级隔离）。
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_department (
+  id           VARCHAR(32)  NOT NULL COMMENT '部门ID',
+  parent_id    VARCHAR(32)           COMMENT '父部门ID（区域树，顶级为空）',
+  name         VARCHAR(64)  NOT NULL COMMENT '部门名称',
+  region       VARCHAR(32)           COMMENT '所属区域（华南/华东/华北...）',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_dept_parent (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门（按区域划分）';
+
+-- ---------------------------------------------------------------------------
+-- 27b. 历史列改造 + 各业务表补 dept_id（幂等）
+--     MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，沿用 information_schema 守卫。
+-- ---------------------------------------------------------------------------
+
+-- sys_user：dept 自由文本 -> dept_id（关联 sys_department）
+SET @drop_u_dept := (
+  SELECT IF(COUNT(*) = 0, 'SELECT 1',
+            'ALTER TABLE sys_user DROP COLUMN dept')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'dept'
+);
+PREPARE stmt_drop_u_dept FROM @drop_u_dept;
+EXECUTE stmt_drop_u_dept;
+DEALLOCATE PREPARE stmt_drop_u_dept;
+
+SET @add_u_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE sys_user ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''部门ID（关联 sys_department）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'dept_id'
+);
+PREPARE stmt_u_dept FROM @add_u_dept;
+EXECUTE stmt_u_dept;
+DEALLOCATE PREPARE stmt_u_dept;
+
+-- community：归属部门
+SET @add_c_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE community ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'community' AND column_name = 'dept_id'
+);
+PREPARE stmt_c_dept FROM @add_c_dept;
+EXECUTE stmt_c_dept;
+DEALLOCATE PREPARE stmt_c_dept;
+
+-- biz_order：归属部门
+SET @add_o_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE biz_order ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）'', ADD KEY idx_biz_dept (dept_id)',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'biz_order' AND column_name = 'dept_id'
+);
+PREPARE stmt_o_dept FROM @add_o_dept;
+EXECUTE stmt_o_dept;
+DEALLOCATE PREPARE stmt_o_dept;
+
+-- biz_order：所属片区（销售页「负责片区」；由 community 推导，幂等）
+SET @add_o_region := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE biz_order ADD COLUMN region VARCHAR(64) NULL COMMENT ''所属片区（由 community 推导，用于销售业绩归属）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'biz_order' AND column_name = 'region'
+);
+PREPARE stmt_o_region FROM @add_o_region;
+EXECUTE stmt_o_region;
+DEALLOCATE PREPARE stmt_o_region;
+
+-- work_order：归属部门
+SET @add_w_dept := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN dept_id VARCHAR(32) NULL COMMENT ''归属部门（按区域划分）'', ADD KEY idx_wo_dept (dept_id)',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'dept_id'
+);
+PREPARE stmt_w_dept FROM @add_w_dept;
+EXECUTE stmt_w_dept;
+DEALLOCATE PREPARE stmt_w_dept;
+
+-- ---------------------------------------------------------------------------
+-- 28b. T-02 安全治理：sys_user 增加「首次登录必须改密」标记（幂等）
+--   新库由上面 CREATE TABLE 直接带列；此处仅对「已有 sys_user 表但缺该列」的老库补齐。
+-- ---------------------------------------------------------------------------
+SET @add_u_mcp := (
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE sys_user ADD COLUMN must_change_password TINYINT NOT NULL DEFAULT 0 COMMENT ''首次登录必须改密 0/1''',
+    'SELECT 1')
+  FROM information_schema.COLUMNS
+  WHERE table_schema = DATABASE() AND table_name = 'sys_user' AND column_name = 'must_change_password'
+);
+PREPARE stmt_u_mcp FROM @add_u_mcp;
+EXECUTE stmt_u_mcp;
+DEALLOCATE PREPARE stmt_u_mcp;
+
+-- ============================================================================
+-- 退款工单（退款 / 对账状态机）
+--   biz_order.status = 'REFUND' 表示已退款（财务对账口径：营收扣减）。
+--   状态机：PENDING(客户申请) -> APPROVED(财务通过) -> REFUNDED(已退款) / REJECTED(驳回)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS order_refund (
+  id            VARCHAR(32)  NOT NULL COMMENT '退款单号',
+  order_id      VARCHAR(32)  NOT NULL COMMENT '关联业务订单号',
+  order_no      VARCHAR(32)           COMMENT '业务订单号（冗余，便于查询）',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户姓名',
+  amount        INT          NOT NULL DEFAULT 0 COMMENT '退款金额（元）',
+  reason        VARCHAR(255)          COMMENT '退款原因',
+  channel       VARCHAR(32)  NOT NULL DEFAULT 'WECHAT_MOCK' COMMENT '退款渠道（占位：真实接入后填微信支付退款单号）',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/APPROVED/REJECTED/REFUNDED',
+  refund_no     VARCHAR(64)           COMMENT '第三方退款流水号',
+  operator      VARCHAR(64)           COMMENT '处理人',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '申请时间（毫秒）',
+  handled_time  BIGINT                COMMENT '处理时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_refund_order (order_id),
+  KEY idx_refund_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='退款工单';
+
+-- ============================================================================
+-- 电子发票申请（占位）
+--   状态机：PENDING(客户申请) -> OPENED(已开具) / REJECTED(驳回)
+--   pdf_url 为占位地址，真实接入电子发票平台后回填。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS invoice_apply (
+  id            VARCHAR(32)  NOT NULL COMMENT '申请单号',
+  order_id      VARCHAR(32)  NOT NULL COMMENT '关联业务订单号',
+  order_no      VARCHAR(32)           COMMENT '业务订单号（冗余）',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户姓名',
+  title         VARCHAR(128) NOT NULL COMMENT '发票抬头',
+  tax_no        VARCHAR(64)           COMMENT '税号（企业抬头必填）',
+  amount        INT          NOT NULL DEFAULT 0 COMMENT '开票金额（元）',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/OPENED/REJECTED',
+  invoice_no    VARCHAR(64)           COMMENT '发票号码',
+  pdf_url       VARCHAR(255)          COMMENT '电子发票 PDF 地址（占位）',
+  operator      VARCHAR(64)           COMMENT '开票员',
+  remark        VARCHAR(255)          COMMENT '驳回原因 / 备注',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '申请时间（毫秒）',
+  opened_time   BIGINT                COMMENT '开票时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_invoice_order (order_id),
+  KEY idx_invoice_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='电子发票申请';
+
+-- invoice_apply：补齐 customer_id（历史库可能由更早的 schema 创建而缺此列）
+SET @add_inv_cid := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE invoice_apply ADD COLUMN customer_id VARCHAR(32) NULL COMMENT ''客户ID''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'invoice_apply' AND column_name = 'customer_id'
+);
+PREPARE stmt_inv_cid FROM @add_inv_cid;
+EXECUTE stmt_inv_cid;
+DEALLOCATE PREPARE stmt_inv_cid;
+
+-- ============================================================================
+-- 28. 数据字典类型（sys_dict_type）
+--     与 sys_dict_data 配合，替代散落在代码中的硬编码枚举（故障类型 / 工单类型 / 时段等）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_dict_type (
+  dict_type   VARCHAR(64)  NOT NULL COMMENT '字典类型编码，如 fault_category',
+  dict_name   VARCHAR(64)  NOT NULL COMMENT '字典类型名称，如 故障类型',
+  status      VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  remark      VARCHAR(255)          COMMENT '备注',
+  create_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (dict_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据字典类型';
+
+-- ============================================================================
+-- 29. 数据字典数据项（sys_dict_data）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_dict_data (
+  id          VARCHAR(32)  NOT NULL COMMENT '数据项ID',
+  dict_type   VARCHAR(64)  NOT NULL COMMENT '关联 sys_dict_type.dict_type',
+  dict_label  VARCHAR(128) NOT NULL COMMENT '展示标签，如 网络中断',
+  dict_value  VARCHAR(128) NOT NULL COMMENT '值，如 NETWORK_DOWN',
+  dict_sort   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status      VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  remark      VARCHAR(255)          COMMENT '备注',
+  create_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_dict_data_type (dict_type, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据字典数据项';
+
+-- ============================================================================
+-- 30. 参数配置（sys_config）
+--     系统级可配置参数（客服电话 / 报修承诺时长 / 派单默认容量等），后台可在线维护。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sys_config (
+  config_key   VARCHAR(64)  NOT NULL COMMENT '参数键，如 repair.sla.promised.hours',
+  config_name  VARCHAR(128) NOT NULL COMMENT '参数名称',
+  config_value VARCHAR(512) NOT NULL DEFAULT '' COMMENT '参数值',
+  config_type  VARCHAR(32)  NOT NULL DEFAULT 'STRING' COMMENT 'STRING/INT/BOOLEAN/JSON',
+  remark       VARCHAR(255)          COMMENT '备注',
+  create_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (config_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='参数配置';
+
+-- ============================================================================
+-- 31. 安装工单补列：工单类型 + 故障报修字段（V1.13 故障报修全流程）
+--     MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，沿用 information_schema 守卫，保证幂等。
+-- ============================================================================
+
+-- work_order.type：INSTALL(新装) / REPAIR(故障报修) / MOVE(移机) / SPEED_UP(提速) / RENEW(续费)
+SET @add_wo_type := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN type VARCHAR(16) NOT NULL DEFAULT ''INSTALL'' COMMENT ''工单类型 INSTALL/REPAIR/MOVE/SPEED_UP/RENEW''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'type'
+);
+PREPARE stmt_wo_type FROM @add_wo_type;
+EXECUTE stmt_wo_type;
+DEALLOCATE PREPARE stmt_wo_type;
+
+SET @add_wo_fc := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN fault_category VARCHAR(64) NULL COMMENT ''故障类型（报修用，关联数据字典 fault_category）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'fault_category'
+);
+PREPARE stmt_wo_fc FROM @add_wo_fc;
+EXECUTE stmt_wo_fc;
+DEALLOCATE PREPARE stmt_wo_fc;
+
+SET @add_wo_fd := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN fault_desc VARCHAR(255) NULL COMMENT ''故障描述（报修用）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'fault_desc'
+);
+PREPARE stmt_wo_fd FROM @add_wo_fd;
+EXECUTE stmt_wo_fd;
+DEALLOCATE PREPARE stmt_wo_fd;
+
+SET @add_wo_cp := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE work_order ADD COLUMN contact_phone VARCHAR(32) NULL COMMENT ''报修联系电话（报修用，可区别于客户登记号）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'work_order' AND column_name = 'contact_phone'
+);
+PREPARE stmt_wo_cp FROM @add_wo_cp;
+EXECUTE stmt_wo_cp;
+DEALLOCATE PREPARE stmt_wo_cp;
+
+-- ============================================================================
+-- 32~38. V1.14 运营与留存：积分成长 / 优惠活动 / 在线客服
+-- ============================================================================
+
+-- 32. 积分账户（一个客户一条）
+CREATE TABLE IF NOT EXISTS points_account (
+  customer_id   VARCHAR(32)  NOT NULL COMMENT '客户ID（PK）',
+  balance       INT          NOT NULL DEFAULT 0 COMMENT '当前积分',
+  total_earned  INT          NOT NULL DEFAULT 0 COMMENT '累计获得',
+  total_spent   INT          NOT NULL DEFAULT 0 COMMENT '累计消耗',
+  sign_date     VARCHAR(10)           COMMENT '最近签到日期 yyyy-MM-dd',
+  sign_streak   INT          NOT NULL DEFAULT 0 COMMENT '连续签到天数',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分账户';
+
+-- 33. 积分流水
+CREATE TABLE IF NOT EXISTS points_record (
+  id           VARCHAR(32)  NOT NULL COMMENT '流水ID',
+  customer_id  VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  type         VARCHAR(16)  NOT NULL COMMENT 'SIGN/TASK/REDEEM/EXPIRE/ADJUST',
+  amount       INT          NOT NULL DEFAULT 0 COMMENT '积分变动（正=获得，负=消耗）',
+  remark       VARCHAR(255)          COMMENT '说明',
+  ref_id       VARCHAR(32)           COMMENT '关联单号（优惠券/订单）',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_pr_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分流水';
+
+-- 34. 积分任务（签到/完善资料/首评/邀请好友）
+CREATE TABLE IF NOT EXISTS points_task (
+  id           VARCHAR(32)  NOT NULL COMMENT '任务ID',
+  task_key     VARCHAR(32)  NOT NULL COMMENT '任务键 signin/profile/first_review/invite',
+  name         VARCHAR(64)  NOT NULL COMMENT '任务名',
+  points       INT          NOT NULL DEFAULT 0 COMMENT '奖励积分',
+  description  VARCHAR(255)          COMMENT '说明',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  PRIMARY KEY (id),
+  KEY idx_pt_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分任务';
+
+-- 35. 积分商城商品（兑换项）
+CREATE TABLE IF NOT EXISTS points_mall_item (
+  id           VARCHAR(32)  NOT NULL COMMENT '商品ID',
+  name         VARCHAR(128) NOT NULL COMMENT '商品名',
+  cost         INT          NOT NULL DEFAULT 0 COMMENT '兑换所需积分',
+  stock        INT          NOT NULL DEFAULT -1 COMMENT '库存（-1 表示不限）',
+  coupon_type  VARCHAR(32)  NOT NULL DEFAULT 'SPEED_UP' COMMENT 'SPEED_UP/VOUCHER/PHYSICAL',
+  coupon_value VARCHAR(64)           COMMENT '券面额/说明（如 提速至500M / 10元现金券 / 实物描述）',
+  image        VARCHAR(512)          COMMENT '图片',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ON_SHELF' COMMENT 'ON_SHELF/OFF_SHELF',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分商城商品';
+
+-- 36. 兑换得到的优惠券
+CREATE TABLE IF NOT EXISTS points_coupon (
+  id           VARCHAR(32)  NOT NULL COMMENT '券ID',
+  customer_id  VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  item_id      VARCHAR(32)           COMMENT '来源商品ID',
+  coupon_code  VARCHAR(64)  NOT NULL COMMENT '券码',
+  coupon_type  VARCHAR(32)           COMMENT 'SPEED_UP/VOUCHER/PHYSICAL',
+  coupon_value VARCHAR(64)           COMMENT '券面额/说明',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'UNUSED' COMMENT 'UNUSED/USED/EXPIRED',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '兑换时间（毫秒）',
+  expire_time  BIGINT                COMMENT '过期时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_pc_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='兑换优惠券';
+
+-- 37. 优惠活动专区
+CREATE TABLE IF NOT EXISTS promotion (
+  id           VARCHAR(32)  NOT NULL COMMENT '活动ID',
+  title        VARCHAR(128) NOT NULL COMMENT '活动标题',
+  subtitle     VARCHAR(255)          COMMENT '副标题',
+  cover        VARCHAR(512)          COMMENT '封面图',
+  type         VARCHAR(32)  NOT NULL DEFAULT 'COMBO' COMMENT 'ANNUAL/NEW_INSTALL/COMBO/LIMITED',
+  target       VARCHAR(64)           COMMENT '适用套餐ID（ALL 表示通用）',
+  start_date   VARCHAR(10)          COMMENT '开始 yyyy-MM-dd',
+  end_date     VARCHAR(10)          COMMENT '结束 yyyy-MM-dd',
+  rule_json    VARCHAR(1024)        COMMENT '优惠规则 JSON（如 买12送2 / 直降100）',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ONLINE' COMMENT 'ONLINE/OFFLINE',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='优惠活动';
+
+-- 38. 在线客服 FAQ
+CREATE TABLE IF NOT EXISTS support_faq (
+  id           VARCHAR(32)  NOT NULL COMMENT 'FAQ ID',
+  category     VARCHAR(32)  NOT NULL DEFAULT 'GENERAL' COMMENT '网络/账单/报修/账户',
+  question     VARCHAR(255) NOT NULL COMMENT '问题',
+  answer       VARCHAR(1024)         COMMENT '回答',
+  sort_order   INT          NOT NULL DEFAULT 0 COMMENT '排序',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服FAQ';
+
+-- 39. 在线客服工单（工单式咨询）
+CREATE TABLE IF NOT EXISTS support_ticket (
+  id            VARCHAR(32)  NOT NULL COMMENT '工单ID',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  customer_name VARCHAR(64)           COMMENT '客户名',
+  type          VARCHAR(32)  NOT NULL DEFAULT 'CONSULT' COMMENT 'CONSULT/FAULT/COMPLAINT',
+  content       VARCHAR(1024)         COMMENT '咨询内容',
+  contact       VARCHAR(32)           COMMENT '联系方式',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/REPLIED/CLOSED',
+  reply         VARCHAR(1024)         COMMENT '回复内容',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '提交时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_st_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服工单';
+
+-- ---------------------------------------------------------------------------
+-- 40. 营销自动化规则（V1.15 数据智能：客户分群/流失预警/营销自动化）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mkt_campaign (
+  id            VARCHAR(32)  NOT NULL COMMENT '规则ID',
+  name          VARCHAR(128) NOT NULL COMMENT '规则名称',
+  trigger_type  VARCHAR(32)  NOT NULL COMMENT '触发分群 CHURN_RISK/RENEW/HIGH_VALUE/GROWING',
+  action_type   VARCHAR(32)  NOT NULL DEFAULT 'GRANT_COUPON' COMMENT 'GRANT_COUPON/SEND_PROMO',
+  target_item   VARCHAR(32)           COMMENT '目标项：GRANT_COUPON→points_mall_item.id；SEND_PROMO→promotion.id',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  description   VARCHAR(255)          COMMENT '规则说明',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  updated_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '更新时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_mkt_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化规则';
+
+-- 41. 营销自动化执行记录（每次自动触发的动作留痕，用于去重与效果回收）
+CREATE TABLE IF NOT EXISTS mkt_campaign_exec (
+  id            VARCHAR(32)  NOT NULL COMMENT '执行ID',
+  campaign_id   VARCHAR(32)  NOT NULL COMMENT '规则ID',
+  customer_id   VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  action_type   VARCHAR(32)  NOT NULL COMMENT '动作类型',
+  target_item   VARCHAR(32)           COMMENT '目标项',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'SUCCESS' COMMENT 'SUCCESS/SKIP/DUP',
+  remark        VARCHAR(255)          COMMENT '备注',
+  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '执行时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_mkt_exec_camp (campaign_id),
+  KEY idx_mkt_exec_cust (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化执行记录';

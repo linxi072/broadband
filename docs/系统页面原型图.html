@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="admin">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>宽带业务管理系统 · 系统页面原型图</title>
+<style>
+  :root{
+    --ink-900:#0f172a; --ink-700:#334155; --ink-500:#64748b; --ink-400:#94a3b8;
+    --ink-200:#e2e8f0; --ink-100:#f1f5f9; --ink-50:#f8fafc; --surface:#ffffff;
+    --brand-500:#4f46e5; --brand-600:#4338ca; --brand-soft:#eef2ff;
+    --c-success:#16a34a; --c-warning:#d97706; --c-danger:#dc2626; --c-info:#2563eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+       background:var(--ink-50);color:var(--ink-900);line-height:1.6;}
+  header{padding:32px 24px 16px;text-align:center}
+  header h1{margin:0 0 6px;font-size:24px}
+  header p{margin:0;color:var(--ink-500);font-size:13px}
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:14px 0 4px;font-size:12px;color:var(--ink-700)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .grid{max-width:1180px;margin:0 auto;padding:16px 24px 48px;
+        display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:24px}
+  .card{background:var(--surface);border:1px solid var(--ink-200);border-radius:14px;
+        box-shadow:0 1px 3px rgba(15,23,42,.06);overflow:hidden}
+  .card .cap{padding:12px 16px;border-bottom:1px solid var(--ink-200);font-weight:600;font-size:14px;
+             display:flex;justify-content:space-between;align-items:center}
+  .card .cap small{font-weight:400;color:var(--ink-500);font-size:11px}
+  .card svg{display:block;width:100%;height:auto;background:var(--ink-50)}
+  footer{text-align:center;color:var(--ink-400);font-size:12px;padding:8px 0 40px}
+  text{font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',system-ui,sans-serif}
+</style>
+</head>
+<body>
+<header>
+  <h1>宽带业务管理系统 · 系统页面原型图</h1>
+  <p>低保真线框原型（Wireframe）｜ 三端同源异色设计系统 ｜ 更新 2026-09-16</p>
+  <div class="legend">
+    <span><i class="dot" style="background:#4f46e5"></i>PC 后台靛 #4f46e5</span>
+    <span><i class="dot" style="background:#2563eb"></i>客户端蓝 #2563eb</span>
+    <span><i class="dot" style="background:#ea580c"></i>师傅端橙 #ea580c</span>
+    <span><i class="dot" style="background:#16a34a"></i>成功</span>
+    <span><i class="dot" style="background:#dc2626"></i>危险</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- 1. PC 后台 运营概览 -->
+  <div class="card">
+    <div class="cap">PC 后台 · 运营概览 /dashboard <small>web-admin · 靛 #4f46e5</small></div>
+    <svg viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg">
+      <!-- sidebar -->
+      <rect x="0" y="0" width="120" height="520" fill="#eef2ff"/>
+      <rect x="16" y="18" width="88" height="22" rx="6" fill="#4f46e5"/>
+      <text x="60" y="33" fill="#fff" font-size="11" text-anchor="middle">宽带管家</text>
+      <rect x="16" y="60" width="88" height="24" rx="6" fill="#4f46e5" opacity=".15"/>
+      <text x="60" y="76" fill="#4338ca" font-size="11" text-anchor="middle">运营概览</text>
+      <rect x="16" y="92" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="107" fill="#334155" font-size="11" text-anchor="middle">工单管理</text>
+      <rect x="16" y="120" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="135" fill="#334155" font-size="11" text-anchor="middle">派单调度</text>
+      <rect x="16" y="148" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="163" fill="#334155" font-size="11" text-anchor="middle">小区管理</text>
+      <rect x="16" y="176" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="191" fill="#334155" font-size="11" text-anchor="middle">客户管理</text>
+      <rect x="16" y="204" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="219" fill="#334155" font-size="11" text-anchor="middle">装维 SLA</text>
+      <rect x="16" y="232" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="247" fill="#334155" font-size="11" text-anchor="middle">系统管理</text>
+      <!-- topbar -->
+      <rect x="120" y="0" width="560" height="48" fill="#fff" stroke="#e2e8f0"/>
+      <text x="136" y="30" fill="#0f172a" font-size="14" font-weight="600">运营概览</text>
+      <rect x="540" y="12" width="120" height="24" rx="12" fill="#f1f5f9"/>
+      <text x="600" y="28" fill="#64748b" font-size="10" text-anchor="middle">admin ▾</text>
+      <!-- KPI -->
+      <g>
+        <rect x="136" y="64" width="120" height="64" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="148" y="86" fill="#64748b" font-size="10">受理总量</text>
+        <text x="148" y="112" fill="#4338ca" font-size="20" font-weight="700">1,284</text>
+        <rect x="268" y="64" width="120" height="64" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="280" y="86" fill="#64748b" font-size="10">安装完成率</text>
+        <text x="280" y="112" fill="#16a34a" font-size="20" font-weight="700">96.2%</text>
+        <rect x="400" y="64" width="120" height="64" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="412" y="86" fill="#64748b" font-size="10">SLA 达标率</text>
+        <text x="412" y="112" fill="#16a34a" font-size="20" font-weight="700">94.5%</text>
+        <rect x="532" y="64" width="120" height="64" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="544" y="86" fill="#64748b" font-size="10">客户满意度</text>
+        <text x="544" y="112" fill="#4338ca" font-size="20" font-weight="700">4.7⭐</text>
+      </g>
+      <!-- work order board + SLA -->
+      <rect x="136" y="144" width="300" height="150" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="148" y="164" fill="#0f172a" font-size="12" font-weight="600">工单状态看板</text>
+      <rect x="148" y="176" width="60" height="14" rx="3" fill="#eef2ff"/>
+      <text x="178" y="187" fill="#4338ca" font-size="9" text-anchor="middle">待派 32</text>
+      <rect x="216" y="176" width="60" height="14" rx="3" fill="#dbeafe"/>
+      <text x="246" y="187" fill="#2563eb" font-size="9" text-anchor="middle">安装中 58</text>
+      <rect x="284" y="176" width="60" height="14" rx="3" fill="#dcfce7"/>
+      <text x="314" y="187" fill="#16a34a" font-size="9" text-anchor="middle">已完成 410</text>
+      <rect x="352" y="176" width="60" height="14" rx="3" fill="#fee2e2"/>
+      <text x="382" y="187" fill="#dc2626" font-size="9" text-anchor="middle">超时 6</text>
+      <rect x="148" y="200" width="276" height="80" rx="6" fill="#f8fafc"/>
+      <text x="156" y="222" fill="#334155" font-size="9">待派单 ▁▃▂▄▅▃▂▁▄▅▃</text>
+      <text x="156" y="248" fill="#334155" font-size="9">安装中 ▃▅▄▂▆▃▅▂▄▆▃</text>
+      <text x="156" y="274" fill="#334155" font-size="9">已完成 ▆▅▇▆▅▇▆▅▇▆▅</text>
+      <rect x="452" y="144" width="200" height="150" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="464" y="164" fill="#0f172a" font-size="12" font-weight="600">SLA 监控</text>
+      <text x="464" y="188" fill="#334155" font-size="10">时限类达标率</text>
+      <rect x="464" y="194" width="176" height="10" rx="5" fill="#e2e8f0"/>
+      <rect x="464" y="194" width="166" height="10" rx="5" fill="#16a34a"/>
+      <text x="464" y="226" fill="#334155" font-size="10">速率类达标率</text>
+      <rect x="464" y="232" width="176" height="10" rx="5" fill="#e2e8f0"/>
+      <rect x="464" y="232" width="158" height="10" rx="5" fill="#16a34a"/>
+      <rect x="464" y="262" width="176" height="20" rx="4" fill="#fef3c7"/>
+      <text x="552" y="276" fill="#d97706" font-size="9" text-anchor="middle">⚠ 6 单超时待赔付</text>
+      <!-- recent orders table -->
+      <rect x="136" y="310" width="516" height="186" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="148" y="330" fill="#0f172a" font-size="12" font-weight="600">近期工单</text>
+      <line x1="148" y1="340" x2="640" y2="340" stroke="#e2e8f0"/>
+      <text x="148" y="360" fill="#64748b" font-size="9">工单号</text>
+      <text x="290" y="360" fill="#64748b" font-size="9">小区</text>
+      <text x="430" y="360" fill="#64748b" font-size="9">师傅</text>
+      <text x="540" y="360" fill="#64748b" font-size="9">状态</text>
+      <line x1="148" y1="368" x2="640" y2="368" stroke="#f1f5f9"/>
+      <text x="148" y="386" fill="#334155" font-size="9">WO20260915001</text>
+      <text x="290" y="386" fill="#334155" font-size="9">科技园南区</text>
+      <text x="430" y="386" fill="#334155" font-size="9">张师傅</text>
+      <rect x="540" y="376" width="44" height="14" rx="7" fill="#dbeafe"/>
+      <text x="562" y="387" fill="#2563eb" font-size="8" text-anchor="middle">安装中</text>
+      <text x="148" y="410" fill="#334155" font-size="9">WO20260915002</text>
+      <text x="290" y="410" fill="#334155" font-size="9">滨海花园</text>
+      <text x="430" y="410" fill="#334155" font-size="9">李师傅</text>
+      <rect x="540" y="400" width="44" height="14" rx="7" fill="#dcfce7"/>
+      <text x="562" y="411" fill="#16a34a" font-size="8" text-anchor="middle">已完成</text>
+      <text x="148" y="434" fill="#334155" font-size="9">WO20260915003</text>
+      <text x="290" y="434" fill="#334155" font-size="9">阳光里</text>
+      <text x="430" y="434" fill="#334155" font-size="9">王师傅</text>
+      <rect x="540" y="424" width="44" height="14" rx="7" fill="#fee2e2"/>
+      <text x="562" y="435" fill="#dc2626" font-size="8" text-anchor="middle">超时</text>
+      <text x="148" y="458" fill="#334155" font-size="9">WO20260915004</text>
+      <text x="290" y="458" fill="#334155" font-size="9">幸福家园</text>
+      <text x="430" y="458" fill="#334155" font-size="9">张师傅</text>
+      <rect x="540" y="448" width="44" height="14" rx="7" fill="#fef3c7"/>
+      <text x="562" y="459" fill="#d97706" font-size="8" text-anchor="middle">待派</text>
+      <text x="148" y="482" fill="#334155" font-size="9">⋯</text>
+    </svg>
+  </div>
+
+  <!-- 2. PC 后台 工单派单 -->
+  <div class="card">
+    <div class="cap">PC 后台 · 派单调度 /workorder/dispatch <small>容量规则 + 贪心派单</small></div>
+    <svg viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="120" height="520" fill="#eef2ff"/>
+      <rect x="16" y="18" width="88" height="22" rx="6" fill="#4f46e5"/>
+      <text x="60" y="33" fill="#fff" font-size="11" text-anchor="middle">宽带管家</text>
+      <rect x="16" y="60" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="75" fill="#334155" font-size="11" text-anchor="middle">运营概览</text>
+      <rect x="16" y="92" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="107" fill="#334155" font-size="11" text-anchor="middle">工单管理</text>
+      <rect x="16" y="120" width="88" height="22" rx="6" fill="#4f46e5" opacity=".15"/>
+      <text x="60" y="135" fill="#4338ca" font-size="11" text-anchor="middle">派单调度</text>
+      <rect x="16" y="148" width="88" height="22" rx="6" fill="#fff" stroke="#cbd5e1"/>
+      <text x="60" y="163" fill="#334155" font-size="11" text-anchor="middle">容量配置</text>
+      <rect x="120" y="0" width="560" height="48" fill="#fff" stroke="#e2e8f0"/>
+      <text x="136" y="30" fill="#0f172a" font-size="14" font-weight="600">派单调度</text>
+      <rect x="500" y="12" width="160" height="26" rx="6" fill="#4f46e5"/>
+      <text x="580" y="29" fill="#fff" font-size="11" text-anchor="middle">▶ 执行智能派单</text>
+      <!-- pending list -->
+      <rect x="136" y="64" width="280" height="200" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="148" y="84" fill="#0f172a" font-size="12" font-weight="600">待派工单（容量校验）</text>
+      <rect x="148" y="96" width="256" height="40" rx="6" fill="#f8fafc"/>
+      <text x="156" y="114" fill="#334155" font-size="9">WO...001 科技园南区 · 相邻 3 单</text>
+      <text x="156" y="128" fill="#64748b" font-size="8">相邻 3-4 / 非相邻 1-2</text>
+      <rect x="148" y="144" width="256" height="40" rx="6" fill="#f8fafc"/>
+      <text x="156" y="162" fill="#334155" font-size="9">WO...002 滨海花园 · 相邻 2 单</text>
+      <text x="156" y="176" fill="#64748b" font-size="8">可合并至同一聚类</text>
+      <rect x="148" y="192" width="256" height="40" rx="6" fill="#f8fafc"/>
+      <text x="156" y="210" fill="#334155" font-size="9">WO...003 阳光里 · 非相邻 1 单</text>
+      <text x="156" y="224" fill="#64748b" font-size="8">独立派单</text>
+      <rect x="148" y="240" width="256" height="14" rx="3" fill="#fee2e2"/>
+      <text x="276" y="251" fill="#dc2626" font-size="8" text-anchor="middle">⚠ 超容拦截：该时段已满</text>
+      <!-- worker capacity board -->
+      <rect x="432" y="64" width="216" height="200" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="444" y="84" fill="#0f172a" font-size="12" font-weight="600">师傅时段容量</text>
+      <text x="444" y="104" fill="#334155" font-size="9">张师傅 09-15#AM</text>
+      <rect x="444" y="110" width="192" height="8" rx="4" fill="#e2e8f0"/>
+      <rect x="444" y="110" width="120" height="8" rx="4" fill="#16a34a"/>
+      <text x="444" y="134" fill="#334155" font-size="9">李师傅 09-15#AM</text>
+      <rect x="444" y="140" width="192" height="8" rx="4" fill="#e2e8f0"/>
+      <rect x="444" y="140" width="150" height="8" rx="4" fill="#16a34a"/>
+      <text x="444" y="164" fill="#334155" font-size="9">王师傅 09-15#AM</text>
+      <rect x="444" y="170" width="192" height="8" rx="4" fill="#e2e8f0"/>
+      <rect x="444" y="170" width="170" height="8" rx="4" fill="#d97706"/>
+      <text x="444" y="196" fill="#64748b" font-size="8">相邻上限 3-4 · 非相邻 1-2</text>
+      <rect x="444" y="204" width="192" height="40" rx="6" fill="#f8fafc"/>
+      <text x="452" y="222" fill="#334155" font-size="9">并查集聚类 → 贪心派单</text>
+      <text x="452" y="236" fill="#64748b" font-size="8">超容自动拦截</text>
+      <!-- result -->
+      <rect x="136" y="280" width="512" height="216" rx="10" fill="#fff" stroke="#e2e8f0"/>
+      <text x="148" y="300" fill="#0f172a" font-size="12" font-weight="600">派单结果（并查集聚类 + 贪心）</text>
+      <line x1="148" y1="310" x2="640" y2="310" stroke="#e2e8f0"/>
+      <text x="148" y="332" fill="#64748b" font-size="9">聚类</text>
+      <text x="300" y="332" fill="#64748b" font-size="9">工单</text>
+      <text x="450" y="332" fill="#64748b" font-size="9">指派师傅</text>
+      <line x1="148" y1="340" x2="640" y2="340" stroke="#f1f5f9"/>
+      <text x="148" y="360" fill="#334155" font-size="9">C1（相邻）</text>
+      <text x="300" y="360" fill="#334155" font-size="9">WO001, WO002</text>
+      <text x="450" y="360" fill="#334155" font-size="9">张师傅</text>
+      <text x="148" y="384" fill="#334155" font-size="9">C2（相邻）</text>
+      <text x="300" y="384" fill="#334155" font-size="9">WO004</text>
+      <text x="450" y="384" fill="#334155" font-size="9">李师傅</text>
+      <text x="148" y="408" fill="#334155" font-size="9">C3（非相邻）</text>
+      <text x="300" y="408" fill="#334155" font-size="9">WO003</text>
+      <text x="450" y="408" fill="#334155" font-size="9">王师傅</text>
+      <rect x="148" y="430" width="492" height="50" rx="6" fill="#fef3c7"/>
+      <text x="156" y="452" fill="#d97706" font-size="9">⚠ WO005 超容被拦截，未分配，请调整时段容量或增派师傅</text>
+      <text x="156" y="470" fill="#64748b" font-size="8">容量规则：相邻小区 3-4 单/时段、非相邻 1-2 单/时段</text>
+    </svg>
+  </div>
+
+  <!-- 3. 客户端小程序首页 -->
+  <div class="card">
+    <div class="cap">客户端小程序 · 首页 index <small>broadband-miniapp · 蓝 #2563eb</small></div>
+    <svg viewBox="0 0 360 640" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="360" height="640" fill="#eff6ff"/>
+      <!-- status bar -->
+      <rect x="0" y="0" width="360" height="36" fill="#2563eb"/>
+      <text x="20" y="24" fill="#fff" font-size="13" font-weight="700">宽带管家</text>
+      <text x="320" y="24" fill="#fff" font-size="11" text-anchor="end">🔔</text>
+      <!-- banner -->
+      <rect x="16" y="48" width="328" height="92" rx="12" fill="#2563eb"/>
+      <text x="32" y="80" fill="#fff" font-size="14" font-weight="700">500M 融合套餐</text>
+      <text x="32" y="102" fill="#dbeafe" font-size="10">月租 ¥99 · 宽带+手机+IPTV</text>
+      <rect x="232" y="92" width="96" height="28" rx="14" fill="#fff"/>
+      <text x="280" y="111" fill="#2563eb" font-size="11" text-anchor="middle">立即办理</text>
+      <!-- quick entries grid 3x3 -->
+      <text x="16" y="168" fill="#0f172a" font-size="12" font-weight="600">快捷办理</text>
+      <g>
+        <rect x="16" y="180" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="66" y="212" fill="#2563eb" font-size="10" text-anchor="middle">📶 新装</text>
+        <rect x="130" y="180" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="180" y="212" fill="#2563eb" font-size="10" text-anchor="middle">🔧 报修</text>
+        <rect x="244" y="180" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="294" y="212" fill="#2563eb" font-size="10" text-anchor="middle">⚡ 提速</text>
+        <rect x="16" y="256" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="66" y="288" fill="#2563eb" font-size="10" text-anchor="middle">📦 续费</text>
+        <rect x="130" y="256" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="180" y="288" fill="#2563eb" font-size="10" text-anchor="middle">📊 流量</text>
+        <rect x="244" y="256" width="100" height="64" rx="10" fill="#fff" stroke="#dbeafe"/>
+        <text x="294" y="288" fill="#2563eb" font-size="10" text-anchor="middle">🏘 覆盖</text>
+      </g>
+      <!-- my order card -->
+      <text x="16" y="348" fill="#0f172a" font-size="12" font-weight="600">我的业务</text>
+      <rect x="16" y="360" width="328" height="70" rx="10" fill="#fff" stroke="#dbeafe"/>
+      <text x="32" y="386" fill="#334155" font-size="11">新装宽带 · 科技园南区</text>
+      <rect x="32" y="396" width="80" height="18" rx="9" fill="#dbeafe"/>
+      <text x="72" y="409" fill="#2563eb" font-size="9" text-anchor="middle">安装中</text>
+      <text x="320" y="409" fill="#64748b" font-size="10" text-anchor="end">›</text>
+      <!-- SLA countdown -->
+      <rect x="16" y="444" width="328" height="60" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+      <text x="32" y="468" fill="#ea580c" font-size="10" font-weight="600">⏱ 装机剩余 18h · SLA 承诺 24h</text>
+      <text x="32" y="488" fill="#9a3412" font-size="9">超时将自动触发赔付</text>
+      <!-- tab bar -->
+      <rect x="0" y="600" width="360" height="40" fill="#fff" stroke="#e2e8f0"/>
+      <text x="60" y="624" fill="#2563eb" font-size="10" text-anchor="middle">首页</text>
+      <text x="180" y="624" fill="#94a3b8" font-size="10" text-anchor="middle">服务</text>
+      <text x="300" y="624" fill="#94a3b8" font-size="10" text-anchor="middle">我的</text>
+    </svg>
+  </div>
+
+  <!-- 4. 客户端报修进度 -->
+  <div class="card">
+    <div class="cap">客户端小程序 · 报修进度详情 repair/detail <small>进度时间线 + SLA 倒计时</small></div>
+    <svg viewBox="0 0 360 640" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="360" height="640" fill="#eff6ff"/>
+      <rect x="0" y="0" width="360" height="36" fill="#2563eb"/>
+      <text x="180" y="24" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">报修进度</text>
+      <text x="336" y="24" fill="#fff" font-size="14" text-anchor="end">✕</text>
+      <!-- header -->
+      <rect x="16" y="48" width="328" height="72" rx="12" fill="#fff" stroke="#dbeafe"/>
+      <text x="32" y="74" fill="#0f172a" font-size="13" font-weight="700">网络中断</text>
+      <text x="32" y="96" fill="#64748b" font-size="10">工单 WO20260916012 · 科技园南区</text>
+      <rect x="232" y="62" width="96" height="22" rx="11" fill="#dbeafe"/>
+      <text x="280" y="77" fill="#2563eb" font-size="10" text-anchor="middle">上门中</text>
+      <!-- SLA timer -->
+      <rect x="16" y="132" width="328" height="48" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+      <text x="32" y="156" fill="#ea580c" font-size="11" font-weight="600">⏱ 承诺 24h · 已用 6h · 剩余 18h</text>
+      <rect x="32" y="164" width="296" height="6" rx="3" fill="#fed7aa"/>
+      <rect x="32" y="164" width="74" height="6" rx="3" fill="#ea580c"/>
+      <!-- timeline -->
+      <text x="16" y="208" fill="#0f172a" font-size="12" font-weight="600">处理时间线</text>
+      <g>
+        <circle cx="36" cy="240" r="8" fill="#16a34a"/>
+        <text x="56" y="244" fill="#334155" font-size="11">已受理 · 09-16 09:20</text>
+        <circle cx="36" cy="284" r="8" fill="#16a34a"/>
+        <text x="56" y="288" fill="#334155" font-size="11">已派单 · 张师傅</text>
+        <circle cx="36" cy="328" r="8" fill="#2563eb"/>
+        <text x="56" y="332" fill="#334155" font-size="11">上门中 · 预计 14:00</text>
+        <circle cx="36" cy="372" r="8" fill="#e2e8f0"/>
+        <text x="56" y="376" fill="#94a3b8" font-size="11">修复中</text>
+        <circle cx="36" cy="416" r="8" fill="#e2e8f0"/>
+        <text x="56" y="420" fill="#94a3b8" font-size="11">已完成</text>
+        <line x1="36" y1="248" x2="36" y2="364" stroke="#cbd5e1" stroke-width="2"/>
+      </g>
+      <!-- contact -->
+      <rect x="16" y="448" width="328" height="56" rx="10" fill="#fff" stroke="#dbeafe"/>
+      <text x="32" y="470" fill="#334155" font-size="11">张师傅 · 138****6688</text>
+      <text x="32" y="490" fill="#64748b" font-size="9">联系电话 10099 · 客服</text>
+      <!-- actions -->
+      <rect x="16" y="520" width="156" height="40" rx="10" fill="#fff" stroke="#2563eb"/>
+      <text x="94" y="545" fill="#2563eb" font-size="12" text-anchor="middle">催单</text>
+      <rect x="188" y="520" width="156" height="40" rx="10" fill="#2563eb"/>
+      <text x="266" y="545" fill="#fff" font-size="12" text-anchor="middle">评价</text>
+    </svg>
+  </div>
+
+  <!-- 5. 师傅端首页 -->
+  <div class="card">
+    <div class="cap">师傅端小程序 · 首页 index <small>broadband-worker · 橙 #ea580c</small></div>
+    <svg viewBox="0 0 360 640" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="360" height="640" fill="#fff7ed"/>
+      <rect x="0" y="0" width="360" height="36" fill="#ea580c"/>
+      <text x="20" y="24" fill="#fff" font-size="13" font-weight="700">装维助手</text>
+      <text x="320" y="24" fill="#fff" font-size="11" text-anchor="end">🔔</text>
+      <!-- greeting -->
+      <rect x="16" y="48" width="328" height="76" rx="12" fill="#ea580c"/>
+      <text x="32" y="78" fill="#fff" font-size="14" font-weight="700">张师傅，早上好</text>
+      <text x="32" y="100" fill="#ffedd5" font-size="10">今日 09-16 · 待办 5 单</text>
+      <!-- stat cards -->
+      <rect x="16" y="140" width="156" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="166" fill="#64748b" font-size="10">今日工单</text>
+      <text x="32" y="190" fill="#ea580c" font-size="20" font-weight="700">5</text>
+      <rect x="188" y="140" width="156" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="204" y="166" fill="#64748b" font-size="10">已完成</text>
+      <text x="204" y="190" fill="#16a34a" font-size="20" font-weight="700">2</text>
+      <!-- today list -->
+      <text x="16" y="232" fill="#0f172a" font-size="12" font-weight="600">今日工单</text>
+      <rect x="16" y="244" width="328" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="270" fill="#334155" font-size="11">科技园南区 · 新装</text>
+      <rect x="240" y="256" width="88" height="20" rx="10" fill="#ffedd5"/>
+      <text x="284" y="270" fill="#ea580c" font-size="9" text-anchor="middle">09:00-11:00</text>
+      <text x="32" y="292" fill="#64748b" font-size="9">相邻合并 · 3 单</text>
+      <rect x="16" y="316" width="328" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="342" fill="#334155" font-size="11">滨海花园 · 报修</text>
+      <rect x="240" y="328" width="88" height="20" rx="10" fill="#fee2e2"/>
+      <text x="284" y="342" fill="#dc2626" font-size="9" text-anchor="middle">超时预警</text>
+      <text x="32" y="364" fill="#64748b" font-size="9">网络中断 · SLA 24h</text>
+      <!-- capacity mini -->
+      <rect x="16" y="396" width="328" height="72" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="420" fill="#334155" font-size="11" font-weight="600">我的时段容量 09-16#AM</text>
+      <rect x="32" y="430" width="296" height="8" rx="4" fill="#fed7aa"/>
+      <rect x="32" y="430" width="200" height="8" rx="4" fill="#16a34a"/>
+      <text x="32" y="456" fill="#64748b" font-size="9">已派 4/4 相邻上限 · 非相邻 2/2</text>
+      <!-- tab bar -->
+      <rect x="0" y="600" width="360" height="40" fill="#fff" stroke="#e2e8f0"/>
+      <text x="60" y="624" fill="#ea580c" font-size="10" text-anchor="middle">首页</text>
+      <text x="180" y="624" fill="#94a3b8" font-size="10" text-anchor="middle">工单</text>
+      <text x="300" y="624" fill="#94a3b8" font-size="10" text-anchor="middle">我的</text>
+    </svg>
+  </div>
+
+  <!-- 6. 师傅端完工 -->
+  <div class="card">
+    <div class="cap">师傅端小程序 · 完工确认 confirm <small>测速 + 签名 + 服务项</small></div>
+    <svg viewBox="0 0 360 640" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="360" height="640" fill="#fff7ed"/>
+      <rect x="0" y="0" width="360" height="36" fill="#ea580c"/>
+      <text x="180" y="24" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">完工确认</text>
+      <text x="336" y="24" fill="#fff" font-size="14" text-anchor="end">✕</text>
+      <rect x="16" y="48" width="328" height="60" rx="12" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="74" fill="#0f172a" font-size="13" font-weight="700">科技园南区 · 新装</text>
+      <text x="32" y="94" fill="#64748b" font-size="10">WO20260915001 · 客户 李先生</text>
+      <!-- speed test -->
+      <text x="16" y="136" fill="#0f172a" font-size="12" font-weight="600">装机测速</text>
+      <rect x="16" y="148" width="156" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="32" y="174" fill="#64748b" font-size="10">下行</text>
+      <text x="32" y="196" fill="#16a34a" font-size="18" font-weight="700">943 Mbps</text>
+      <rect x="188" y="148" width="156" height="64" rx="10" fill="#fff" stroke="#fed7aa"/>
+      <text x="204" y="174" fill="#64748b" font-size="10">上行</text>
+      <text x="204" y="196" fill="#16a34a" font-size="18" font-weight="700">102 Mbps</text>
+      <rect x="16" y="224" width="328" height="28" rx="14" fill="#16a34a"/>
+      <text x="180" y="243" fill="#fff" font-size="11" text-anchor="middle">▶ 重新测速</text>
+      <!-- service items -->
+      <text x="16" y="284" fill="#0f172a" font-size="12" font-weight="600">六项服务确认</text>
+      <g font-size="10" fill="#334155">
+        <rect x="16" y="296" width="156" height="28" rx="8" fill="#fff" stroke="#fed7aa"/><text x="28" y="314">✓ 光猫安装</text>
+        <rect x="188" y="296" width="156" height="28" rx="8" fill="#fff" stroke="#fed7aa"/><text x="200" y="314">✓ 布线整理</text>
+        <rect x="16" y="332" width="156" height="28" rx="8" fill="#fff" stroke="#fed7aa"/><text x="28" y="350">✓ Wi-Fi 调优</text>
+        <rect x="188" y="332" width="156" height="28" rx="8" fill="#fff" stroke="#fed7aa"/><text x="200" y="350">○ 旧设备回收</text>
+      </g>
+      <!-- signature -->
+      <text x="16" y="392" fill="#0f172a" font-size="12" font-weight="600">客户签名</text>
+      <rect x="16" y="404" width="328" height="80" rx="10" fill="#fff" stroke="#fed7aa" stroke-dasharray="4 3"/>
+      <text x="180" y="450" fill="#94a3b8" font-size="10" text-anchor="middle">✍ 请客户在此签名</text>
+      <!-- submit -->
+      <rect x="16" y="500" width="328" height="44" rx="12" fill="#ea580c"/>
+      <text x="180" y="527" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">提交完工（置 DONE）</text>
+    </svg>
+  </div>
+
+</div>
+
+<footer>宽带业务管理系统 · 系统页面原型图 ｜ 低保真线框，颜色与组件遵循三端同源异色设计系统（客户端蓝 / 师傅端橙 / PC 后台靛）</footer>
+</body>
+</html>

@@ -1,0 +1,1 @@
+/* pages/account/bills.wxss —— 复用全局 .page/.item/.header 等令牌，无需额外样式 */

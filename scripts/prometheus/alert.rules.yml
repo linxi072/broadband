@@ -1,0 +1,44 @@
+# 宽带业务管理系统 · Prometheus 告警规则（G6 监控深化）
+# 阈值对齐 PC 后台「性能监控」页：
+#   - 平均时延 ≥1000ms → 超时；≥200ms → 偏慢；其余正常（见 ApiMetricsFilter.slowApis）
+#   - 错误率 >5% → 告警；JVM 堆 >85% → 关注容量
+# 所有指标带 application="broadband-backend"（management.metrics.tags.application）。
+
+groups:
+  - name: broadband-backend-alerts
+    rules:
+      - alert: 接口平均时延超时_大于1s
+        expr: |
+          sum(rate(http_server_requests_seconds_sum{application="broadband-backend"}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{application="broadband-backend"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "后端接口平均时延 > 1s（监控页阈值：超时）"
+          description: "近 5 分钟平均响应时延 {{ $value | humanizeDuration }} 超过 1s 超时阈值。"
+
+      - alert: 接口错误率超阈值_大于5%
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="broadband-backend",status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{application="broadband-backend"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "后端 5xx 错误率 > 5%"
+          description: "近 5 分钟错误率 {{ $value | humanizePercentage }} 超过 5% 告警阈值。"
+
+      - alert: JVM堆内存使用率超阈值_大于85%
+        expr: |
+          jvm_memory_used_bytes{application="broadband-backend",area="heap"}
+          /
+          jvm_memory_max_bytes{application="broadband-backend",area="heap"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM 堆内存使用率 > 85%"
+          description: "当前堆内存使用率 {{ $value | humanizePercentage }} 超过 85% 阈值，需关注 GC 与容量。"

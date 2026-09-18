@@ -18,7 +18,9 @@ onMounted(async () => {
     await ping()
     backendOnline.value = true
   } catch (e) {
-    backendOnline.value = false
+    // 401 也代表后端在线（只是未登录）；只有「无响应」才视为离线。
+    // 注意：ping 返回的 401 已被拦截器忽略（不会触发跳登录），此处仅用于状态展示。
+    backendOnline.value = !!(e && e.status === 401)
   }
 })
 

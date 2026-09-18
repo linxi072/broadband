@@ -1,0 +1,18 @@
+/* pages/points/mall.wxss */
+.mall { display: flex; align-items: stretch; background: var(--card); border-radius: var(--radius); padding: 24rpx; margin-bottom: 18rpx; box-shadow: var(--shadow); }
+.mall-body { flex: 1; min-width: 0; }
+.mall-name { font-size: 30rpx; font-weight: 600; color: var(--ink-900); }
+.mall-sub { margin-top: 12rpx; display: flex; align-items: center; flex-wrap: wrap; gap: 12rpx; }
+.mall-side { width: 180rpx; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+.mall-cost { font-size: 38rpx; font-weight: 700; color: var(--c); }
+.mall-cost-u { font-size: 22rpx; font-weight: 500; }
+.mall-side .btn-ghost { margin-top: 12rpx; width: 160rpx; padding: 12rpx 0; font-size: 26rpx; }
+.btn-ghost.off { opacity: .45; }
+.mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(15, 23, 42, .5); display: flex; align-items: center; justify-content: center; z-index: 80; }
+.dialog { width: 560rpx; background: #fff; border-radius: 28rpx; padding: 48rpx 40rpx; text-align: center; }
+.dialog-ic { font-size: 80rpx; }
+.dialog-t { font-size: 34rpx; font-weight: 700; margin-top: 12rpx; }
+.dialog-p { font-size: 28rpx; color: var(--ink-700); margin-top: 12rpx; }
+.dialog-code { margin-top: 20rpx; background: var(--c-50); color: var(--c-700); font-family: var(--font-mono); font-size: 28rpx; padding: 18rpx; border-radius: 12rpx; word-break: break-all; }
+.dialog-bal { margin-top: 16rpx; font-size: 26rpx; color: var(--text-sub); }
+.dialog .btn-primary { margin-top: 28rpx; }

@@ -19,7 +19,17 @@
     "pages/review/review",
     "pages/login/login",
     "pages/address/address",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/repair/repair",
+    "pages/repair/list",
+    "pages/repair/detail",
+    "pages/account/account",
+    "pages/account/bills",
+    "pages/points/points",
+    "pages/points/mall",
+    "pages/promotion/list",
+    "pages/promotion/detail",
+    "pages/support/support"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2563eb",

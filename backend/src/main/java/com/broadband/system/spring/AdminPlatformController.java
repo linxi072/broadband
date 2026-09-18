@@ -376,6 +376,22 @@ public class AdminPlatformController {
         }
         out.put("compTrend", compTrend);
 
+        // 赔付按业务类型分布（US-2.3 深化）：定位高赔付来源
+        List<Map<String, Object>> compByType = new ArrayList<>();
+        for (Map<String, Object> r : jdbc.queryForList("""
+                SELECT order_type AS orderType, COUNT(*) AS cnt, COALESCE(SUM(comp_amount),0) AS amount
+                FROM compensation GROUP BY order_type
+                """)) {
+            String ot = String.valueOf(r.get("orderType"));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orderType", ot);
+            row.put("orderTypeLabel", ORDER_TYPE_LABELS.getOrDefault(ot, ot));
+            row.put("count", num(r.get("cnt")));
+            row.put("amount", round1(((Number) r.get("amount")).doubleValue()));
+            compByType.add(row);
+        }
+        out.put("compByType", compByType);
+
         out.put("recentCompensations", jdbc.queryForList("""
                 SELECT id, order_id AS orderId, cust_name AS custName, order_type AS orderType,
                        comp_type AS compType, comp_amount AS compAmount, reason, status, created_time AS createdTime

@@ -106,6 +106,21 @@ const compTrendOption = computed(() => {
   }
 })
 
+const compByTypeOption = computed(() => {
+  const list = dashboard.value?.compByType || []
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 元 ({d}%)' },
+    legend: { bottom: 0, type: 'scroll' },
+    color: ['#4f46e5', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7'],
+    series: [{
+      type: 'pie', radius: ['42%', '68%'], center: ['50%', '46%'],
+      itemStyle: { borderColor: '#fff', borderWidth: 2 },
+      label: { formatter: '{b}\n{d}%' },
+      data: list.map((x) => ({ name: x.orderTypeLabel, value: x.amount }))
+    }]
+  }
+})
+
 // ---- 超时热力：星期 × 时段（0~23 时）的超时工单分布 ----
 const heatmapOption = computed(() => {
   const hm = dashboard.value?.heatmap
@@ -221,6 +236,10 @@ onMounted(async () => {
           <div class="card chart-card">
             <div class="card-head"><h3>分业务类型达标率</h3></div>
             <ChartBox :option="byTypeOption" height="280px" />
+          </div>
+          <div class="card chart-card">
+            <div class="card-head"><h3>赔付按业务类型</h3></div>
+            <ChartBox :option="compByTypeOption" height="280px" />
           </div>
           <div class="card chart-card">
             <div class="card-head"><h3>近 14 日 超时 vs 达标</h3></div>

@@ -39,7 +39,7 @@ export function demoCustomer360(id) {
       oneTimeDiff: u.oneTimeDiff, currentFee: 0, newFee: 0, effectType: u.effectType,
       statusLabel: u.status, createdAt: u.time
     })),
-    lifecycle: { stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
+    lifecycle: { segment: 'STABLE', stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, churnRisk: false, riskScore: 20, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
     touchRecords: [
       { type: 'order', title: '下单 · 500M 融合 40G', detail: '¥129 · 已支付', time: Date.now() - 12 * 86400000, timeText: '2026-09-14 09:12' },
       { type: 'install', title: '安装完工 · 新装', detail: '师傅 张师傅', time: Date.now() - 11 * 86400000, timeText: '2026-09-13 11:30' },
@@ -239,6 +239,14 @@ export function demoSlaDashboard() {
     ],
     overtimeByDay: dayLabels.map((date, i) => ({ date, overtime: overtimeByDay[i], met: metByDay[i] })),
     compTrend,
+    // 赔付按业务类型分布（US-2.3 深化，与 slaDashboard compByType 对齐）
+    compByType: [
+      { orderType: 'NEW_INSTALL', orderTypeLabel: '新装宽带', count: 10, amount: 320 },
+      { orderType: 'MOVE', orderTypeLabel: '宽带移机', count: 5, amount: 150 },
+      { orderType: 'REPAIR', orderTypeLabel: '故障报修', count: 11, amount: 980 },
+      { orderType: 'SPEED_UP', orderTypeLabel: '宽带提速', count: 1, amount: 30 },
+      { orderType: 'RENEW', orderTypeLabel: '续费', count: 1, amount: 20 }
+    ],
     heatmap: (() => {
       const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
       const hours = Array.from({ length: 24 }, (_, h) => h)
@@ -341,13 +349,22 @@ export function demoMarketingDashboard() {
       { month: '2026-08', revenue: 660, orders: 5 },
       { month: '2026-09', revenue: 650, orders: 4 }
     ],
-    funnel: [
-      { stage: '业务订单', value: 28 },
-      { stage: '已支付', value: 24 },
-      { stage: '已完成', value: 19 },
-      { stage: '升级申请', value: 6 },
-      { stage: '升级生效', value: 4 }
-    ]
+    // 漏斗阶段转化率（US-2.3 深化，与 productMarketing funnel 对齐：相对顶层 + 相邻阶段）
+    funnel: (() => {
+      const raw = [
+        { stage: '业务订单', value: 28 },
+        { stage: '已支付', value: 24 },
+        { stage: '已完成', value: 19 },
+        { stage: '升级申请', value: 6 },
+        { stage: '升级生效', value: 4 }
+      ]
+      const top = raw[0].value
+      return raw.map((s, i) => ({
+        ...s,
+        conversionFromTop: top === 0 ? 0 : Math.round(s.value * 1000.0 / top) / 10.0,
+        conversionFromPrev: i === 0 ? 100.0 : Math.round(s.value * 1000.0 / raw[i - 1].value) / 10.0
+      }))
+    })()
   }
 }
 

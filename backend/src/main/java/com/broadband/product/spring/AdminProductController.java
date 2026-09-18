@@ -635,6 +635,60 @@ public class AdminProductController {
         return rows;
     }
 
+    // ============================================================ 报表下钻明细（US-2.2 报表下钻标准化）
+
+    /**
+     * 销售业绩明细下钻：按销售 / 月份返回底层业务订单（构成销售报表每一行的明细）。
+     */
+    @GetMapping("/sales/report/detail")
+    @PreAuthorize("hasAuthority('sales:view')")
+    public List<Map<String, Object>> salesReportDetail(
+            @RequestParam(required = false) String salesName,
+            @RequestParam(required = false) String month) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT id AS orderNo, customer_name AS customerName, package_name AS packageName, " +
+                "amount, status, order_type AS orderType, " +
+                "DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
+                "FROM biz_order WHERE sales_name IS NOT NULL AND sales_name <> ''");
+        List<Object> args = new ArrayList<>();
+        if (salesName != null && !salesName.isBlank()) {
+            sql.append(" AND sales_name = ?");
+            args.add(salesName);
+        }
+        if (month != null && !month.isBlank()) {
+            sql.append(" AND DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ?");
+            args.add(month);
+        }
+        sql.append(" ORDER BY created_time DESC");
+        return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    /**
+     * 财务月度明细下钻：某月营收/退款/赔付的底层业务订单 + 赔付工单（构成财务月报每一行的明细）。
+     */
+    @GetMapping("/finance/report/detail")
+    @PreAuthorize("hasAuthority('finance:view')")
+    public Map<String, Object> financeReportDetail(@RequestParam String month) {
+        List<Map<String, Object>> orders = jdbc.queryForList(
+                "SELECT '订单' AS type, id AS ref, customer_name AS customer, amount, status, " +
+                "order_type AS orderType, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
+                "FROM biz_order WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ? " +
+                "ORDER BY created_time DESC", month);
+        List<Map<String, Object>> comps = jdbc.queryForList(
+                "SELECT '赔付' AS type, id AS ref, cust_name AS customer, comp_amount AS amount, status, " +
+                "order_type AS orderType, reason, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate " +
+                "FROM compensation WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = ? " +
+                "ORDER BY created_time DESC", month);
+        List<Map<String, Object>> rows = new ArrayList<>(orders);
+        rows.addAll(comps);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("month", month);
+        result.put("orderCount", orders.size());
+        result.put("compCount", comps.size());
+        result.put("rows", rows);
+        return result;
+    }
+
     // ==================================================================== 退款 / 对账状态机
 
     /**

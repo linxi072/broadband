@@ -38,37 +38,43 @@ public class IntelligenceController {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private OperLogService operLog;
 
+    /**
+     * 客户派生基表（分群口径的唯一来源）：订单量 / 最近活跃时间 / 合约剩余天数。
+     * 被 segments / churn / targetCustomers / segment-customers 共用，避免口径分歧。
+     */
+    private static final String CUSTOMER_BASE_CTE =
+            "WITH cb AS (" +
+            "  SELECT c.id, c.name, c.level, c.status," +
+            "    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt," +
+            "    GREATEST(" +
+            "      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0)," +
+            "      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0)," +
+            "      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)" +
+            "    ) AS last_active," +
+            "    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct" +
+            "       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left" +
+            "  FROM customer c" +
+            ")";
+
+    /** 分群判定（单一口径，被 segments / churn / targetCustomers / segment-customers 共用）。 */
+    private static final String SEGMENT_CASE =
+            "CASE" +
+            "  WHEN contract_days_left IS NOT NULL AND contract_days_left <= 90 THEN 'RENEW'" +
+            "  WHEN last_active = 0 AND order_cnt = 0 THEN 'LEAD'" +
+            "  WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 180 THEN 'CHURN_RISK'" +
+            "  WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'HIGH_VALUE'" +
+            "  WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'GROWING'" +
+            "  ELSE 'STABLE'" +
+            "END";
+
     // ============================================================ 客户分群
 
     @GetMapping("/segments")
     @PreAuthorize("hasAuthority('intelligence:view')")
     public Map<String, Object> segments() {
         Map<String, Object> result = new LinkedHashMap<>();
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-                WITH cb AS (
-                  SELECT c.id, c.level,
-                    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt,
-                    GREATEST(
-                      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)
-                    ) AS last_active,
-                    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct
-                       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left
-                  FROM customer c
-                )
-                SELECT
-                  CASE
-                    WHEN contract_days_left IS NOT NULL AND contract_days_left <= 90 THEN 'RENEW'
-                    WHEN last_active = 0 AND order_cnt = 0 THEN 'LEAD'
-                    WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 180 THEN 'CHURN_RISK'
-                    WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'HIGH_VALUE'
-                    WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'GROWING'
-                    ELSE 'STABLE'
-                  END AS segment,
-                  COUNT(*) AS cnt
-                FROM cb GROUP BY segment
-                """);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                CUSTOMER_BASE_CTE + " SELECT " + SEGMENT_CASE + " AS segment, COUNT(*) AS cnt FROM cb GROUP BY segment");
         Map<String, String> labels = Map.of(
                 "LEAD", "潜在客户", "RENEW", "临期待续约", "CHURN_RISK", "流失预警",
                 "HIGH_VALUE", "高价值活跃", "GROWING", "成长期", "STABLE", "稳定期");
@@ -111,37 +117,13 @@ public class IntelligenceController {
     @PreAuthorize("hasAuthority('intelligence:view')")
     public Map<String, Object> churn(@RequestParam(required = false, defaultValue = "50") Integer limit) {
         Map<String, Object> result = new LinkedHashMap<>();
-        List<Map<String, Object>> rows = jdbc.queryForList("""
-                WITH cb AS (
-                  SELECT c.id, c.name, c.level, c.status,
-                    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt,
-                    GREATEST(
-                      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)
-                    ) AS last_active,
-                    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct
-                       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left
-                  FROM customer c
-                )
-                SELECT id, name, level, status, order_cnt AS orderCnt, last_active AS lastActive,
-                       contract_days_left AS contractDaysLeft,
-                       CASE
-                         WHEN order_cnt = 0 THEN 'LEAD'
-                         WHEN contract_days_left IS NOT NULL AND contract_days_left <= 90 THEN 'RENEW'
-                         WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 180 THEN 'CHURN_RISK'
-                         WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'HIGH_VALUE'
-                         WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'GROWING'
-                         ELSE 'STABLE'
-                       END AS segment
-                FROM cb
-                WHERE (contract_days_left IS NOT NULL AND contract_days_left <= 90)
-                   OR (last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 120)
-                ORDER BY
-                  CASE WHEN segment='CHURN_RISK' THEN 0 WHEN segment='RENEW' THEN 1 ELSE 2 END,
-                  contract_days_left ASC, last_active ASC
-                LIMIT ?
-                """, limit);
+        String churnInner = CUSTOMER_BASE_CTE
+                + " SELECT id, name, level, status, order_cnt AS orderCnt, last_active AS lastActive,"
+                + " contract_days_left AS contractDaysLeft, " + SEGMENT_CASE + " AS segment FROM cb";
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT * FROM (" + churnInner + ") t WHERE t.segment IN ('CHURN_RISK','RENEW') " +
+                "ORDER BY CASE WHEN t.segment='CHURN_RISK' THEN 0 WHEN t.segment='RENEW' THEN 1 ELSE 2 END, " +
+                "t.contractDaysLeft ASC, t.lastActive ASC LIMIT ?", limit);
 
         Map<String, String> levelLabels = Map.of("VIP", "五星", "GOLD", "四星", "SILVER", "三星", "NORMAL", "普通");
         List<Map<String, Object>> list = new ArrayList<>();
@@ -170,6 +152,49 @@ public class IntelligenceController {
         }
         result.put("total", list.size());
         result.put("list", list);
+        return result;
+    }
+
+    // ============================================================ 分群客户下钻（US-2.2 报表下钻标准化）
+
+    /**
+     * 分群客户明细下钻：点击「数据智能」分群饼图 / 流失柱图某分群，返回该分群下客户列表。
+     * 复用 {@link #SEGMENT_CASE} 与 {@link #CUSTOMER_BASE_CTE}，与聚合口径完全一致。
+     */
+    @GetMapping("/segment-customers")
+    @PreAuthorize("hasAuthority('intelligence:view')")
+    public Map<String, Object> segmentCustomers(@RequestParam String segment,
+                                                @RequestParam(required = false, defaultValue = "50") Integer limit) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        String inner = CUSTOMER_BASE_CTE
+                + " SELECT id, name, level, status, order_cnt AS orderCnt, last_active AS lastActive,"
+                + " contract_days_left AS contractDaysLeft, " + SEGMENT_CASE + " AS segment FROM cb";
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT * FROM (" + inner + ") t WHERE t.segment = ? " +
+                "ORDER BY t.contractDaysLeft ASC, t.lastActive DESC LIMIT ?", segment, limit);
+        Map<String, String> levelLabels = Map.of("VIP", "五星", "GOLD", "四星", "SILVER", "三星", "NORMAL", "普通");
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            long lastActive = r.get("lastActive") == null ? 0 : ((Number) r.get("lastActive")).longValue();
+            long contractDaysLeft = r.get("contractDaysLeft") == null ? 9999
+                    : ((Number) r.get("contractDaysLeft")).longValue();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", r.get("id"));
+            m.put("name", r.get("name"));
+            m.put("level", r.get("level"));
+            m.put("levelLabel", levelLabels.getOrDefault(str(r.get("level")), str(r.get("level"))));
+            m.put("status", r.get("status"));
+            m.put("orderCnt", r.get("orderCnt"));
+            m.put("contractDaysLeft", contractDaysLeft);
+            m.put("lastActiveText", lastActive == 0 ? "无记录" : fmt(lastActive));
+            m.put("segment", segment);
+            m.put("segmentLabel", segmentLabel(segment));
+            list.add(m);
+        }
+        result.put("segment", segment);
+        result.put("segmentLabel", segmentLabel(segment));
+        result.put("count", list.size());
+        result.put("rows", list);
         return result;
     }
 
@@ -279,28 +304,9 @@ public class IntelligenceController {
             case "GROWING" -> "GROWING";
             default -> "CHURN_RISK";
         };
-        return jdbc.queryForList("""
-                WITH cb AS (
-                  SELECT c.id, c.level,
-                    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt,
-                    GREATEST(
-                      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0),
-                      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)
-                    ) AS last_active,
-                    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct
-                       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left
-                  FROM customer c
-                )
-                SELECT id FROM cb
-                WHERE CASE
-                    WHEN contract_days_left IS NOT NULL AND contract_days_left <= 90 THEN 'RENEW'
-                    WHEN last_active = 0 AND order_cnt = 0 THEN 'LEAD'
-                    WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) > 180 THEN 'CHURN_RISK'
-                    WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'HIGH_VALUE'
-                    WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) <= 30 THEN 'GROWING'
-                    ELSE 'STABLE' END = ?
-                """, seg).stream().map(m -> str(m.get("id"))).toList();
+        String inner = CUSTOMER_BASE_CTE + " SELECT id, " + SEGMENT_CASE + " AS segment FROM cb";
+        return jdbc.queryForList("SELECT id FROM (" + inner + ") t WHERE t.segment = ?", seg)
+                .stream().map(m -> str(m.get("id"))).toList();
     }
 
     private void logExec(String campaignId, String customerId, String action, String target,

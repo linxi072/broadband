@@ -387,6 +387,47 @@ export function demoIntelligenceCampaigns() {
   ]
 }
 
+/** 销售业绩明细下钻演示兜底（与 GET /api/admin/sales/report/detail 返回结构对齐） */
+export function demoSalesDetail(salesName) {
+  const all = [
+    { orderNo: 'B20260914001', customerName: '陈先生', packageName: '500M 融合', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
+    { orderNo: 'B20260914003', customerName: '王先生', packageName: '1000M 融合', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
+    { orderNo: 'B20260913005', customerName: '刘女士', packageName: '300M 融合', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' },
+    { orderNo: 'B20260912007', customerName: '黄先生', packageName: '200M 单宽', amount: 69, status: 'INSTALLING', orderType: 'NEW_INSTALL', createdDate: '2026-09-12' }
+  ]
+  if (salesName) {
+    // 演示数据以「刘伟」命中，其余销售返回少量记录
+    return salesName === '刘伟' ? all : all.slice(0, 2)
+  }
+  return all
+}
+
+/** 财务月度明细下钻演示兜底（与 GET /api/admin/finance/report/detail 返回结构对齐） */
+export function demoFinanceDetail(month) {
+  const orders = [
+    { type: '订单', ref: 'B20260914001', customer: '陈先生', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
+    { type: '订单', ref: 'B20260914003', customer: '王先生', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
+    { type: '订单', ref: 'B20260913005', customer: '刘女士', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' }
+  ]
+  const comps = [
+    { type: '赔付', ref: 'CP-0001', customer: '王先生', amount: 30, status: 'PAID', orderType: 'REPAIR', reason: '故障报修超时 45 分钟', createdDate: '2026-09-14' },
+    { type: '赔付', ref: 'CP-0002', customer: '李女士', amount: 50, status: 'VERIFYING', orderType: 'NEW_INSTALL', reason: '新装超时 1.2 小时', createdDate: '2026-09-13' }
+  ]
+  return { month: month || '2026-09', orderCount: orders.length, compCount: comps.length, rows: [...orders, ...comps] }
+}
+
+/** 分群客户下钻演示兜底（与 GET /api/intelligence/segment-customers 返回结构对齐） */
+export function demoSegmentCustomers(segment) {
+  const base = [
+    { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', status: 'ACTIVE', orderCnt: 6, contractDaysLeft: 16, lastActiveText: '2026-08-22', segment: 'RENEW', segmentLabel: '临期待续约' },
+    { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', status: 'ACTIVE', orderCnt: 2, contractDaysLeft: 9999, lastActiveText: '2026-03-01', segment: 'CHURN_RISK', segmentLabel: '流失预警' },
+    { id: 'C0003', name: '周女士', level: 'NORMAL', levelLabel: '普通', status: 'ACTIVE', orderCnt: 0, contractDaysLeft: 9999, lastActiveText: '无记录', segment: 'LEAD', segmentLabel: '潜在客户' },
+    { id: 'C0004', name: '吴先生', level: 'VIP', levelLabel: '五星', status: 'ACTIVE', orderCnt: 9, contractDaysLeft: 41, lastActiveText: '2026-09-01', segment: 'HIGH_VALUE', segmentLabel: '高价值活跃' }
+  ]
+  const rows = segment ? base.filter((c) => c.segment === segment) : base
+  return { segment: segment || '', segmentLabel: rows[0]?.segmentLabel || '', count: rows.length, rows }
+}
+
 /** 全部权限码（演示登录用） */
 export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',

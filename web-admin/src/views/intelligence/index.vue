@@ -5,17 +5,20 @@ import 'element-plus/es/components/message/style/css'
 import SourceTag from '@/components/SourceTag.vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartBox from '@/components/ChartBox.vue'
+import DetailDrawer from '@/components/DetailDrawer.vue'
 import {
   intelligenceSegments,
   intelligenceChurn,
   intelligenceCampaigns,
-  intelligenceAutoTrigger
+  intelligenceAutoTrigger,
+  intelligenceSegmentCustomers
 } from '@/api/business'
 import { loadResource } from '@/composables/useResource'
 import {
   demoIntelligenceSegments,
   demoIntelligenceChurn,
-  demoIntelligenceCampaigns
+  demoIntelligenceCampaigns,
+  demoSegmentCustomers
 } from '@/mock/fallback'
 
 const PALETTE = ['#4f46e5', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7']
@@ -73,6 +76,48 @@ const SEG_COLOR = {
   HIGH_VALUE: '#4f46e5', RENEW: '#f59e0b', CHURN_RISK: '#ef4444'
 }
 const riskType = (s) => (s >= 85 ? 'danger' : s >= 60 ? 'warning' : 'success')
+
+// ---- 分群客户下钻（US-2.2）：点击分群饼图 / 流失柱图，查看该分群客户明细
+const detail = ref([])
+const detailLoading = ref(false)
+const detailVisible = ref(false)
+const detailTitle = ref('')
+const detailColumns = [
+  { prop: 'id', label: '客户ID', width: 130 },
+  { prop: 'name', label: '姓名', width: 100 },
+  { prop: 'levelLabel', label: '等级', width: 90 },
+  { prop: 'status', label: '状态', width: 90 },
+  { prop: 'orderCnt', label: '订单数', width: 90, align: 'right' },
+  { prop: 'contractDaysLeft', label: '合约剩余', width: 110, format: (r) => (r.contractDaysLeft >= 9999 ? '—' : r.contractDaysLeft + ' 天') },
+  { prop: 'lastActiveText', label: '最近活跃', width: 130 },
+  { prop: 'segmentLabel', label: '分群', width: 110 }
+]
+
+const segLabelToCode = computed(() => {
+  const m = {}
+  ;(segSegments.value || []).forEach((s) => { m[s.segmentLabel] = s.segment })
+  return m
+})
+
+async function drillBySegment(segment, segmentLabel) {
+  if (!segment) return
+  detailTitle.value = `分群客户明细 · ${segmentLabel || segment}`
+  detailLoading.value = true
+  detailVisible.value = true
+  const r = await loadResource(() => intelligenceSegmentCustomers(segment), () => demoSegmentCustomers(segment))
+  const d = r.data || {}
+  detail.value = d.rows || []
+  detailLoading.value = false
+}
+
+function onSegmentPieClick(params) {
+  drillBySegment(segLabelToCode.value[params?.name], params?.name)
+}
+
+function onChurnBarClick(params) {
+  const cust = churnList.value.find((c) => c.name === params?.name)
+  if (cust) drillBySegment(cust.segment, cust.segmentLabel)
+}
 
 // ---- 营销自动化一键触发
 const triggering = ref(false)
@@ -143,12 +188,12 @@ onMounted(async () => {
     <!-- 一、客户分群 -->
     <div class="card">
       <div class="card-head">
-        <h3>一、客户分群</h3>
+        <h3>一、客户分群<span class="hint">点击分群下钻客户明细</span></h3>
         <SourceTag :live="segLive" />
       </div>
       <div class="seg-body">
         <div class="seg-chart">
-          <ChartBox :option="segmentPie" height="320px" />
+          <ChartBox :option="segmentPie" height="320px" @chart-click="onSegmentPieClick" />
         </div>
         <div class="seg-side">
           <div class="mini-stats">
@@ -180,7 +225,7 @@ onMounted(async () => {
       </div>
       <div class="churn-body">
         <div class="churn-chart">
-          <ChartBox :option="churnBar" height="320px" />
+          <ChartBox :option="churnBar" height="320px" @chart-click="onChurnBarClick" />
         </div>
         <div class="churn-table">
           <el-table v-loading="loading" :data="churnList" size="small" style="width: 100%" max-height="360">
@@ -213,6 +258,15 @@ onMounted(async () => {
       </div>
       <p class="hint-line">共识别 <b>{{ churnTotal }}</b> 位需重点跟进客户（流失预警 + 临期待续约）。</p>
     </div>
+
+    <DetailDrawer
+      v-model:visible="detailVisible"
+      :title="detailTitle"
+      :columns="detailColumns"
+      :rows="detail"
+      :loading="detailLoading"
+      :live="segLive"
+    />
 
     <!-- 三、营销自动化 -->
     <div class="card">
@@ -309,6 +363,7 @@ onMounted(async () => {
 .seg-side .mini-stats > * { flex: 1; }
 
 .reasons { font-size: 12px; color: var(--bd-text-mute); }
+.hint { font-size: 12px; font-weight: 400; color: var(--bd-text-mute); margin-left: 8px; }
 .hint-line { margin: 10px 2px 0; font-size: 13px; color: var(--bd-text-mute); }
 
 .trig-result { margin-top: 14px; }

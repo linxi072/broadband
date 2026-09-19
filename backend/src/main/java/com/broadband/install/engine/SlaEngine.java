@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 装维 SLA 计算 + 慢必赔规则引擎（纯 Java，无 Spring 依赖，可独立单测，见 SlaDemo）。
+ * 装维 SLA 计算 + 慢必赔规则引擎（纯 Java，无 Spring 依赖，可独立单测）。
  *
  * 两类评估：
  *  1) 时限类（EvalType.TIME）：用以受理/预约为基准 + 承诺小时数计算承诺完成时间；

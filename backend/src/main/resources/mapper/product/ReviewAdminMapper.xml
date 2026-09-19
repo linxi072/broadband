@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.ReviewAdminMapper">
+
+    <!-- 评价 / 投诉列表 -->
+    <select id="reviews" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, customer_name AS customer, worker_name AS worker, score,
+               tags, content, created_time AS createdTime,
+               CASE type WHEN 'COMPLAINT' THEN '投诉' ELSE '评价' END AS type,
+               CASE status WHEN 'PENDING' THEN '待处理' WHEN 'PROCESSING' THEN '处理中'
+                           WHEN 'VISITED' THEN '已回访' WHEN 'CLOSED' THEN '已闭环'
+                           ELSE status END AS status,
+               DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d %H:%i') AS time
+        FROM review WHERE 1 = 1
+        <if test="type != null and type != ''">
+            AND type = #{type}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_time DESC LIMIT 300
+    </select>
+
+    <!-- 闭环 -->
+    <update id="closeReview">
+        UPDATE review SET status = 'CLOSED' WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.OrderMapper">
+
+    <select id="selectMy" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_id AS customerId, customer_name AS customerName, phone,
+               package_id AS packageId, package_name AS packageName, amount,
+               community_name AS communityName,
+               order_type AS orderType, status, created_time AS createdTime
+        FROM biz_order
+        WHERE customer_id = #{customerId}
+        ORDER BY created_time DESC
+    </select>
+
+    <select id="selectPackage" resultType="java.util.LinkedHashMap">
+        SELECT name, monthly_fee FROM package_info WHERE id = #{packageId}
+    </select>
+
+    <select id="selectCommunity" resultType="java.util.LinkedHashMap">
+        SELECT name, dept_id FROM community WHERE id = #{communityId}
+    </select>
+
+    <select id="selectCustomer" resultType="java.util.LinkedHashMap">
+        SELECT name, phone FROM customer WHERE id = #{customerId}
+    </select>
+
+    <insert id="insertOrder">
+        INSERT INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name,
+            amount, community_id, community_name, order_type, status, dept_id, created_time)
+        VALUES (#{id}, #{customerId}, #{customerName}, #{phone}, #{packageId}, #{packageName},
+            #{amount}, #{communityId}, #{communityName}, #{orderType}, #{status}, #{deptId}, #{createdTime})
+    </insert>
+
+    <select id="selectOrderStatus" resultType="java.util.LinkedHashMap">
+        SELECT id, status, customer_name, community_id, community_name, package_name
+        FROM biz_order WHERE id = #{orderId}
+    </select>
+
+    <select id="selectWorkOrderId" resultType="java.lang.String">
+        SELECT id FROM work_order WHERE biz_order_id = #{orderId} LIMIT 1
+    </select>
+
+    <select id="selectAmount" resultType="java.lang.Integer">
+        SELECT amount FROM biz_order WHERE id = #{orderId}
+    </select>
+
+    <update id="updatePaid">
+        UPDATE biz_order SET status = 'PAID' WHERE id = #{orderId}
+    </update>
+
+    <insert id="insertWorkOrder">
+        INSERT INTO work_order (id, community_id, address, time_slot, customer_name, package_desc, status, biz_order_id)
+        VALUES (#{id}, #{communityId}, #{address}, #{timeSlot}, #{customerName}, #{packageName}, #{status}, #{bizOrderId})
+    </insert>
+
+    <select id="selectOrderForRefund" resultType="java.util.LinkedHashMap">
+        SELECT id, status, customer_id, customer_name, amount
+        FROM biz_order WHERE id = #{orderId}
+    </select>
+
+    <select id="selectExistingRefund" resultType="java.lang.String">
+        SELECT id FROM order_refund WHERE order_id = #{orderId} AND status IN ('PENDING','REFUNDED') LIMIT 1
+    </select>
+
+    <insert id="insertRefund">
+        INSERT INTO order_refund (id, order_id, order_no, customer_id, customer_name, amount, reason, channel, status, created_time)
+        VALUES (#{id}, #{orderId}, #{orderNo}, #{customerId}, #{customerName}, #{amount}, #{reason}, #{channel}, #{status}, #{createdTime})
+    </insert>
+
+    <select id="selectWorkOrderByBiz" resultType="java.util.LinkedHashMap">
+        SELECT id, status, worker_id, time_slot, down_speed, up_speed, complete_time
+        FROM work_order WHERE biz_order_id = #{orderId}
+    </select>
+
+    <select id="selectSla" resultType="java.util.LinkedHashMap">
+        SELECT id, order_type, sla_status, overtime_minutes, speed_test_mbps, created_time
+        FROM sla_record WHERE order_id = #{orderId} ORDER BY created_time
+    </select>
+
+    <select id="selectReviews" resultType="java.util.LinkedHashMap">
+        SELECT id, score, tags, type, content, status, created_time FROM review WHERE order_id = #{orderId}
+    </select>
+
+</mapper>

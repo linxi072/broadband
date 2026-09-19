@@ -1,6 +1,5 @@
 package com.broadband.common;
 
-import com.broadband.system.spring.AuthController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -31,8 +30,8 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(AuthController.BadCredentials.class)
-    public ResponseEntity<Map<String, Object>> badCredentials(AuthController.BadCredentials e) {
+    @ExceptionHandler(BadCredentials.class)
+    public ResponseEntity<Map<String, Object>> badCredentials(BadCredentials e) {
         return body(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 

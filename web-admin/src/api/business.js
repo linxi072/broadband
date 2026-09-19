@@ -72,9 +72,6 @@ export function orderList(params) {
 export function workOrderList(params) {
   return silent({ url: '/admin/work-orders', method: 'get', params })
 }
-export function resetWorkOrders() {
-  return request({ url: '/admin/work-orders/reset', method: 'post', data: {} })
-}
 
 // ---------- 投诉与评价 ----------
 export function reviewList(params) {

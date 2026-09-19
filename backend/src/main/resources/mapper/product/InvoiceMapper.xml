@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.InvoiceMapper">
+
+    <select id="selectOrder" resultType="java.util.LinkedHashMap">
+        SELECT id, status, customer_id, customer_name, amount
+        FROM biz_order WHERE id = #{id}
+    </select>
+
+    <select id="selectInvoice" resultType="java.util.LinkedHashMap">
+        SELECT id, status, amount FROM invoice_apply WHERE id = #{id}
+    </select>
+
+    <select id="selectExistingId" resultType="java.lang.String">
+        SELECT id FROM invoice_apply WHERE order_id = #{orderId} AND status IN ('PENDING','OPENED') LIMIT 1
+    </select>
+
+    <select id="selectMy" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, title, tax_no AS taxNo, amount, status,
+               invoice_no AS invoiceNo, pdf_url AS pdfUrl, created_time AS createdTime, opened_time AS openedTime
+        FROM invoice_apply WHERE customer_name = #{customerName} ORDER BY created_time DESC
+    </select>
+
+    <select id="selectList" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName,
+               title, tax_no AS taxNo, amount, status, invoice_no AS invoiceNo, pdf_url AS pdfUrl,
+               operator, remark, created_time AS createdTime, opened_time AS openedTime
+        FROM invoice_apply
+        <where>
+            <if test="status != null and status != ''">status = #{status}</if>
+        </where>
+        ORDER BY created_time DESC
+    </select>
+
+    <insert id="insertApply">
+        INSERT INTO invoice_apply (id, order_id, order_no, customer_id, customer_name, title, tax_no, amount, status, created_time)
+        VALUES (#{id}, #{orderId}, #{orderNo}, #{customerId}, #{customerName}, #{title}, #{taxNo}, #{amount}, #{status}, #{createdTime})
+    </insert>
+
+    <update id="updateOpen">
+        UPDATE invoice_apply SET status = 'OPENED', invoice_no = #{invoiceNo}, pdf_url = #{pdfUrl},
+               operator = #{operator}, opened_time = #{openedTime} WHERE id = #{id}
+    </update>
+
+    <update id="updateReject">
+        UPDATE invoice_apply SET status = 'REJECTED', remark = #{remark}, operator = #{operator},
+               opened_time = #{openedTime} WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.IntelligenceMapper">
+
+    <!-- 客户分群基表（全量客户） -->
+    <sql id="baseCte">
+WITH cb AS (
+  SELECT c.id, c.name, c.level, c.status,
+    (SELECT COUNT(*) FROM biz_order b WHERE b.customer_id = c.id) AS order_cnt,
+    GREATEST(
+      COALESCE((SELECT MAX(created_time) FROM biz_order b WHERE b.customer_id = c.id),0),
+      COALESCE((SELECT MAX(created_time) FROM points_record p WHERE p.customer_id = c.id),0),
+      COALESCE((SELECT MAX(created_time) FROM support_ticket t WHERE t.customer_id = c.id),0)
+    ) AS last_active,
+    (SELECT MIN(DATEDIFF(ct.end_date, CURDATE())) FROM customer_contract ct
+       WHERE ct.customer_id = c.id AND ct.status = 'ACTIVE') AS contract_days_left
+  FROM customer c
+)
+    </sql>
+
+    <!-- 六类分群判定（依赖 order_cnt / last_active / contract_days_left / level） -->
+    <sql id="segmentCase">
+CASE
+  WHEN contract_days_left IS NOT NULL AND contract_days_left &lt;= 90 THEN 'RENEW'
+  WHEN last_active = 0 AND order_cnt = 0 THEN 'LEAD'
+  WHEN last_active = 0 OR DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) &gt; 180 THEN 'CHURN_RISK'
+  WHEN level IN ('VIP','GOLD') AND DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) &lt;= 30 THEN 'HIGH_VALUE'
+  WHEN DATEDIFF(CURDATE(), FROM_UNIXTIME(last_active/1000)) &lt;= 30 THEN 'GROWING'
+  ELSE 'STABLE'
+END
+    </sql>
+
+    <!-- 分群计数 -->
+    <select id="segmentCounts" resultType="java.util.LinkedHashMap">
+        <include refid="baseCte"/>
+        SELECT <include refid="segmentCase"/> AS segment, COUNT(*) AS cnt FROM cb GROUP BY segment
+    </select>
+
+    <!-- 流失预警客户（CHURN_RISK / RENEW），按风险倒序 -->
+    <select id="churnList" resultType="java.util.LinkedHashMap">
+        <include refid="baseCte"/>
+        SELECT * FROM (
+          SELECT id, name, level, status, order_cnt AS orderCnt, last_active AS lastActive,
+                 contract_days_left AS contractDaysLeft, <include refid="segmentCase"/> AS segment FROM cb
+        ) t WHERE t.segment IN ('CHURN_RISK','RENEW')
+        ORDER BY CASE WHEN t.segment='CHURN_RISK' THEN 0 WHEN t.segment='RENEW' THEN 1 ELSE 2 END,
+                 t.contractDaysLeft ASC, t.lastActive ASC LIMIT #{limit}
+    </select>
+
+    <!-- 分群客户明细下钻 -->
+    <select id="segmentCustomers" resultType="java.util.LinkedHashMap">
+        <include refid="baseCte"/>
+        SELECT * FROM (
+          SELECT id, name, level, status, order_cnt AS orderCnt, last_active AS lastActive,
+                 contract_days_left AS contractDaysLeft, <include refid="segmentCase"/> AS segment FROM cb
+        ) t WHERE t.segment = #{segment}
+        ORDER BY t.contractDaysLeft ASC, t.lastActive DESC LIMIT #{limit}
+    </select>
+
+    <!-- 营销自动化规则列表 -->
+    <select id="campaigns" resultType="java.util.LinkedHashMap">
+        SELECT id, name, trigger_type AS triggerType, action_type AS actionType,
+               target_item AS targetItem, status, description,
+               (SELECT COUNT(*) FROM mkt_campaign_exec e WHERE e.campaign_id = m.id) AS execTotal,
+               (SELECT COUNT(*) FROM mkt_campaign_exec e WHERE e.campaign_id = m.id
+                  AND e.created_time &gt;= #{since}) AS execRecent
+        FROM mkt_campaign m ORDER BY m.id
+    </select>
+
+    <!-- 已启用规则 -->
+    <select id="enabledCampaigns" resultType="java.util.LinkedHashMap">
+        SELECT id, name, trigger_type AS triggerType, action_type AS actionType,
+               target_item AS targetItem, status
+        FROM mkt_campaign WHERE status='ENABLED'
+    </select>
+
+    <!-- 去重计数 -->
+    <select id="countExecDup" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM mkt_campaign_exec
+        WHERE campaign_id=#{campaignId} AND customer_id=#{customerId} AND created_time &gt;= #{since}
+    </select>
+
+    <!-- 目标商品 -->
+    <select id="mallItem" resultType="java.util.LinkedHashMap">
+        SELECT coupon_type, coupon_value FROM points_mall_item WHERE id=#{id}
+    </select>
+
+    <!-- 发放券 -->
+    <insert id="insertCoupon">
+        INSERT INTO points_coupon (id, customer_id, item_id, coupon_code, coupon_type, coupon_value, status, created_time, expire_time)
+        VALUES (#{id}, #{customerId}, #{itemId}, #{code}, #{couponType}, #{couponValue}, 'UNUSED', #{createdTime}, #{expireTime})
+    </insert>
+
+    <!-- 执行留痕 -->
+    <insert id="insertExec">
+        INSERT INTO mkt_campaign_exec (id, campaign_id, customer_id, action_type, target_item, status, remark, created_time)
+        VALUES (#{id}, #{campaignId}, #{customerId}, #{actionType}, #{targetItem}, #{status}, #{remark}, #{createdTime})
+    </insert>
+
+    <!-- 命中分群客户 -->
+    <select id="targetCustomers" resultType="java.util.LinkedHashMap">
+        <include refid="baseCte"/>
+        SELECT id FROM (
+          SELECT id, <include refid="segmentCase"/> AS segment FROM cb
+        ) t WHERE t.segment = #{segment}
+    </select>
+
+</mapper>

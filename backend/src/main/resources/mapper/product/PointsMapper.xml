@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.PointsMapper">
+
+    <select id="selectAccount" resultType="java.util.LinkedHashMap">
+        SELECT balance, total_earned AS totalEarned, total_spent AS totalSpent,
+               sign_date AS signDate, sign_streak AS signStreak
+        FROM points_account WHERE customer_id = #{customerId}
+    </select>
+
+    <update id="updateSign">
+        UPDATE points_account SET balance = balance + #{earned}, total_earned = total_earned + #{earned},
+               sign_date = #{today}, sign_streak = #{streak} WHERE customer_id = #{customerId}
+    </update>
+
+    <update id="updateRedeem">
+        UPDATE points_account SET balance = balance - #{cost}, total_spent = total_spent + #{cost}
+        WHERE customer_id = #{customerId}
+    </update>
+
+    <update id="updateStock">
+        UPDATE points_mall_item SET stock = stock - 1 WHERE id = #{itemId}
+    </update>
+
+    <insert id="insertRecord">
+        INSERT INTO points_record (id, customer_id, type, amount, remark, ref_id, created_time)
+        VALUES (#{id}, #{customerId}, #{type}, #{amount}, #{remark}, #{refId}, #{createdTime})
+    </insert>
+
+    <insert id="insertCoupon">
+        INSERT INTO points_coupon (id, customer_id, item_id, coupon_code, coupon_type, coupon_value, status, created_time)
+        VALUES (#{id}, #{customerId}, #{itemId}, #{couponCode}, #{couponType}, #{couponValue}, 'UNUSED', #{createdTime})
+    </insert>
+
+    <select id="selectTasks" resultType="java.util.LinkedHashMap">
+        SELECT id, task_key AS taskKey, name, points, description
+        FROM points_task WHERE status='ENABLED' ORDER BY sort_order
+    </select>
+
+    <select id="selectMall" resultType="java.util.LinkedHashMap">
+        SELECT id, name, cost, stock, coupon_type AS couponType, coupon_value AS couponValue, image, status
+        FROM points_mall_item WHERE status='ON_SHELF' ORDER BY cost
+    </select>
+
+    <select id="selectItem" resultType="java.util.LinkedHashMap">
+        SELECT id, name, cost, stock, coupon_type AS couponType, coupon_value AS couponValue, status
+        FROM points_mall_item WHERE id = #{itemId}
+    </select>
+
+    <select id="countAccount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM points_account WHERE customer_id = #{customerId}
+    </select>
+
+    <insert id="insertAccount">
+        INSERT INTO points_account (customer_id, balance, total_earned, total_spent, sign_streak, created_time)
+        VALUES (#{customerId}, 0, 0, 0, 0, #{createdTime})
+    </insert>
+
+</mapper>

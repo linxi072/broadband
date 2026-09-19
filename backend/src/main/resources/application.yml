@@ -13,11 +13,67 @@ spring:
     name: broadband-backend
 
   datasource:
+    # 显式指定 Druid 数据源（默认 HikariCP）；配合下方 druid.* 生效
+    type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
     # createDatabaseIfNotExist=true：首次启动自动建库（后续表结构由 schema.sql 初始化）
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:broadband}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
+    # ------------------------------------------------------------------
+    # Druid 连接池调优（生产可按压测结果微调；此处为通用保守值）
+    # ------------------------------------------------------------------
+    druid:
+      # 连接池规模：初始 5 / 最小空闲 5 / 最大 20
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      # 获取连接最长等待 60s，超时快速失败而不是无限堆积线程
+      max-wait: 60000
+      # 借用时校验 + 空闲校验，避免使用已断开的连接（配合下方 validation-query）
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: SELECT 1
+      validation-query-timeout: 3
+      # 空闲回收：最小空闲下限内不回收；间隔 60s 检测；超过 7 小时未用则回收，防止长连接老化
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      max-evictable-idle-time-millis: 25200000
+      keep-alive: true
+      # 连接泄漏回收：Druid 官方明确「removeAbandoned 不要在生产开启」
+      # （会误回收仍在使用的长事务连接，且启动时必打 WARN）。
+      # 默认关闭；排查连接泄漏时临时改为 true + log-abandoned: true 即可。
+      remove-abandoned: false
+      remove-abandoned-timeout: 120
+      log-abandoned: false
+      # 预编译语句缓存（PSCache），MySQL 下按每连接 20 条、上限 100 条
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      max-open-prepared-statements: 100
+      # 监控与防御：stat 采集慢 SQL；wall 防火墙禁止删表/多语句拼接
+      # 只启用 stat + slf4j：两者只做「采集与记录」，不拦截任何语句。
+      # 这里刻意不启用 wall 防火墙：本系统启动时会自动执行 db/schema.sql（CREATE TABLE IF NOT EXISTS /
+      # ALTER TABLE）与 db/data.sql（开头 SET NAMES utf8mb4），wall 会把这些 DDL 与 SET 判为危险语句
+      # 直接拦截，导致启动即失败。SQL 注入防护由「MyBatis-Plus 参数绑定 + 全站预编译」保证。
+      filters: stat,slf4j
+      filter:
+        stat:
+          enabled: true
+          # 慢 SQL 阈值：超过 2s 记入慢日志，便于定位聚合查询瓶颈
+          slow-sql-millis: 2000
+          log-slow-sql: true
+          merge-sql: true
+        slf4j:
+          enabled: true
+          statement-log-error-enabled: true
+          result-set-log-enabled: false
+      # Druid 内置监控页（/druid/*）：默认关闭；如需开启改为 true 并在安全层放行
+      stat-view-servlet:
+        enabled: false
+        url-pattern: /druid/*
+        login-username: ${DRUID_USER:}
+        login-password: ${DRUID_PASSWORD:}
 
   # 启动时执行 classpath:db/schema.sql + db/data.sql。
   # 两者均为幂等写法（CREATE TABLE IF NOT EXISTS / INSERT IGNORE），
@@ -30,7 +86,24 @@ spring:
       data-locations: classpath:db/data.sql
       continue-on-error: false
 
+  # ------------------------------------------------------------------
+  # Redis 数据缓存（app.cache.enabled 开关 + RedisCacheService fail-safe）。
+  #   默认连 127.0.0.1:6379（沙箱已运行 redis-server）；生产用 REDIS_HOST/REDIS_PORT 覆盖。
+  #   Redis 不可用时所有缓存读取自动退化为直查 DB，业务不中断。
+  # ------------------------------------------------------------------
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      # 连接/读写超时，避免 Redis 抖动时线程长时间阻塞
+      timeout: 2000ms
+      lettuce:
+        shutdown-timeout: 100ms
+
 mybatis-plus:
+  # MyBatis XML 映射文件位置：Service 内的聚合 SQL 统一收敛到 resources/mapper/**/*.xml，
+  # 由对应 @Mapper 接口绑定（namespace 须指向 Mapper 全限定名）。
+  mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     # 驼峰 <-> 下划线自动映射（entity 字段 packageId -> 列 package_id）
     map-underscore-to-camel-case: true
@@ -76,11 +149,22 @@ management:
 # 登录态收口 & 微信小程序凭证（M9）
 #   - app.security.protect-client-api=true：C 端开放接口（套餐/小区/订单/流量）改为强制鉴权
 #   - AppID 属公开标识，已回填真实值；AppSecret 生产用环境变量 WECHAT_SECRET 注入，yml 不落明文
-#     注入 Secret 后即由「演示码 1234 回退」自动切换为微信 code2Session 真实登录（前端无需改动）。
+#     注入 Secret 后小程序登录即走微信 code2Session 真实登录（前端无需改动）；
+#     未注入时 /api/auth/miniapp-login 直接拒绝，不再回退到任何演示/固定码分支。
 # ============================================================================
 app:
+  # Redis 缓存总开关：false 时 RedisCacheService 直接走 loader（等价无缓存，便于无 Redis 环境部署）。
+  # 沙箱 Redis 已起，默认 true；生产视缓存中间件可用性决定。
+  cache:
+    enabled: ${CACHE_ENABLED:true}
   security:
     protect-client-api: true
+  # 短信验证码服务开关：师傅端登录 / 手机号登录依赖它做验证码校验。
+  # 默认 false = 未接入，SmsVerifyService 会 fail-closed（拒绝所有验证码），
+  # 以免退化成「无需验证码即可登录」。接入真实短信服务商后设为 true 并在
+  # com.broadband.system.service.SmsVerifyService#verify 中对接校验逻辑。
+  sms:
+    enabled: ${SMS_ENABLED:false}
   wechat:
     miniapp:
       appid: ${WECHAT_APPID:wxcc344ad7f4f849d4}

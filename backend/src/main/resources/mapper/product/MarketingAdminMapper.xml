@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.MarketingAdminMapper">
+
+    <!-- 汇总指标 -->
+    <select id="summary" resultType="java.util.LinkedHashMap">
+        SELECT
+          (SELECT COUNT(*) FROM biz_order) AS totalOrders,
+          (SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS totalRevenue,
+          (SELECT COUNT(*) FROM biz_order WHERE status = 'DONE') AS doneOrders,
+          (SELECT COALESCE(ROUND(AVG(amount),0),0) FROM biz_order WHERE status NOT IN ('CANCELLED','REFUND')) AS avgOrderAmount,
+          (SELECT COUNT(*) FROM customer) AS customerCount,
+          (SELECT COUNT(*) FROM package_upgrade_order) AS upgradeCount,
+          (SELECT COUNT(*) FROM package_upgrade_order WHERE status = 'EFFECTIVE') AS effectiveUpgrades
+    </select>
+
+    <!-- 已支付订单数 -->
+    <select id="paidOrders" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE')
+    </select>
+
+    <!-- 套餐销量排行 -->
+    <select id="packageRanking" resultType="java.util.LinkedHashMap">
+        SELECT package_name AS name, COUNT(*) AS orders, COALESCE(SUM(amount),0) AS revenue
+        FROM biz_order WHERE package_name IS NOT NULL AND package_name &lt;&gt; ''
+        GROUP BY package_name ORDER BY revenue DESC
+    </select>
+
+    <!-- 业务类型分布 -->
+    <select id="orderTypeDist" resultType="java.util.LinkedHashMap">
+        SELECT order_type AS type, COUNT(*) AS orders, COALESCE(SUM(amount),0) AS revenue
+        FROM biz_order GROUP BY order_type
+    </select>
+
+    <!-- 升级单状态分布 -->
+    <select id="upgradeByStatus" resultType="java.util.LinkedHashMap">
+        SELECT status, COUNT(*) AS count FROM package_upgrade_order GROUP BY status
+    </select>
+
+    <!-- 客户分层分布 -->
+    <select id="customerLevelDist" resultType="java.util.LinkedHashMap">
+        SELECT level, COUNT(*) AS count FROM customer GROUP BY level
+    </select>
+
+    <!-- 近 6 月营收趋势 -->
+    <select id="revenueTrend" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
+               COALESCE(SUM(CASE WHEN status IN ('PAID','INSTALLING','DONE') THEN amount ELSE 0 END),0) AS revenue,
+               COUNT(*) AS orders
+        FROM biz_order WHERE created_time &gt;= #{threshold}
+        GROUP BY month ORDER BY month ASC
+    </select>
+
+    <!-- 漏斗下钻：业务订单（全部） -->
+    <select id="orderDetailAll" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_name AS customer, package_name AS packageName, amount,
+               order_type AS orderType, status, created_time AS createdTime
+        FROM biz_order ORDER BY created_time DESC LIMIT 200
+    </select>
+
+    <!-- 漏斗下钻：业务订单（已支付） -->
+    <select id="orderDetailPaid" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_name AS customer, package_name AS packageName, amount,
+               order_type AS orderType, status, created_time AS createdTime
+        FROM biz_order WHERE status IN ('PAID','INSTALLING','DONE')
+        ORDER BY created_time DESC LIMIT 200
+    </select>
+
+    <!-- 漏斗下钻：业务订单（已完成） -->
+    <select id="orderDetailDone" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_name AS customer, package_name AS packageName, amount,
+               order_type AS orderType, status, created_time AS createdTime
+        FROM biz_order WHERE status = 'DONE'
+        ORDER BY created_time DESC LIMIT 200
+    </select>
+
+    <!-- 漏斗下钻：升级申请（全部） -->
+    <select id="upgradeDetailAll" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
+        FROM package_upgrade_order ORDER BY created_time DESC LIMIT 200
+    </select>
+
+    <!-- 漏斗下钻：升级申请（已生效） -->
+    <select id="upgradeDetailEffective" resultType="java.util.LinkedHashMap">
+        SELECT id, customer_id AS customerId, target_band_key AS target, status, created_time AS createdTime
+        FROM package_upgrade_order WHERE status = 'EFFECTIVE'
+        ORDER BY created_time DESC LIMIT 200
+    </select>
+
+</mapper>

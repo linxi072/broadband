@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.install.mapper.WorkerQueryMapper">
+
+    <sql id="orderSelect">
+        SELECT w.id,
+               w.customer_name AS customer,
+               w.package_desc  AS pkgDesc,
+               c.name          AS community,
+               w.address, w.time_slot AS timeSlot,
+               COALESCE(k.name, '—') AS worker,
+               w.status, w.worker_id AS workerId, w.cluster_id AS clusterId,
+               w.adjacent_route AS adjacent,
+               w.down_speed AS downSpeed, w.up_speed AS upSpeed,
+               w.sign_name AS signName, w.complete_time AS completeTime
+        FROM work_order w
+        LEFT JOIN community c ON c.id = w.community_id
+        LEFT JOIN worker    k ON k.id = w.worker_id
+    </sql>
+
+    <select id="selectOrders" resultType="java.util.LinkedHashMap">
+        <include refid="orderSelect"/>
+        WHERE 1 = 1
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+        <if test="status != null and status != ''">
+            AND w.status = #{status}
+        </if>
+        ORDER BY w.time_slot, w.id
+    </select>
+
+    <select id="selectOrderById" resultType="java.util.LinkedHashMap">
+        <include refid="orderSelect"/>
+        WHERE w.id = #{id}
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+    </select>
+
+    <select id="countPending" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM work_order w
+        WHERE w.time_slot LIKE #{prefix}
+          AND w.status IN ('ASSIGNED', 'INSTALLING')
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+    </select>
+
+    <select id="countDoneOnDate" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM work_order w
+        WHERE w.status = 'DONE' AND DATE(w.complete_time) = #{day}
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+    </select>
+
+    <select id="countTotal" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM work_order w WHERE 1 = 1
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+    </select>
+
+    <select id="selectCapacity" resultType="java.util.LinkedHashMap">
+        SELECT time_slot AS timeSlot, adjacent_cap AS adjacentCap, non_adjacent_cap AS nonAdjacentCap
+        FROM worker_capacity
+        WHERE worker_id = #{workerId} AND time_slot LIKE #{prefix}
+        ORDER BY time_slot
+    </select>
+
+    <select id="selectUsedBySlot" resultType="java.util.LinkedHashMap">
+        SELECT w.time_slot AS timeSlot, COUNT(*) AS c FROM work_order w
+        WHERE w.time_slot LIKE #{prefix}
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+        GROUP BY w.time_slot
+    </select>
+
+    <select id="selectSchedule" resultType="java.util.LinkedHashMap">
+        SELECT w.time_slot AS timeSlot, COUNT(*) AS c FROM work_order w
+        WHERE w.time_slot >= #{from}
+        <if test="workerId != null and workerId != ''">
+            AND w.worker_id = #{workerId}
+        </if>
+        GROUP BY w.time_slot
+    </select>
+
+    <update id="updateComplete">
+        UPDATE work_order
+        SET status = 'DONE', down_speed = #{down}, up_speed = #{up},
+            sign_name = #{sign}, service_items = #{services}, complete_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectBizOrderId" resultType="java.lang.String">
+        SELECT biz_order_id FROM work_order WHERE id = #{id}
+    </select>
+
+    <update id="updateBizOrderStatus">
+        UPDATE biz_order SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <select id="selectReviewId" resultType="java.lang.String">
+        SELECT id FROM review WHERE order_id = #{bizId} AND status = 'TO_EVALUATE' LIMIT 1
+    </select>
+
+    <insert id="insertReview">
+        INSERT INTO review (id, order_id, customer_name, worker_name, score, tags, type, content, status, created_time)
+        VALUES (#{reviewId}, #{bizId}, #{custName}, #{workerName}, 0, NULL, 'REVIEW',
+                '本次服务已完成，请对本次服务进行评价', 'TO_EVALUATE', #{createdTime})
+    </insert>
+
+    <select id="selectCompleteTime" resultType="java.lang.String">
+        SELECT complete_time FROM work_order WHERE id = #{id}
+    </select>
+
+    <update id="updateStart">
+        UPDATE work_order SET status = 'INSTALLING' WHERE id = #{id}
+    </update>
+
+    <select id="selectWorkOrderForSla" resultType="java.util.LinkedHashMap">
+        SELECT biz_order_id, customer_name, time_slot, complete_time
+        FROM work_order WHERE id = #{id}
+    </select>
+
+    <select id="selectBizOrder" resultType="java.util.LinkedHashMap">
+        SELECT order_type, created_time FROM biz_order WHERE id = #{id}
+    </select>
+
+    <select id="selectDownSpeed" resultType="java.lang.Integer">
+        SELECT down_speed FROM work_order WHERE id = #{id}
+    </select>
+
+</mapper>

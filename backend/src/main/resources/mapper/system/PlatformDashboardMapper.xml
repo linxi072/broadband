@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.system.mapper.PlatformDashboardMapper">
+
+    <select id="countBizOrderSince" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM biz_order WHERE created_time &gt;= #{ms}
+    </select>
+
+    <select id="sumBizOrderRevenueSince" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(amount),0) FROM biz_order WHERE created_time &gt;= #{ms}
+        AND status IN ('PAID','INSTALLING','DONE')
+    </select>
+
+    <select id="countPendingInstall" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM work_order WHERE status IN ('PENDING','ASSIGNED')
+    </select>
+
+    <select id="countSlaSince" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record WHERE created_time &gt;= #{ms}
+    </select>
+
+    <select id="countSlaMetSince" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record WHERE created_time &gt;= #{ms} AND sla_status = 'MET'
+    </select>
+
+    <select id="countCompSince" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM compensation WHERE created_time &gt;= #{ms}
+    </select>
+
+    <select id="sumCompSince" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(comp_amount),0) FROM compensation WHERE created_time &gt;= #{ms}
+    </select>
+
+    <select id="countBizOrderInRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM biz_order WHERE created_time &gt;= #{from} AND created_time &lt; #{to}
+    </select>
+
+    <select id="countActiveCustomers" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM customer WHERE status = 'ACTIVE'
+    </select>
+
+    <select id="sumTrafficPool" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(mobile_total),0) FROM traffic_usage WHERE period_month = #{month}
+    </select>
+
+    <select id="countOverCustomers" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM traffic_usage WHERE period_month = #{month} AND mobile_used &gt;= mobile_total
+    </select>
+
+    <select id="countAlarming" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM traffic_usage WHERE period_month = #{month} AND (mobile_total - mobile_used) &lt;= 5
+    </select>
+
+    <select id="avgResponseMinutes" resultType="java.lang.Long">
+        SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, FROM_UNIXTIME(accept_time/1000),
+                                         FROM_UNIXTIME(complete_time/1000))), 0)
+        FROM sla_record WHERE complete_time IS NOT NULL AND complete_time &gt; 0
+    </select>
+
+    <!-- 最近订单 -->
+    <select id="recentOrders" resultType="java.util.LinkedHashMap">
+        SELECT o.id, o.customer_name AS customer, pkg.name AS pkgName, o.community_name AS community,
+               o.sales_name AS sales, o.amount, o.status, o.created_time AS createTime,
+               DATE_FORMAT(FROM_UNIXTIME(o.created_time/1000), '%Y-%m-%d %H:%i') AS time
+        FROM biz_order o LEFT JOIN package_info pkg ON pkg.id = o.package_id
+        ORDER BY o.created_time DESC LIMIT #{limit}
+    </select>
+
+    <!-- 订单列表（运营按部门行级隔离；deptIds 为 null 时看全部） -->
+    <select id="orders" resultType="java.util.LinkedHashMap">
+        SELECT o.id, o.customer_name AS customer, o.phone, pkg.name AS pkgName, o.amount,
+               o.sales_name AS sales, o.community_name AS community, o.order_type AS orderType,
+               o.status, DATE_FORMAT(FROM_UNIXTIME(o.created_time/1000), '%Y-%m-%d %H:%i') AS time
+        FROM biz_order o LEFT JOIN package_info pkg ON pkg.id = o.package_id
+        WHERE 1 = 1
+        <if test="deptIds != null">
+            AND o.dept_id IN
+            <foreach collection="deptIds" item="d" open="(" separator="," close=")">#{d}</foreach>
+        </if>
+        <if test="status != null and status != ''">
+            AND o.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (o.id LIKE CONCAT('%',#{keyword},'%') OR o.customer_name LIKE CONCAT('%',#{keyword},'%') OR o.phone LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        ORDER BY o.created_time DESC LIMIT 500
+    </select>
+
+    <!-- 流量 Top（按使用率） -->
+    <select id="trafficTop" resultType="java.util.LinkedHashMap">
+        SELECT c.name AS customer, p.name AS pkg, t.mobile_used AS used, t.mobile_total AS total
+        FROM traffic_usage t
+        JOIN customer c ON c.id = t.customer_id
+        LEFT JOIN package_info p ON p.id = c.package_id
+        WHERE t.period_month = #{month}
+        ORDER BY (t.mobile_used / GREATEST(t.mobile_total, 1)) DESC
+        LIMIT 6
+    </select>
+
+</mapper>

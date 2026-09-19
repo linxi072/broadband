@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.RefundAdminMapper">
+
+    <!-- 退款单列表 -->
+    <select id="refunds" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, order_no AS orderNo, customer_name AS customerName,
+               amount, reason, channel, status, refund_no AS refundNo, operator,
+               created_time AS createdTime, handled_time AS handledTime FROM order_refund
+        <if test="status != null and status != ''">
+            WHERE status = #{status}
+        </if>
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 退款单详情 -->
+    <select id="refundById" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id, status FROM order_refund WHERE id = #{id}
+    </select>
+
+    <!-- 审批通过 -->
+    <update id="approveRefund">
+        UPDATE order_refund SET status = 'REFUNDED', refund_no = #{refundNo}, operator = #{operator}, handled_time = #{handledTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 关联业务订单置 REFUND -->
+    <update id="markOrderRefunded">
+        UPDATE biz_order SET status = 'REFUND' WHERE id = #{orderId}
+    </update>
+
+    <!-- 驳回 -->
+    <update id="rejectRefund">
+        UPDATE order_refund SET status = 'REJECTED', operator = #{operator}, handled_time = #{handledTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

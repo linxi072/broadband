@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.ReportAdminMapper">
+
+    <select id="selectSalesReport" resultType="java.util.LinkedHashMap">
+        SELECT sales_name AS name,
+               MAX(region) AS region,
+               DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
+               COUNT(*) AS orders,
+               SUM(amount) AS amount,
+               ROUND(SUM(CASE WHEN status = 'DONE' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS doneRate
+        FROM biz_order
+        WHERE sales_name IS NOT NULL AND sales_name &lt;&gt; ''
+        GROUP BY sales_name, month
+        ORDER BY month DESC, amount DESC
+    </select>
+
+    <select id="selectSalesDetail" resultType="java.util.LinkedHashMap">
+        SELECT id AS orderNo, customer_name AS customerName, package_name AS packageName,
+               amount, status, order_type AS orderType,
+               DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate
+        FROM biz_order WHERE sales_name IS NOT NULL AND sales_name &lt;&gt; ''
+        <if test="salesName != null and salesName != ''">AND sales_name = #{salesName}</if>
+        <if test="month != null and month != ''">AND DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = #{month}</if>
+        ORDER BY created_time DESC
+    </select>
+
+    <select id="selectFinanceReport" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
+               SUM(CASE WHEN status IN ('PAID','INSTALLING','DONE') THEN amount ELSE 0 END) AS revenue,
+               SUM(CASE WHEN status = 'REFUND' THEN amount ELSE 0 END) AS refund,
+               SUM(CASE WHEN status = 'CANCELLED' THEN amount ELSE 0 END) AS cancelled,
+               SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END) AS receivable,
+               COUNT(*) AS orders
+        FROM biz_order
+        GROUP BY month
+        ORDER BY month DESC
+    </select>
+
+    <select id="selectCompensationByMonth" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') AS month,
+               COALESCE(SUM(comp_amount), 0) AS comp
+        FROM compensation GROUP BY month
+    </select>
+
+    <select id="selectFinanceOrders" resultType="java.util.LinkedHashMap">
+        SELECT '订单' AS type, id AS ref, customer_name AS customer, amount, status,
+               order_type AS orderType, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate
+        FROM biz_order WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = #{month}
+        ORDER BY created_time DESC
+    </select>
+
+    <select id="selectFinanceCompensations" resultType="java.util.LinkedHashMap">
+        SELECT '赔付' AS type, id AS ref, cust_name AS customer, comp_amount AS amount, status,
+               order_type AS orderType, reason, DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m-%d') AS createdDate
+        FROM compensation WHERE DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = #{month}
+        ORDER BY created_time DESC
+    </select>
+
+</mapper>

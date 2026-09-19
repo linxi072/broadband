@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.PackageAdminMapper">
+
+    <!-- 套餐列表 -->
+    <select id="packages" resultType="java.util.LinkedHashMap">
+        SELECT p.id, p.name, p.category, p.monthly_fee AS monthlyFee, p.original_fee AS originalFee,
+               p.deposit, p.device_rent AS deviceRent, p.penalty, p.sla_info AS slaInfo,
+               CASE WHEN p.status = 'ON_SHELF' THEN '上架' ELSE '下架' END AS status,
+               CASE WHEN p.status = 'ON_SHELF' THEN TRUE ELSE FALSE END AS online,
+               (SELECT GROUP_CONCAT(o.option_value ORDER BY o.sort_order SEPARATOR ' / ')
+                  FROM package_param pp JOIN package_param_option o ON o.param_id = pp.id
+                 WHERE pp.package_id = p.id AND pp.group_key = 'contract') AS contract,
+               (SELECT COUNT(*) FROM package_image i WHERE i.package_id = p.id AND i.type = 'MAIN') AS mainImageCount,
+               (SELECT i.url FROM package_image i WHERE i.package_id = p.id AND i.type = 'MAIN' ORDER BY i.sort_order LIMIT 1) AS mainImage,
+               (SELECT COUNT(*) FROM package_image i WHERE i.package_id = p.id AND i.type = 'CAROUSEL') AS images,
+               (SELECT COUNT(*) FROM package_param pp WHERE pp.package_id = p.id) AS params
+        FROM package_info p ORDER BY p.id
+    </select>
+
+    <!-- 套餐升级申请单列表 -->
+    <select id="upgradeOrders" resultType="java.util.LinkedHashMap">
+        SELECT u.id, c.name AS customer, fp.name AS fromPkg,
+               COALESCE(bo.option_value, u.target_band_key) AS toPkg, u.addon_keys AS addonKeys,
+               u.month_diff AS monthDiff, u.one_time_diff AS oneTimeDiff,
+               u.current_fee AS currentFee, u.new_fee AS newFee,
+               u.effect_type AS effectType, u.created_time AS createdTime,
+               CASE u.status WHEN 'SUBMITTED' THEN '待审核' WHEN 'EFFECTIVE' THEN '已生效'
+                             WHEN 'REJECTED' THEN '已驳回' ELSE u.status END AS status,
+               DATE_FORMAT(FROM_UNIXTIME(u.created_time/1000), '%Y-%m-%d %H:%i') AS time
+        FROM package_upgrade_order u
+        LEFT JOIN customer c ON c.id = u.customer_id
+        LEFT JOIN package_info fp ON fp.id = u.from_package_id
+        LEFT JOIN package_param_option bo ON bo.id = u.target_band_key
+        ORDER BY u.created_time DESC LIMIT 200
+    </select>
+
+    <!-- 套餐主表 upsert -->
+    <insert id="upsertPackage">
+        INSERT INTO package_info (id, name, category, monthly_fee, original_fee, status,
+                                  deposit, device_rent, penalty, sla_info)
+        VALUES (#{id}, #{name}, #{category}, #{monthlyFee}, #{originalFee}, #{status},
+                #{deposit}, #{deviceRent}, #{penalty}, #{slaInfo})
+        ON DUPLICATE KEY UPDATE
+          name = VALUES(name), category = VALUES(category), monthly_fee = VALUES(monthly_fee),
+          original_fee = VALUES(original_fee), status = VALUES(status), deposit = VALUES(deposit),
+          device_rent = VALUES(device_rent), penalty = VALUES(penalty), sla_info = VALUES(sla_info)
+    </insert>
+
+    <!-- 重建轮播：删除旧图 -->
+    <delete id="deleteImages">
+        DELETE FROM package_image WHERE package_id = #{packageId}
+    </delete>
+
+    <!-- 插入图片 -->
+    <insert id="insertImage">
+        INSERT INTO package_image (id, package_id, type, url, sort_order)
+        VALUES (#{id}, #{packageId}, #{type}, #{url}, #{sortOrder})
+    </insert>
+
+    <!-- 重建参数：删除旧选项 -->
+    <delete id="deleteParamOptions">
+        DELETE FROM package_param_option WHERE param_id IN (SELECT id FROM package_param WHERE package_id = #{packageId})
+    </delete>
+
+    <!-- 重建参数：删除旧参数组 -->
+    <delete id="deleteParams">
+        DELETE FROM package_param WHERE package_id = #{packageId}
+    </delete>
+
+    <!-- 插入参数组 -->
+    <insert id="insertParam">
+        INSERT INTO package_param (id, package_id, group_key, name, type, required, sort_order)
+        VALUES (#{id}, #{packageId}, #{groupKey}, #{name}, #{type}, #{required}, #{sortOrder})
+    </insert>
+
+    <!-- 插入参数选项（保留该套餐下同名选项历史加价） -->
+    <insert id="insertParamOption">
+        INSERT INTO package_param_option (id, param_id, option_value, extra_fee, sort_order)
+        VALUES (#{id}, #{paramId}, #{optionValue}, COALESCE((
+            SELECT o2.extra_fee FROM package_param_option o2
+            JOIN package_param p2 ON p2.id = o2.param_id
+            WHERE p2.package_id = #{packageId} AND o2.option_value = #{optionValue} LIMIT 1), 0), #{sortOrder})
+    </insert>
+
+</mapper>

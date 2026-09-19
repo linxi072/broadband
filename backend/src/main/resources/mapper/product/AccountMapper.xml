@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.AccountMapper">
+
+    <select id="selectCustomer" resultType="java.util.LinkedHashMap">
+        SELECT id, name, level, phone FROM customer WHERE id = #{id}
+    </select>
+
+    <select id="selectPoints" resultType="java.util.LinkedHashMap">
+        SELECT COALESCE(balance,0) AS balance FROM points_account WHERE customer_id = #{customerId}
+    </select>
+
+    <select id="selectMonthConsume" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(amount),0) FROM biz_order
+        WHERE customer_id = #{customerId} AND status IN ('PAID','INSTALLING','DONE')
+          AND created_time &gt;= #{start} AND created_time &lt; #{end}
+    </select>
+
+    <select id="selectContractEnd" resultType="java.util.LinkedHashMap">
+        SELECT end_date FROM customer_contract WHERE customer_id = #{customerId} AND status='ACTIVE'
+        ORDER BY end_date DESC LIMIT 1
+    </select>
+
+    <select id="selectBills" resultType="java.util.LinkedHashMap">
+        SELECT id, package_name AS packageName, amount, order_type AS orderType,
+               status, created_time AS createdTime
+        FROM biz_order WHERE customer_id = #{customerId}
+        <if test="period != null and period != ''">
+            AND DATE_FORMAT(FROM_UNIXTIME(created_time/1000), '%Y-%m') = #{period}
+        </if>
+        ORDER BY created_time DESC
+    </select>
+
+</mapper>

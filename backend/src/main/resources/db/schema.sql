@@ -586,7 +586,7 @@ CREATE TABLE IF NOT EXISTS order_refund (
   customer_name VARCHAR(64)           COMMENT '客户姓名',
   amount        INT          NOT NULL DEFAULT 0 COMMENT '退款金额（元）',
   reason        VARCHAR(255)          COMMENT '退款原因',
-  channel       VARCHAR(32)  NOT NULL DEFAULT 'WECHAT_MOCK' COMMENT '退款渠道（占位：真实接入后填微信支付退款单号）',
+  channel       VARCHAR(32)  NOT NULL DEFAULT 'UNKNOWN' COMMENT '退款渠道（未接入支付渠道时为 UNKNOWN，接入后填实际退款渠道）',
   status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/APPROVED/REJECTED/REFUNDED',
   refund_no     VARCHAR(64)           COMMENT '第三方退款流水号',
   operator      VARCHAR(64)           COMMENT '处理人',

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.ReviewMapper">
+
+    <insert id="insertReview">
+        INSERT INTO review (id, order_id, customer_name, worker_name, score, tags, type, content, status, created_time)
+        VALUES (#{id}, #{orderId}, #{customerName}, #{workerName}, #{score}, #{tags}, #{type}, #{content}, #{status}, #{createdTime})
+    </insert>
+
+    <select id="selectMy" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, customer_name AS customer, worker_name AS worker,
+               score, tags, type, content, status, created_time AS createdTime
+        FROM review WHERE customer_name = #{customerName} ORDER BY created_time DESC
+    </select>
+
+    <update id="updateSubmit">
+        UPDATE review SET score = #{score}, tags = #{tags}, content = #{content},
+               worker_name = COALESCE(#{workerName}, worker_name),
+               customer_name = COALESCE(#{customerName}, customer_name),
+               status = 'PENDING', created_time = #{createdTime}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectReviewStatus" resultType="java.util.LinkedHashMap">
+        SELECT id, status FROM review WHERE id = #{id}
+    </select>
+
+</mapper>

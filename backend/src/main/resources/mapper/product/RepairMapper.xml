@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.RepairMapper">
+
+    <sql id="repairSelect">
+        SELECT w.id,
+               w.type, w.fault_category AS faultCategory, w.fault_desc AS faultDesc,
+               w.contact_phone AS contactPhone,
+               w.customer_name AS customer, w.package_desc AS pkgDesc,
+               c.name AS community, w.address,
+               w.time_slot AS timeSlot, w.status,
+               COALESCE(k.name, '—') AS worker,
+               b.id AS orderId, b.status AS orderStatus, w.biz_order_id AS bizOrderId
+        FROM work_order w
+        LEFT JOIN community c ON c.id = w.community_id
+        LEFT JOIN worker    k ON k.id = w.worker_id
+        LEFT JOIN biz_order b ON b.id = w.biz_order_id
+    </sql>
+
+    <select id="selectMy" resultType="java.util.LinkedHashMap">
+        <include refid="repairSelect"/>
+        WHERE b.customer_id = #{customerId} AND b.order_type = 'REPAIR'
+        ORDER BY w.time_slot DESC, w.id DESC
+    </select>
+
+    <select id="selectById" resultType="java.util.LinkedHashMap">
+        <include refid="repairSelect"/>
+        WHERE w.id = #{id}
+    </select>
+
+    <select id="selectSla" resultType="java.util.LinkedHashMap">
+        SELECT id, order_type, sla_status, overtime_minutes, speed_test_mbps, created_time
+        FROM sla_record WHERE order_id = #{id} ORDER BY created_time
+    </select>
+
+    <select id="selectCustomer" resultType="java.util.LinkedHashMap">
+        SELECT name, phone, community_id FROM customer WHERE id = #{id}
+    </select>
+
+    <select id="selectCommunity" resultType="java.util.LinkedHashMap">
+        SELECT name, dept_id FROM community WHERE id = #{id}
+    </select>
+
+    <select id="selectWorkOrderStatus" resultType="java.util.LinkedHashMap">
+        SELECT id, status, biz_order_id FROM work_order WHERE id = #{id}
+    </select>
+
+    <select id="selectFaultLabel" resultType="java.lang.String">
+        SELECT dict_label FROM sys_dict_data WHERE dict_type='fault_category' AND dict_value=#{value} LIMIT 1
+    </select>
+
+    <insert id="insertBizOrder">
+        INSERT INTO biz_order (id, customer_id, customer_name, phone, package_id, package_name,
+            amount, community_id, community_name, order_type, status, dept_id, created_time)
+        VALUES (#{id}, #{customerId}, #{customerName}, #{phone}, #{packageId}, #{packageName},
+            #{amount}, #{communityId}, #{communityName}, #{orderType}, #{status}, #{deptId}, #{createdTime})
+    </insert>
+
+    <insert id="insertWorkOrder">
+        INSERT INTO work_order (id, community_id, address, time_slot, customer_name, package_desc,
+            status, type, fault_category, fault_desc, contact_phone, biz_order_id, dept_id)
+        VALUES (#{id}, #{communityId}, #{address}, #{timeSlot}, #{customerName}, #{packageDesc},
+            #{status}, #{type}, #{faultCategory}, #{faultDesc}, #{contactPhone}, #{bizOrderId}, #{deptId})
+    </insert>
+
+    <update id="updateWorkOrderStatus">
+        UPDATE work_order SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="updateBizOrderStatus">
+        UPDATE biz_order SET status = #{status} WHERE id = #{id}
+    </update>
+
+</mapper>

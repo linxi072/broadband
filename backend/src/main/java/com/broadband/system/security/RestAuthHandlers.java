@@ -8,7 +8,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
-import com.broadband.system.spring.OperLogService;
+import com.broadband.system.service.OperLogService;
 
 import java.io.IOException;
 

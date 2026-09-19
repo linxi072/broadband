@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.product.mapper.PromotionMapper">
+
+    <!-- 活动列表（仅上线） -->
+    <select id="list" resultType="java.util.LinkedHashMap">
+        SELECT id, title, subtitle, cover, type, target, start_date AS startDate,
+               end_date AS endDate, rule_json AS ruleJson, status
+        FROM promotion WHERE status='ONLINE'
+        <if test="type != null and type != ''">
+            AND type = #{type}
+        </if>
+        ORDER BY start_date DESC
+    </select>
+
+    <!-- 活动详情 -->
+    <select id="detail" resultType="java.util.LinkedHashMap">
+        SELECT id, title, subtitle, cover, type, target, start_date AS startDate,
+               end_date AS endDate, rule_json AS ruleJson, status
+        FROM promotion WHERE id = #{id}
+    </select>
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.community.mapper.CommunityAdminMapper">
+
+    <!-- 覆盖状态推导：与前端校验口径、CommunityChecker 判定一致 -->
+    <sql id="statusExpr">
+        CASE
+          WHEN installable = 0 THEN 'UNAVAILABLE'
+          WHEN port_total &lt;= 0 THEN 'UNAVAILABLE'
+          WHEN port_total - port_used &lt;= 0 THEN 'UNAVAILABLE'
+          WHEN port_total - port_used &lt;= 8 OR port_used / port_total &gt;= 0.8 THEN 'TIGHT'
+          ELSE 'AVAILABLE'
+        END
+    </sql>
+
+    <select id="list" resultType="java.util.LinkedHashMap">
+        SELECT id, name, region, street, carrier,
+               latitude  AS lat,
+               longitude AS lng,
+               installable AS covered,
+               port_total  AS portTotal,
+               port_used   AS portUsed,
+               GREATEST(port_total - port_used, 0) AS portRemaining,
+               <include refid="statusExpr"/> AS status
+        FROM community
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%')
+              OR region LIKE CONCAT('%', #{keyword}, '%')
+              OR street LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY id
+    </select>
+
+    <insert id="save">
+        INSERT INTO community (id, name, region, street, carrier, latitude, longitude, installable, port_total, port_used)
+        VALUES (#{id}, #{name}, #{region}, #{street}, #{carrier}, #{lat}, #{lng}, #{installable}, #{portTotal}, #{portUsed})
+        ON DUPLICATE KEY UPDATE
+          name = VALUES(name), region = VALUES(region), street = VALUES(street),
+          carrier = VALUES(carrier), latitude = VALUES(latitude), longitude = VALUES(longitude),
+          installable = VALUES(installable), port_total = VALUES(port_total), port_used = VALUES(port_used)
+    </insert>
+
+</mapper>

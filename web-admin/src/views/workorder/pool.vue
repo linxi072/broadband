@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SourceTag from '@/components/SourceTag.vue'
-import { workOrderList, resetWorkOrders } from '@/api/business'
+import { workOrderList } from '@/api/business'
 import { loadResource } from '@/composables/useResource'
 import { demoWorkOrders } from '@/mock/fallback'
 
@@ -10,7 +10,6 @@ const router = useRouter()
 const rows = ref([])
 const live = ref(false)
 const loading = ref(true)
-const resetting = ref(false)
 const status = ref('')
 const keyword = ref('')
 
@@ -32,18 +31,6 @@ const filtered = computed(() =>
 
 const meta = (s) => STATUS.find((x) => x.value === s) || { label: s || '—', type: 'info' }
 const count = (s) => rows.value.filter((r) => r.status === s).length
-
-async function onReset() {
-  resetting.value = true
-  const r = await loadResource(() => resetWorkOrders(), null)
-  resetting.value = false
-  if (r.live) {
-    ElMessage.success('工单已重置为待派单，可重新演示派单')
-    load()
-  } else {
-    ElMessage.warning('重置接口不可达')
-  }
-}
 
 async function load() {
   loading.value = true
@@ -82,7 +69,6 @@ onMounted(load)
         </el-select>
         <div class="spacer"></div>
         <el-button type="primary" @click="router.push('/workorder/dispatch')">去派单</el-button>
-        <el-button :loading="resetting" @click="onReset">重置为待派单</el-button>
       </div>
 
       <el-table v-loading="loading" :data="filtered" style="width: 100%">

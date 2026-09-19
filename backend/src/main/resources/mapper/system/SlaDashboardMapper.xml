@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.broadband.system.mapper.SlaDashboardMapper">
+
+    <select id="countSlaTotal" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record
+    </select>
+
+    <select id="countSlaMet" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record WHERE sla_status = 'MET'
+    </select>
+
+    <select id="countSlaOvertime" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record WHERE sla_status = 'OVERTIME'
+    </select>
+
+    <select id="countPendingComp" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM compensation WHERE status IN ('PENDING','VERIFYING')
+    </select>
+
+    <select id="sumCompTotal" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(comp_amount),0) FROM compensation
+    </select>
+
+    <select id="countSlaStatusInRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM sla_record WHERE sla_status = #{status}
+        AND created_time &gt;= #{from} AND created_time &lt; #{to}
+    </select>
+
+    <select id="sumCompInRange" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(comp_amount),0) FROM compensation WHERE created_time &gt;= #{from} AND created_time &lt; #{to}
+    </select>
+
+    <select id="countCompInRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM compensation WHERE created_time &gt;= #{from} AND created_time &lt; #{to}
+    </select>
+
+    <select id="avgResponseMinutes" resultType="java.lang.Long">
+        SELECT COALESCE(AVG(TIMESTAMPDIFF(MINUTE, FROM_UNIXTIME(accept_time/1000),
+                                         FROM_UNIXTIME(complete_time/1000))), 0)
+        FROM sla_record WHERE complete_time IS NOT NULL AND complete_time &gt; 0
+    </select>
+
+    <!-- 分业务类型达标率 -->
+    <select id="byType" resultType="java.util.LinkedHashMap">
+        SELECT order_type AS orderType,
+               COUNT(*) AS total,
+               SUM(CASE WHEN sla_status = 'MET' THEN 1 ELSE 0 END) AS met,
+               SUM(CASE WHEN sla_status = 'OVERTIME' THEN 1 ELSE 0 END) AS overtime
+        FROM sla_record GROUP BY order_type
+    </select>
+
+    <!-- 赔付按业务类型分布 -->
+    <select id="compByType" resultType="java.util.LinkedHashMap">
+        SELECT order_type AS orderType, COUNT(*) AS cnt, COALESCE(SUM(comp_amount),0) AS amount
+        FROM compensation GROUP BY order_type
+    </select>
+
+    <!-- 最近赔付 -->
+    <select id="recentCompensations" resultType="java.util.LinkedHashMap">
+        SELECT id, order_id AS orderId, cust_name AS custName, order_type AS orderType,
+               comp_type AS compType, comp_amount AS compAmount, reason, status, created_time AS createdTime
+        FROM compensation ORDER BY created_time DESC LIMIT 8
+    </select>
+
+    <!-- 超时热力（取超时工单的时间戳） -->
+    <select id="heatmapRows" resultType="java.util.LinkedHashMap">
+        SELECT COALESCE(complete_time, created_time) AS ts
+        FROM sla_record WHERE sla_status = 'OVERTIME'
+        AND COALESCE(complete_time, created_time) &gt; 0
+    </select>
+
+    <!-- 超时明细（供前端热力单元格下钻） -->
+    <select id="overtimeDetail" resultType="java.util.LinkedHashMap">
+        SELECT sr.id, sr.order_id AS orderId, sr.order_type AS orderType,
+               sr.accept_time AS acceptTime, sr.complete_time AS completeTime, sr.created_time AS createdTime,
+               bo.customer_name AS customerName, bo.community_name AS community
+        FROM sla_record sr
+        LEFT JOIN biz_order bo ON bo.id = sr.order_id
+        WHERE sr.sla_status = 'OVERTIME'
+    </select>
+
+</mapper>

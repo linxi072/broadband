@@ -37,13 +37,16 @@ public class WechatPayNotifyController {
 
     @PostMapping("/notify")
     public ResponseEntity<String> notify(
-            @RequestHeader("Wechatpay-Signature") String signature,
-            @RequestHeader("Wechatpay-Timestamp") String timestamp,
-            @RequestHeader("Wechatpay-Nonce") String nonce,
-            @RequestHeader("Wechatpay-Serial") String serial,
-            @RequestBody String rawBody) {
+            @RequestHeader(value = "Wechatpay-Signature", required = false) String signature,
+            @RequestHeader(value = "Wechatpay-Timestamp", required = false) String timestamp,
+            @RequestHeader(value = "Wechatpay-Nonce", required = false) String nonce,
+            @RequestHeader(value = "Wechatpay-Serial", required = false) String serial,
+            @RequestBody(required = false) String rawBody) {
 
-        if (client == null) {
+        // fail-closed（质量加固）：支付未启用，或请求缺少微信回调头 / 请求体（非微信推送 / 探测），
+        // 一律返回 FAIL(401)。避免把这类请求变成 500（MissingRequestHeaderException / 缺体）破坏契约。
+        if (client == null || signature == null || timestamp == null || nonce == null || serial == null
+                || rawBody == null) {
             return ResponseEntity.status(401).body("{\"code\":\"FAIL\"}");
         }
         if (!client.verifyNotify(timestamp, nonce, rawBody, signature, serial)) {

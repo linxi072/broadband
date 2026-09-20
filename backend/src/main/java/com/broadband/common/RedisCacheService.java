@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -45,6 +46,9 @@ public class RedisCacheService {
      * @param ttl  缓存有效期
      * @param loader 缓存未命中时的数据加载器（通常是一次 DB 聚合查询）
      */
+    /** 并发未命中时的 per-key 互斥锁，避免缓存击穿（thundering herd）。 */
+    private final ConcurrentHashMap<String, Object> keyLocks = new ConcurrentHashMap<>();
+
     @SuppressWarnings("unchecked")
     public <T> T get(String key, Duration ttl, Supplier<T> loader) {
         if (!enabled || redisTemplate == null) {
@@ -55,12 +59,32 @@ public class RedisCacheService {
             if (cached != null) {
                 return (T) cached;
             }
-            T value = loader.get();
-            if (value != null) {
-                redisTemplate.opsForValue().set(key, value, ttl);
+            // 缓存未命中：对同一 key 加锁，保证并发下只有一个线程回源 + 回填，
+            // 其余线程在锁释放后重新读取即可命中，避免 N 倍 DB 压力与重复写缓存。
+            Object lock = keyLocks.computeIfAbsent(key, k -> new Object());
+            synchronized (lock) {
+                try {
+                    // 双重检查：持锁期间可能已被其他线程回填
+                    cached = redisTemplate.opsForValue().get(key);
+                    if (cached != null) {
+                        return (T) cached;
+                    }
+                    T value = loader.get();
+                    if (value != null) {
+                        try {
+                            redisTemplate.opsForValue().set(key, value, ttl);
+                        } catch (Exception setEx) {
+                            // 回填失败不影响本次返回，仅失去加速收益
+                            log.warn("[cache] Redis 回填失败（已忽略），key={}，原因={}", key, setEx.getMessage());
+                        }
+                    }
+                    return value;
+                } finally {
+                    keyLocks.remove(key);
+                }
             }
-            return value;
         } catch (Exception e) {
+            // 仅 Redis 读取阶段异常退化为直查；回填失败已在上面的 catch 中就地处理，不会二次回源。
             log.warn("[cache] Redis 读取失败，退化为直查 DB，key={}，原因={}", key, e.getMessage());
             return loader.get();
         }

@@ -17,8 +17,7 @@ backend/src/main/java/com/broadband/sla/
 │   ├── SlaEvaluation.java      # 单次评估返回（record + 可能产生的 compensation）
 │   └── SlaBoard.java           # 看板聚合 DTO
 ├── engine/
-│   ├── SlaEngine.java          # 核心：时限类/速率类 SLA 计算 + 赔付金额规则引擎
-│   └── SlaRulePresets.java     # 默认规则种子（新装当日装/报修当日修/网速达标）
+│   └── SlaEngine.java          # 核心：时限类/速率类 SLA 计算 + 赔付金额规则引擎
 ├── mapper/                     # 3 个 MyBatis-Plus Mapper
 └── spring/                     # SlaServiceApi / SlaServiceImpl / SlaController
 ```
@@ -117,5 +116,5 @@ java -cp /tmp/sla-out com.broadband.sla.SlaDemo
 
 1. 复制 `model/ engine/ mapper/ spring/` 到业务工程对应包（保持 `com.broadband.sla` 包名）。
 2. 建表（见上）。
-3. `SlaRulePresets.defaults()` 写入 `sla_rule` 作为初始规则（或后台「赔付规则」页维护）。
+3. 初始 SLA 规则通过后台「赔付规则」页维护（写入 `sla_rule` 表）。
 4. 安装工单完工/报修修复时调用 `POST /api/sla/evaluate` 完成 SLA 考核与慢必赔自动生成。

@@ -869,3 +869,31 @@ CREATE TABLE IF NOT EXISTS mkt_campaign_exec (
   KEY idx_mkt_exec_camp (campaign_id),
   KEY idx_mkt_exec_cust (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化执行记录';
+
+-- ============================================================================
+-- V1.0.2 性能优化：补齐高频查询索引（幂等，沿用 information_schema 守卫）
+-- ============================================================================
+
+-- customer.openid：小程序登录按 openid 绑定/查询，缺索引会全表扫描（登录为热点路径）
+SET @add_cust_openid := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE customer ADD KEY idx_customer_openid (openid)',
+            'SELECT 1')
+  FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'customer' AND index_name = 'idx_customer_openid'
+);
+PREPARE stmt_cust_openid FROM @add_cust_openid;
+EXECUTE stmt_cust_openid;
+DEALLOCATE PREPARE stmt_cust_openid;
+
+-- review.order_id：订单详情/评价查询按订单号关联，缺索引会全表扫描
+SET @add_review_order := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE review ADD KEY idx_review_order (order_id)',
+            'SELECT 1')
+  FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'review' AND index_name = 'idx_review_order'
+);
+PREPARE stmt_review_order FROM @add_review_order;
+EXECUTE stmt_review_order;
+DEALLOCATE PREPARE stmt_review_order;

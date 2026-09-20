@@ -21,6 +21,22 @@ public interface PayService {
     /** 发起一次支付。真实微信支付应在此调用统一下单 API 并校验异步回调签名。 */
     PayResult pay(String orderId, int amount, String channel);
 
+    /**
+     * JSAPI 专用：携带支付用户 openid 发起支付。
+     * 默认实现退化为 {@link #pay(String, int, String)}（非 JSAPI 渠道可忽略 openid）。
+     */
+    default PayResult pay(String orderId, int amount, String channel, String openid) {
+        return pay(orderId, amount, channel);
+    }
+
+    /**
+     * 申请退款，返回渠道侧退款单号（真实单号，对接 R4 refund_no）。
+     * 默认实现不支持退款（无渠道时由业务层生成本地伪单号）。
+     */
+    default String refund(String outTradeNo, String outRefundNo, int refundFeeFen, String reason) {
+        throw new UnsupportedOperationException("支付渠道未实现退款");
+    }
+
     /** 支付结果载体。 */
     class PayResult {
         public final boolean success;

@@ -44,7 +44,9 @@ export default function () {
   check(http.get(`${BASE}/api/admin/orders`, auth), { 'orders 200': r => r.status === 200 });
   check(http.get(`${BASE}/api/admin/sales/report`, auth), { 'sales 200': r => r.status === 200 });
   check(http.get(`${BASE}/api/admin/work-orders`, auth), { 'workorders 200': r => r.status === 200 });
-  check(http.get(`${BASE}/api/dispatch/capacity`, auth), { 'capacity 200': r => r.status === 200 });
+  // 派单容量接口必填 timeSlot（格式 yyyy-MM-dd#AM|PM），缺失会 400
+  const slot = encodeURIComponent('2026-09-20#AM');
+  check(http.get(`${BASE}/api/dispatch/capacity?timeSlot=${slot}`, auth), { 'capacity 200': r => r.status === 200 });
 
   sleep(1);
 }

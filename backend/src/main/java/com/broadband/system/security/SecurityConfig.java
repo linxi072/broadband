@@ -107,6 +107,8 @@ public class SecurityConfig {
                 reg.requestMatchers("/actuator/**").permitAll();
                 // 数据字典 / 参数配置 开放读取（C 端小程序下拉与参数获取用，免鉴权）
                 reg.requestMatchers("/api/dict/public/**", "/api/config/public/**").permitAll();
+                // 微信支付异步通知回调（微信服务器公网 POST，需验签而非登录态）
+                reg.requestMatchers("/api/pay/**").permitAll();
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }

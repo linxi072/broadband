@@ -135,11 +135,45 @@ public class OrderService {
         }
 
         int amount = orderMapper.selectAmount(orderId);
-        PayService.PayResult pr = payService.pay(orderId, amount, channel);
+        // 金额单位：订单 amount 以元计，微信以「分」计（待联调确认，见 docs/微信支付集成方案.md）
+        int amountFen = amount * 100;
+        String openid = Values.str(body.get("openid"));
+        PayService.PayResult pr = payService.pay(orderId, amountFen, channel, openid);
         if (!pr.success) throw new IllegalStateException("支付失败：" + pr.message);
 
-        orderMapper.updatePaid(orderId);
+        // WeChat JSAPI 为异步确认：此处仅返回支付参数，真实支付成功由回调 /api/pay/wechat/notify 最终置 PAID
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("awaitPayment", true);
+        resp.put("orderId", orderId);
+        resp.put("prepayId", pr.transactionId);
+        resp.put("channel", pr.channel);
+        resp.put("payParams", parseJson(pr.message));
+        resp.put("status", "PENDING");
+        return resp;
+    }
 
+    /**
+     * 支付回调确认：把订单置 PAID 并生成关联安装工单（幂等）。
+     * 仅由 {@code WechatPayNotifyController} 在微信异步通知校验通过后调用。
+     */
+    public Map<String, Object> confirmPaid(String orderId, String transactionId) {
+        Map<String, Object> order = orderMapper.selectOrderStatus(orderId);
+        if (order == null) throw new IllegalArgumentException("订单不存在：" + orderId);
+        if ("PAID".equals(order.get("status"))) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("ok", true);
+            r.put("alreadyPaid", true);
+            r.put("orderId", orderId);
+            r.put("workOrderId", orderMapper.selectWorkOrderId(orderId));
+            r.put("status", "PAID");
+            return r;
+        }
+        return finalizePaid(orderId, order, transactionId);
+    }
+
+    private Map<String, Object> finalizePaid(String orderId, Map<String, Object> order, String transactionId) {
+        orderMapper.updatePaid(orderId);
         String workOrderId = "WO" + System.currentTimeMillis();
         String timeSlot = LocalDate.now().plusDays(1).toString() + "#AM";
         Map<String, Object> wo = new LinkedHashMap<>();
@@ -152,15 +186,24 @@ public class OrderService {
         wo.put("status", "PENDING");
         wo.put("bizOrderId", orderId);
         orderMapper.insertWorkOrder(wo);
-
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
         resp.put("orderId", orderId);
         resp.put("workOrderId", workOrderId);
-        resp.put("transactionId", pr.transactionId);
-        resp.put("channel", pr.channel);
+        resp.put("transactionId", transactionId);
         resp.put("status", "PAID");
         return resp;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseJson(String s) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(s, Map.class);
+        } catch (Exception e) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("raw", s);
+            return m;
+        }
     }
 
     /**
@@ -202,10 +245,21 @@ public class OrderService {
         m.put("customerName", cname);
         m.put("amount", amount);
         m.put("reason", reason);
-        m.put("channel", "UNKNOWN");
+        // 真实支付渠道接入后回填实际渠道；接入前记为 UNKNOWN，避免写入伪造渠道。
+        m.put("channel", payService != null ? "WECHAT" : "UNKNOWN");
         m.put("status", "PENDING");
         m.put("createdTime", System.currentTimeMillis());
         orderMapper.insertRefund(m);
+
+        // 已接入真实支付渠道时，同步向微信发起退款（金额单位 分 = amount*100；待联调确认，见 docs/微信支付集成方案.md）
+        if (payService != null) {
+            try {
+                payService.refund(orderId, refundId, amount * 100, reason);
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(OrderService.class)
+                        .warn("微信退款调用失败 orderId={} refundId={}，本地已落单，待对账/重试", orderId, refundId, e);
+            }
+        }
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);

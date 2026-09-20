@@ -48,7 +48,8 @@ public class DictConfigInitializer implements ApplicationRunner {
                 INSERT IGNORE INTO sys_menu (id, parent_id, name, path, perm, type, sort_order)
                 VALUES ('M70', 'M13', '数据字典', '/system/dict', 'system:dict', 'MENU', 6),
                        ('M140', 'M13', '参数配置', '/system/config', 'system:config', 'MENU', 7),
-                       ('M150', 'M4', '数据智能', '/intelligence', 'intelligence:view', 'MENU', 8)
+                       ('M150', 'M4', '数据智能', '/intelligence', 'intelligence:view', 'MENU', 8),
+                       ('M151', 'M4', 'SLA阈值配置', '/sla-config', 'sla:config', 'MENU', 9)
                 """);
 
         // 授权给 ADMIN / OPERATOR
@@ -56,7 +57,7 @@ public class DictConfigInitializer implements ApplicationRunner {
                 "SELECT id FROM sys_role WHERE code IN ('ADMIN','OPERATOR')");
         for (Map<String, Object> r : roles) {
             String roleId = String.valueOf(r.get("id"));
-            for (String menuId : new String[]{"M70", "M140", "M150"}) {
+            for (String menuId : new String[]{"M70", "M140", "M150", "M151"}) {
                 Integer cnt = jdbc.queryForObject(
                         "SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ? AND menu_id = ?",
                         Integer.class, roleId, menuId);
@@ -110,8 +111,11 @@ public class DictConfigInitializer implements ApplicationRunner {
                   ('customer.service.phone',     '客服电话',        '10099', 'STRING', '客户报修/咨询统一客服热线', ?),
                   ('dispatch.default.adjacent.cap',     '派单默认相邻容量', '4', 'INT', '相邻小区每时段派单上限（默认）', ?),
                   ('dispatch.default.non.adjacent.cap', '派单默认非相邻容量', '2', 'INT', '非相邻小区每时段派单上限（默认）', ?),
+                  ('dispatch.default.adjacent.min',     '派单默认相邻容量下限', '3', 'INT', '相邻小区每时段派单下限（默认）', ?),
+                  ('dispatch.default.non.adjacent.min', '派单默认非相邻容量下限', '1', 'INT', '非相邻小区每时段派单下限（默认）', ?),
+                  ('dispatch.adjacent.distance.meters', '相邻判定距离(米)', '800', 'INT', '同街道或距离<=该值视为相邻小区', ?),
                   ('app.notice',                 '报修提示语', '报修后师傅将在承诺时限内联系上门，请保持电话畅通', 'STRING', 'C 端报修页提示', ?)
-                """, now(), now(), now(), now(), now());
+                """, now(), now(), now(), now(), now(), now(), now(), now());
     }
 
     private long now() {

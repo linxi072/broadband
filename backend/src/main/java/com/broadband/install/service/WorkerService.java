@@ -1,5 +1,6 @@
 package com.broadband.install.service;
 
+import com.broadband.install.algorithm.CapacityPolicy;
 import com.broadband.install.mapper.WorkerQueryMapper;
 import com.broadband.install.model.SlaEnums;
 import com.broadband.install.model.SlaRecord;
@@ -107,8 +108,10 @@ public class WorkerService {
                 : workerQueryMapper.selectCapacity(workerId, day + "#%");
 
         if (caps.isEmpty()) {
-            caps = List.of(Map.of("timeSlot", day + "#AM", "adjacentCap", 4, "nonAdjacentCap", 2),
-                           Map.of("timeSlot", day + "#PM", "adjacentCap", 4, "nonAdjacentCap", 2));
+            int adj = CapacityPolicy.adjacentMaxDefault();
+            int nadj = CapacityPolicy.nonAdjacentMaxDefault();
+            caps = List.of(Map.of("timeSlot", day + "#AM", "adjacentCap", adj, "nonAdjacentCap", nadj),
+                           Map.of("timeSlot", day + "#PM", "adjacentCap", adj, "nonAdjacentCap", nadj));
         }
 
         Map<String, Integer> usedMap = new LinkedHashMap<>();
@@ -119,7 +122,8 @@ public class WorkerService {
         List<Map<String, Object>> slots = new ArrayList<>();
         for (Map<String, Object> cap : caps) {
             String slot = String.valueOf(cap.get("timeSlot"));
-            int max = cap.get("adjacentCap") == null ? 4 : ((Number) cap.get("adjacentCap")).intValue();
+            int max = cap.get("adjacentCap") == null ? CapacityPolicy.adjacentMaxDefault()
+                    : ((Number) cap.get("adjacentCap")).intValue();
             int used = usedMap.getOrDefault(slot, 0);
             int pct = max <= 0 ? 0 : Math.min(100, used * 100 / max);
             Map<String, Object> m = new LinkedHashMap<>();

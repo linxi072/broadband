@@ -58,27 +58,15 @@ public class ConfigCacheService {
         return c == null ? null : str(c.get("value"));
     }
 
-    /** 取参数完整条目（含名称/类型/备注）。首次调用自动懒加载全量（并发冷启动只全量 reload 一次）。 */
+    /** 取参数完整条目（含名称/类型/备注）。首次调用自动懒加载全量。 */
     public Map<String, Object> getConfig(String key) {
-        if (!configLoaded) {
-            synchronized (this) {
-                if (!configLoaded) {
-                    reloadConfig();
-                }
-            }
-        }
+        if (!configLoaded) reloadConfig();
         return configCache.get(key);
     }
 
-    /** 取某类型下已启用字典项（首调用自动懒加载全量，并发冷启动只全量 reload 一次）。 */
+    /** 取某类型下已启用字典项（首调用自动懒加载全量）。 */
     public List<Map<String, Object>> getDict(String dictType) {
-        if (!dictLoaded) {
-            synchronized (this) {
-                if (!dictLoaded) {
-                    reloadDict();
-                }
-            }
-        }
+        if (!dictLoaded) reloadDict();
         return dictCache.getOrDefault(dictType, List.of());
     }
 

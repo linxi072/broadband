@@ -39,7 +39,7 @@ export function demoCustomer360(id) {
       oneTimeDiff: u.oneTimeDiff, currentFee: 0, newFee: 0, effectType: u.effectType,
       statusLabel: u.status, createdAt: u.time
     })),
-    lifecycle: { segment: 'STABLE', stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, churnRisk: false, riskScore: 20, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
+    lifecycle: { stage: 'STABLE', stageLabel: '稳定期', color: 'success', daysSince: 12, lastActive: Date.now() - 12 * 86400000, reasons: ['近 12 天内有互动', '最近互动：' + new Date(Date.now() - 12 * 86400000).toLocaleString('zh-CN')] },
     touchRecords: [
       { type: 'order', title: '下单 · 500M 融合 40G', detail: '¥129 · 已支付', time: Date.now() - 12 * 86400000, timeText: '2026-09-14 09:12' },
       { type: 'install', title: '安装完工 · 新装', detail: '师傅 张师傅', time: Date.now() - 11 * 86400000, timeText: '2026-09-13 11:30' },
@@ -177,7 +177,19 @@ export const demoMenus = [
     { id: 'M134', name: '操作日志', path: '/system/log', perm: 'system:log', type: 'MENU' },
     { id: 'M44', name: '部门管理', path: '/system/department', perm: 'system:dept', type: 'MENU' }
   ] },
-  { id: 'M14', name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' }
+  { id: 'M14', name: '性能监控', path: '/monitor', perm: 'monitor:view', type: 'MENU' },
+  { id: 'M150', name: '数据智能', path: '/intelligence', type: 'DIR', children: [
+    { id: 'M151', name: '客户分群与智能营销', path: '/intelligence', perm: 'intelligence:view', type: 'MENU' }
+  ] },
+  { id: 'M180', name: '支付管理', path: '/admin/pay/transactions', type: 'DIR', children: [
+    { id: 'M181', name: '支付流水', path: '/admin/pay/transactions', perm: 'payment:view', type: 'MENU' },
+    { id: 'M182', name: '退款处理', path: '/admin/pay/refund', perm: 'payment:view', type: 'MENU' }
+  ] },
+  { id: 'M190', name: '数据分析深化', path: '/analytics/customer360', type: 'DIR', children: [
+    { id: 'M191', name: '客户 360', path: '/analytics/customer360', perm: 'analytics:view', type: 'MENU' },
+    { id: 'M192', name: '营销漏斗', path: '/analytics/funnel', perm: 'analytics:view', type: 'MENU' },
+    { id: 'M193', name: 'SLA 超时与赔付', path: '/analytics/sla', perm: 'analytics:view', type: 'MENU' }
+  ] }
 ]
 
 export const demoTrafficOverview = {
@@ -239,14 +251,6 @@ export function demoSlaDashboard() {
     ],
     overtimeByDay: dayLabels.map((date, i) => ({ date, overtime: overtimeByDay[i], met: metByDay[i] })),
     compTrend,
-    // 赔付按业务类型分布（US-2.3 深化，与 slaDashboard compByType 对齐）
-    compByType: [
-      { orderType: 'NEW_INSTALL', orderTypeLabel: '新装宽带', count: 10, amount: 320 },
-      { orderType: 'MOVE', orderTypeLabel: '宽带移机', count: 5, amount: 150 },
-      { orderType: 'REPAIR', orderTypeLabel: '故障报修', count: 11, amount: 980 },
-      { orderType: 'SPEED_UP', orderTypeLabel: '宽带提速', count: 1, amount: 30 },
-      { orderType: 'RENEW', orderTypeLabel: '续费', count: 1, amount: 20 }
-    ],
     heatmap: (() => {
       const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
       const hours = Array.from({ length: 24 }, (_, h) => h)
@@ -349,100 +353,14 @@ export function demoMarketingDashboard() {
       { month: '2026-08', revenue: 660, orders: 5 },
       { month: '2026-09', revenue: 650, orders: 4 }
     ],
-    // 漏斗阶段转化率（US-2.3 深化，与 productMarketing funnel 对齐：相对顶层 + 相邻阶段）
-    funnel: (() => {
-      const raw = [
-        { stage: '业务订单', value: 28 },
-        { stage: '已支付', value: 24 },
-        { stage: '已完成', value: 19 },
-        { stage: '升级申请', value: 6 },
-        { stage: '升级生效', value: 4 }
-      ]
-      const top = raw[0].value
-      return raw.map((s, i) => ({
-        ...s,
-        conversionFromTop: top === 0 ? 0 : Math.round(s.value * 1000.0 / top) / 10.0,
-        conversionFromPrev: i === 0 ? 100.0 : Math.round(s.value * 1000.0 / raw[i - 1].value) / 10.0
-      }))
-    })()
-  }
-}
-
-/** 数据智能（V1.15）演示兜底，与 GET /api/intelligence/* 返回结构对齐 */
-export function demoIntelligenceSegments() {
-  return {
-    total: 124,
-    segments: [
-      { segment: 'LEAD', segmentLabel: '潜在客户', count: 19 },
-      { segment: 'GROWING', segmentLabel: '成长期', count: 33 },
-      { segment: 'STABLE', segmentLabel: '稳定期', count: 42 },
-      { segment: 'HIGH_VALUE', segmentLabel: '高价值活跃', count: 16 },
-      { segment: 'RENEW', segmentLabel: '临期待续约', count: 11 },
-      { segment: 'CHURN_RISK', segmentLabel: '流失预警', count: 3 }
+    funnel: [
+      { stage: '业务订单', value: 28 },
+      { stage: '已支付', value: 24 },
+      { stage: '已完成', value: 19 },
+      { stage: '升级申请', value: 6 },
+      { stage: '升级生效', value: 4 }
     ]
   }
-}
-
-export function demoIntelligenceChurn() {
-  return {
-    total: 14,
-    list: [
-      { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 213, contractDaysLeft: 9999, lastActiveText: '2026-03-01', riskScore: 100, reasons: ['近 213 天无互动，存在流失风险'] },
-      { id: 'C0005', name: '周女士', level: 'NORMAL', levelLabel: '普通', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 196, contractDaysLeft: 9999, lastActiveText: '2026-03-18', riskScore: 96, reasons: ['近 196 天无互动，存在流失风险'] },
-      { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 88, contractDaysLeft: 16, lastActiveText: '2026-08-22', riskScore: 74, reasons: ['合约将于 16 天后到期'] },
-      { id: 'C0008', name: '吴先生', level: 'VIP', levelLabel: '五星', segment: 'RENEW', segmentLabel: '临期待续约', daysSince: 64, contractDaysLeft: 41, lastActiveText: '2026-09-01', riskScore: 59, reasons: ['合约将于 41 天后到期'] },
-      { id: 'C0011', name: '郑小姐', level: 'SILVER', levelLabel: '三星', segment: 'CHURN_RISK', segmentLabel: '流失预警', daysSince: 151, contractDaysLeft: 9999, lastActiveText: '2026-04-12', riskScore: 81, reasons: ['近 151 天互动较少'] }
-    ]
-  }
-}
-
-export function demoIntelligenceCampaigns() {
-  return [
-    { id: 'MK_CHURN', name: '流失预警挽留', triggerType: 'CHURN_RISK', actionType: 'GRANT_COUPON', targetItem: 'PM_VOUCHER10', status: 'ENABLED', description: '对流失预警客户自动发放 10 元话费券', triggerLabel: '流失预警客户', actionLabel: '自动发券', execTotal: 12, execRecent: 3 },
-    { id: 'MK_RENEW', name: '临期客户续约推送', triggerType: 'RENEW', actionType: 'SEND_PROMO', targetItem: 'PR_ANNUAL', status: 'ENABLED', description: '对临期待续约客户推送年度续约活动', triggerLabel: '临期待续约客户', actionLabel: '推送活动', execTotal: 28, execRecent: 5 },
-    { id: 'MK_VIP', name: '高价值客户专属提速', triggerType: 'HIGH_VALUE', actionType: 'GRANT_COUPON', targetItem: 'PM_SPEED500', status: 'ENABLED', description: '对高价值活跃客户发放 500M 提速券', triggerLabel: '高价值活跃客户', actionLabel: '自动发券', execTotal: 19, execRecent: 2 }
-  ]
-}
-
-/** 销售业绩明细下钻演示兜底（与 GET /api/admin/sales/report/detail 返回结构对齐） */
-export function demoSalesDetail(salesName) {
-  const all = [
-    { orderNo: 'B20260914001', customerName: '陈先生', packageName: '500M 融合', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { orderNo: 'B20260914003', customerName: '王先生', packageName: '1000M 融合', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { orderNo: 'B20260913005', customerName: '刘女士', packageName: '300M 融合', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' },
-    { orderNo: 'B20260912007', customerName: '黄先生', packageName: '200M 单宽', amount: 69, status: 'INSTALLING', orderType: 'NEW_INSTALL', createdDate: '2026-09-12' }
-  ]
-  if (salesName) {
-    // 演示数据以「刘伟」命中，其余销售返回少量记录
-    return salesName === '刘伟' ? all : all.slice(0, 2)
-  }
-  return all
-}
-
-/** 财务月度明细下钻演示兜底（与 GET /api/admin/finance/report/detail 返回结构对齐） */
-export function demoFinanceDetail(month) {
-  const orders = [
-    { type: '订单', ref: 'B20260914001', customer: '陈先生', amount: 129, status: 'DONE', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { type: '订单', ref: 'B20260914003', customer: '王先生', amount: 199, status: 'PAID', orderType: 'NEW_INSTALL', createdDate: '2026-09-14' },
-    { type: '订单', ref: 'B20260913005', customer: '刘女士', amount: 99, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-13' }
-  ]
-  const comps = [
-    { type: '赔付', ref: 'CP-0001', customer: '王先生', amount: 30, status: 'PAID', orderType: 'REPAIR', reason: '故障报修超时 45 分钟', createdDate: '2026-09-14' },
-    { type: '赔付', ref: 'CP-0002', customer: '李女士', amount: 50, status: 'VERIFYING', orderType: 'NEW_INSTALL', reason: '新装超时 1.2 小时', createdDate: '2026-09-13' }
-  ]
-  return { month: month || '2026-09', orderCount: orders.length, compCount: comps.length, rows: [...orders, ...comps] }
-}
-
-/** 分群客户下钻演示兜底（与 GET /api/intelligence/segment-customers 返回结构对齐） */
-export function demoSegmentCustomers(segment) {
-  const base = [
-    { id: 'C0001', name: '赵女士', level: 'GOLD', levelLabel: '四星', status: 'ACTIVE', orderCnt: 6, contractDaysLeft: 16, lastActiveText: '2026-08-22', segment: 'RENEW', segmentLabel: '临期待续约' },
-    { id: 'C0002', name: '孙先生', level: 'SILVER', levelLabel: '三星', status: 'ACTIVE', orderCnt: 2, contractDaysLeft: 9999, lastActiveText: '2026-03-01', segment: 'CHURN_RISK', segmentLabel: '流失预警' },
-    { id: 'C0003', name: '周女士', level: 'NORMAL', levelLabel: '普通', status: 'ACTIVE', orderCnt: 0, contractDaysLeft: 9999, lastActiveText: '无记录', segment: 'LEAD', segmentLabel: '潜在客户' },
-    { id: 'C0004', name: '吴先生', level: 'VIP', levelLabel: '五星', status: 'ACTIVE', orderCnt: 9, contractDaysLeft: 41, lastActiveText: '2026-09-01', segment: 'HIGH_VALUE', segmentLabel: '高价值活跃' }
-  ]
-  const rows = segment ? base.filter((c) => c.segment === segment) : base
-  return { segment: segment || '', segmentLabel: rows[0]?.segmentLabel || '', count: rows.length, rows }
 }
 
 /** 全部权限码（演示登录用） */
@@ -450,6 +368,178 @@ export const ALL_PERMS = [
   'dashboard:view', 'order:view', 'customer:view', 'package:view', 'upgrade:view',
   'community:view', 'workorder:view', 'dispatch:run', 'capacity:config', 'sla:view',
   'traffic:view', 'review:view', 'sales:view', 'finance:view',
-  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view',
-  'intelligence:view'
+  'points:view', 'promotion:view', 'support:view', 'account:view',
+  'intelligence:view', 'payment:view', 'analytics:view',
+  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view'
 ]
+
+/* =========================================================================
+ * v1.14 运营留存 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与对应后端 C 端接口返回一一对齐
+ * ========================================================================= */
+
+export const demoPointsBalance = {
+  customerId: 'C-DMO01', name: '张伟', balance: 1280, totalEarned: 1560, totalSpent: 280,
+  signStreak: 6, signedToday: false
+}
+
+export const demoPointsTasks = [
+  { id: 'T1', title: '每日签到', desc: '连续签到赢积分', points: 5, type: 'DAILY', done: true },
+  { id: 'T2', title: '完善资料', desc: '补全实名与地址', points: 50, type: 'ONE_TIME', done: true },
+  { id: 'T3', title: '首单评价', desc: '完成一次安装评价', points: 30, type: 'ONE_TIME', done: false },
+  { id: 'T4', title: '邀请好友', desc: '成功邀请 1 位好友办理', points: 100, type: 'INVITE', done: false }
+]
+
+export const demoPointsMall = [
+  { id: 'M1', name: '5G 提速包（7 天）', cost: 200, stock: 99, type: 'SPEEDUP' },
+  { id: 'M2', name: '腾讯视频月卡', cost: 500, stock: 50, type: 'VOUCHER' },
+  { id: 'M3', name: '路由器抵扣券 ¥30', cost: 800, stock: 20, type: 'COUPON' }
+]
+
+export const demoPromotions = [
+  { id: 'P1', title: '千兆融合限时直降', subtitle: '月费直降 30 元，连续 12 期', cover: '', type: 'NEW', target: 'pkg-1000', startDate: '2026-09-01', endDate: '2026-09-30', ruleJson: '{"cut":30,"months":12}', status: 'ONLINE' },
+  { id: 'P2', title: '老用户续约送时长', subtitle: '合约续约赠送 3 个月', cover: '', type: 'RENEW', target: '', startDate: '2026-09-10', endDate: '2026-10-10', ruleJson: '{"giftMonths":3}', status: 'ONLINE' },
+  { id: 'P3', title: '宽带+电视全家桶', subtitle: '办宽带送 IPTV', cover: '', type: 'BUNDLE', target: '', startDate: '2026-09-15', endDate: '2026-12-15', ruleJson: '{"gift":"iptv"}', status: 'ONLINE' }
+]
+
+export const demoFaqs = [
+  { id: 'F1', category: '安装', question: '新装宽带多久能上门？', answer: '城区通常 24 小时内预约，48 小时内完成安装。' },
+  { id: 'F2', category: '故障', question: '宽带突然断网怎么办？', answer: '请先重启光猫与路由器；仍异常可在「报修」提交工单，师傅将主动联系。' },
+  { id: 'F3', category: '账单', question: '如何开具电子发票？', answer: '在「我的-账单」选择订单申请发票，财务审核后推送电子票。' },
+  { id: 'F4', category: '套餐', question: '合约期内能升级带宽吗？', answer: '支持补差升级，按剩余合约月数折算一次性补差费用。' }
+]
+
+export const demoAccountSummary = {
+  customerId: 'C-DMO01', name: '张伟', level: 'GOLD', points: 1280, monthConsume: 129, contractEnd: '2028-03-31'
+}
+
+export const demoAccountBills = [
+  { id: 'BO1', packageName: '1000M 融合 60G', amount: 129, orderType: 'NEW', status: 'DONE', createdTime: Date.now() - 20 * 86400000, statusText: '已完成' },
+  { id: 'BO2', packageName: '提速包（7 天）', amount: 19, orderType: 'UPGRADE', status: 'PAID', createdTime: Date.now() - 5 * 86400000, statusText: '已支付' },
+  { id: 'BO3', packageName: '安装调测费', amount: 100, orderType: 'NEW', status: 'PAID', createdTime: Date.now() - 60 * 86400000, statusText: '已支付' }
+]
+
+/* =========================================================================
+ * v1.15 支付真闭环 & 数据智能 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与对应后端接口返回一一对齐
+ * ========================================================================= */
+
+/** 支付流水列表（后台 /api/admin/pay/transactions） */
+export const demoPayTransactions = [
+  { id: 'PT1', outTradeNo: 'OUT1726800000001a', bizOrderId: 'B20260914001', customerId: 'c001', customerName: '陈先生', packageName: '500M 融合 40G', channel: 'WECHAT_MOCK', amount: 129, status: 'PAID', transactionId: 'MOCKTXN1001', paidTime: Date.now() - 18 * 86400000, createdTime: Date.now() - 18 * 86400000 },
+  { id: 'PT2', outTradeNo: 'OUT1726800000002b', bizOrderId: 'B20260914003', customerId: 'c003', customerName: '王先生', packageName: '1000M 融合 60G', channel: 'WECHAT_MOCK', amount: 199, status: 'PAYING', transactionId: null, paidTime: null, createdTime: Date.now() - 2 * 3600000 },
+  { id: 'PT3', outTradeNo: 'OUT1726800000003c', bizOrderId: 'B20260914004', customerId: 'c004', customerName: '赵女士', packageName: '200M 单宽', channel: 'WECHAT_MOCK', amount: 69, status: 'REFUNDED', transactionId: 'MOCKTXN1003', paidTime: Date.now() - 40 * 86400000, createdTime: Date.now() - 40 * 86400000 },
+  { id: 'PT4', outTradeNo: 'OUT1726800000004d', bizOrderId: 'B20260914002', customerId: 'c002', customerName: '李女士', packageName: '300M 融合 20G', channel: 'WECHAT_MOCK', amount: 99, status: 'PAID', transactionId: 'MOCKTXN1004', paidTime: Date.now() - 12 * 86400000, createdTime: Date.now() - 12 * 86400000 }
+]
+
+/** 客户生命周期分群占比（/api/intelligence/segments） */
+export function demoIntelSegments() {
+  const total = demoCustomers.length + 6
+  const raw = [
+    { key: 'NEW', label: '新客', color: '#409EFF', count: 4, ratio: 21.1 },
+    { key: 'ACTIVE', label: '活跃', color: '#67C23A', count: 7, ratio: 36.8 },
+    { key: 'AT_RISK', label: '预警', color: '#E6A23C', count: 3, ratio: 15.8 },
+    { key: 'CHURN_RISK', label: '流失风险', color: '#F56C6C', count: 2, ratio: 10.5 },
+    { key: 'HIGH_VALUE', label: '高价值', color: '#9B59B6', count: 2, ratio: 10.5 },
+    { key: 'COMPLAINT', label: '投诉处理', color: '#FA8C16', count: 1, ratio: 5.3 }
+  ]
+  return { total, segments: raw }
+}
+
+/** 流失风险明细（/api/intelligence/churn） */
+export function demoIntelChurn(limit = 50) {
+  const list = [
+    { id: 'c004', name: '赵女士', level: 'SILVER', segment: 'CHURN_RISK', segmentLabel: '流失风险', orderCount: 3, totalSpent: 207, pointsBalance: 320, complaintOpen: 0, daysSinceLastOrder: 168, riskScore: 73, riskReasons: ['超过 120 天未下单，流失高风险', '普通会员，黏性较弱'] },
+    { id: 'c002', name: '李女士', level: 'GOLD', segment: 'AT_RISK', segmentLabel: '预警', orderCount: 2, totalSpent: 198, pointsBalance: 540, complaintOpen: 0, daysSinceLastOrder: 92, riskScore: 41, riskReasons: ['60 天以上未互动，存在流失预警'] },
+    { id: 'c001', name: '陈先生', level: 'VIP', segment: 'HIGH_VALUE', segmentLabel: '高价值', orderCount: 4, totalSpent: 496, pointsBalance: 1280, complaintOpen: 0, daysSinceLastOrder: 12, riskScore: 22, riskReasons: ['高价值客户，需重点维系'] },
+    { id: 'c003', name: '王先生', level: 'VIP', segment: 'HIGH_VALUE', segmentLabel: '高价值', orderCount: 3, totalSpent: 597, pointsBalance: 980, complaintOpen: 1, daysSinceLastOrder: 38, riskScore: 55, riskReasons: ['高价值客户，需重点维系', '存在未闭环投诉，满意度风险'] }
+  ].slice(0, limit)
+  return { total: 19, list }
+}
+
+/** 智能营销规则（/api/intelligence/campaigns） */
+export function demoIntelCampaigns() {
+  const matched = { NEW: 4, ACTIVE: 7, AT_RISK: 3, CHURN_RISK: 2, HIGH_VALUE: 2, COMPLAINT: 1 }
+  const list = [
+    { id: 'IC_NEW', name: '新客首单关怀', segment: 'NEW', segmentLabel: '新客', channel: 'SMS', content: '欢迎办理宽带，首月体验专属提速包，详询客服。', triggerType: 'AUTO', status: 'ENABLED', reachCount: 12, lastTrigger: Date.now() - 3 * 86400000, createdTime: Date.now() - 30 * 86400000 },
+    { id: 'IC_RISK', name: '流失预警挽回', segment: 'CHURN_RISK', segmentLabel: '流失风险', channel: 'PUSH', content: '好久不见～专属续费优惠限时领取，回TA续享高速宽带。', triggerType: 'AUTO', status: 'ENABLED', reachCount: 5, lastTrigger: Date.now() - 7 * 86400000, createdTime: Date.now() - 30 * 86400000 },
+    { id: 'IC_COMPL', name: '投诉关怀回访', segment: 'COMPLAINT', segmentLabel: '投诉处理', channel: 'SMS', content: '非常抱歉给您带来不便，专属客服将尽快回访处理。', triggerType: 'MANUAL', status: 'ENABLED', reachCount: 1, lastTrigger: null, createdTime: Date.now() - 30 * 86400000 },
+    { id: 'IC_VIP', name: '高价值客户权益', segment: 'HIGH_VALUE', segmentLabel: '高价值', channel: 'COUPON', content: '尊敬的VIP客户，赠送5G提速周卡，感恩一路相伴。', triggerType: 'MANUAL', status: 'ENABLED', reachCount: 8, lastTrigger: Date.now() - 14 * 86400000, createdTime: Date.now() - 30 * 86400000 },
+    { id: 'IC_ATRISK', name: '活跃预警激活', segment: 'AT_RISK', segmentLabel: '预警', channel: 'PUSH', content: '您有专属提速券待领取，立即体验千兆极速。', triggerType: 'AUTO', status: 'ENABLED', reachCount: 3, lastTrigger: Date.now() - 5 * 86400000, createdTime: Date.now() - 30 * 86400000 }
+  ].map((c) => ({ ...c, matchedCustomers: matched[c.segment] || 0 }))
+  return { list }
+}
+
+/* =========================================================================
+ * v1.15 T-04 数据分析深化（三页）· 演示兜底数据（接口不可达时降级）
+ * 字段结构与 /api/admin/analytics/* 返回一一对齐
+ * ========================================================================= */
+
+/** 客户 360（/api/admin/analytics/customer-360） */
+export function demoAnalyticsCustomer360(id = 'c001') {
+  const base = demoCustomers.find((c) => c.id === id) || demoCustomers[0]
+  return {
+    basic: { id: base.id, name: base.name, phone: base.phone, level: base.level, communityId: 'cm001', status: 'ACTIVE', createdTime: Date.now() - 400 * 86400000 },
+    segment: 'HIGH_VALUE',
+    segmentLabel: '高价值',
+    riskScore: 22,
+    riskReasons: ['高价值客户，需重点维系'],
+    orderCount: 4,
+    totalSpent: 496,
+    pointsBalance: 1280,
+    complaintOpen: 0,
+    daysSinceLastOrder: 12,
+    recentOrders: [
+      { id: 'B20260914001', orderType: 'NEW_INSTALL', packageName: '500M 融合 40G', amount: 129, status: 'DONE', createdTime: Date.now() - 12 * 86400000 },
+      { id: 'B20260914002', orderType: 'RENEW', packageName: '500M 融合 40G', amount: 129, status: 'PAID', createdTime: Date.now() - 40 * 86400000 }
+    ],
+    recentReviews: [
+      { score: 5, type: 'REVIEW', content: '师傅专业、速度快', status: 'CLOSED', createdTime: Date.now() - 10 * 86400000 }
+    ],
+    activeRefunds: []
+  }
+}
+
+/** 营销漏斗（/api/admin/analytics/funnel） */
+export function demoAnalyticsFunnel() {
+  const registered = 19
+  const stages = [
+    { stage: '注册客户', count: 19, conversion: 100 },
+    { stage: '活跃参与', count: 14, conversion: 73.7 },
+    { stage: '创建订单', count: 11, conversion: 57.9 },
+    { stage: '支付成功', count: 9, conversion: 47.4 },
+    { stage: '复购客户', count: 4, conversion: 21.1 }
+  ]
+  return { registered, stages }
+}
+
+/** SLA 超时热力（/api/admin/analytics/sla-heatmap） */
+export function demoAnalyticsSlaHeatmap(range = 30) {
+  const byCommunity = [
+    { communityId: 'cm001', communityName: '保利花园', overtimeCount: 6 },
+    { communityId: 'cm002', communityName: '海岸城公寓', overtimeCount: 4 },
+    { communityId: 'cm003', communityName: '阳光新村', overtimeCount: 2 }
+  ]
+  const trend = []
+  const today = new Date()
+  for (let i = 4; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i * 7)
+    const wk = d.toISOString().slice(0, 10)
+    trend.push({ weekStart: wk, overtimeCount: Math.floor(Math.random() * 4) + 1 })
+  }
+  return { range, totalOvertime: 12, byCommunity, trend }
+}
+
+/** 赔付趋势（/api/admin/analytics/payout-trend） */
+export function demoAnalyticsPayoutTrend(range = 90) {
+  const trend = []
+  const today = new Date()
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    const wk = d.toISOString().slice(0, 10)
+    trend.push({ weekStart: wk, amount: Math.round(Math.random() * 400 + 200), count: Math.floor(Math.random() * 8) + 2 })
+  }
+  const totalAmount = trend.reduce((a, t) => a + t.amount, 0)
+  return { range, totalAmount, totalCount: trend.reduce((a, t) => a + t.count, 0), trend }
+}

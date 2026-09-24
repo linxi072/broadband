@@ -385,6 +385,54 @@ CREATE TABLE IF NOT EXISTS review (
 -- ---------------------------------------------------------------------------
 -- 21. 系统用户
 -- ---------------------------------------------------------------------------
+-- ===========================================================================
+-- 28. 支付流水（v1.15 支付真闭环：下单→发起支付→网关回调→订单置 PAID）
+--     与 biz_order 解耦：一笔业务订单对应一条支付流水，状态机
+--     CREATED → PAYING → PAID（或 FAILED / CLOSED / REFUNDED）。
+--     out_trade_no 为商户单号（幂等键），第三方异步回调以其定位流水。
+-- ===========================================================================
+CREATE TABLE IF NOT EXISTS pay_transaction (
+  id            VARCHAR(32)  NOT NULL COMMENT '支付流水号',
+  out_trade_no  VARCHAR(64)  NOT NULL COMMENT '商户订单号（幂等键，第三方回调用）',
+  biz_order_id  VARCHAR(32)  NOT NULL COMMENT '业务订单号',
+  customer_id   VARCHAR(32)           COMMENT '客户ID',
+  channel       VARCHAR(32)  NOT NULL DEFAULT 'WECHAT_MOCK' COMMENT 'WECHAT_MOCK/WECHAT_PAY/ALIPAY',
+  amount        INT          NOT NULL DEFAULT 0 COMMENT '支付金额（元）',
+  currency      VARCHAR(8)   NOT NULL DEFAULT 'CNY',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'CREATED' COMMENT 'CREATED/PAYING/PAID/FAILED/CLOSED/REFUNDED',
+  transaction_id VARCHAR(64)           COMMENT '第三方交易号',
+  pay_params    VARCHAR(1024)         COMMENT '前端拉起支付所需参数（JSON）',
+  expire_time   BIGINT                COMMENT '支付过期时间（毫秒）',
+  paid_time     BIGINT                COMMENT '支付成功时间（毫秒）',
+  notify_raw    VARCHAR(2048)         COMMENT '最近一次回调原始报文',
+  created_time  BIGINT       NOT NULL DEFAULT 0,
+  updated_time  BIGINT       NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_out_trade_no (out_trade_no),
+  KEY idx_pay_order (biz_order_id),
+  KEY idx_pay_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='支付流水';
+
+-- ===========================================================================
+-- 29. 智能营销自动化规则（v1.15 数据智能 intelligence 模块）
+--     客户分群 → 规则（渠道/内容/触发方式）→ 一键/自动触达，触达计数回写。
+-- ===========================================================================
+CREATE TABLE IF NOT EXISTS intel_campaign (
+  id            VARCHAR(32)  NOT NULL COMMENT '规则ID',
+  name          VARCHAR(128) NOT NULL COMMENT '规则名称',
+  segment       VARCHAR(32)  NOT NULL COMMENT '目标分群 key（NEW/ACTIVE/AT_RISK/CHURN_RISK/HIGH_VALUE/COMPLAINT）',
+  channel       VARCHAR(16)  NOT NULL DEFAULT 'SMS' COMMENT 'SMS/PUSH/COUPON',
+  content       VARCHAR(512) NOT NULL COMMENT '触达内容模板',
+  trigger_type  VARCHAR(16)  NOT NULL DEFAULT 'MANUAL' COMMENT 'MANUAL/AUTO',
+  status        VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
+  last_trigger  BIGINT                COMMENT '最近一次触发时间（毫秒）',
+  reach_count   INT          NOT NULL DEFAULT 0 COMMENT '累计触达人数',
+  created_time  BIGINT       NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_campaign_segment (segment),
+  KEY idx_campaign_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能营销自动化规则';
+
 CREATE TABLE IF NOT EXISTS sys_user (
   id           VARCHAR(32)  NOT NULL COMMENT '用户ID',
   username     VARCHAR(64)  NOT NULL COMMENT '登录账号',
@@ -586,7 +634,7 @@ CREATE TABLE IF NOT EXISTS order_refund (
   customer_name VARCHAR(64)           COMMENT '客户姓名',
   amount        INT          NOT NULL DEFAULT 0 COMMENT '退款金额（元）',
   reason        VARCHAR(255)          COMMENT '退款原因',
-  channel       VARCHAR(32)  NOT NULL DEFAULT 'UNKNOWN' COMMENT '退款渠道（未接入支付渠道时为 UNKNOWN，接入后填实际退款渠道）',
+  channel       VARCHAR(32)  NOT NULL DEFAULT 'WECHAT_MOCK' COMMENT '退款渠道（占位：真实接入后填微信支付退款单号）',
   status        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/APPROVED/REJECTED/REFUNDED',
   refund_no     VARCHAR(64)           COMMENT '第三方退款流水号',
   operator      VARCHAR(64)           COMMENT '处理人',
@@ -837,63 +885,3 @@ CREATE TABLE IF NOT EXISTS support_ticket (
   PRIMARY KEY (id),
   KEY idx_st_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服工单';
-
--- ---------------------------------------------------------------------------
--- 40. 营销自动化规则（V1.15 数据智能：客户分群/流失预警/营销自动化）
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS mkt_campaign (
-  id            VARCHAR(32)  NOT NULL COMMENT '规则ID',
-  name          VARCHAR(128) NOT NULL COMMENT '规则名称',
-  trigger_type  VARCHAR(32)  NOT NULL COMMENT '触发分群 CHURN_RISK/RENEW/HIGH_VALUE/GROWING',
-  action_type   VARCHAR(32)  NOT NULL DEFAULT 'GRANT_COUPON' COMMENT 'GRANT_COUPON/SEND_PROMO',
-  target_item   VARCHAR(32)           COMMENT '目标项：GRANT_COUPON→points_mall_item.id；SEND_PROMO→promotion.id',
-  status        VARCHAR(16)  NOT NULL DEFAULT 'ENABLED' COMMENT 'ENABLED/DISABLED',
-  description   VARCHAR(255)          COMMENT '规则说明',
-  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
-  updated_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '更新时间（毫秒）',
-  PRIMARY KEY (id),
-  KEY idx_mkt_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化规则';
-
--- 41. 营销自动化执行记录（每次自动触发的动作留痕，用于去重与效果回收）
-CREATE TABLE IF NOT EXISTS mkt_campaign_exec (
-  id            VARCHAR(32)  NOT NULL COMMENT '执行ID',
-  campaign_id   VARCHAR(32)  NOT NULL COMMENT '规则ID',
-  customer_id   VARCHAR(32)  NOT NULL COMMENT '客户ID',
-  action_type   VARCHAR(32)  NOT NULL COMMENT '动作类型',
-  target_item   VARCHAR(32)           COMMENT '目标项',
-  status        VARCHAR(16)  NOT NULL DEFAULT 'SUCCESS' COMMENT 'SUCCESS/SKIP/DUP',
-  remark        VARCHAR(255)          COMMENT '备注',
-  created_time  BIGINT       NOT NULL DEFAULT 0 COMMENT '执行时间（毫秒）',
-  PRIMARY KEY (id),
-  KEY idx_mkt_exec_camp (campaign_id),
-  KEY idx_mkt_exec_cust (customer_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营销自动化执行记录';
-
--- ============================================================================
--- V1.0.2 性能优化：补齐高频查询索引（幂等，沿用 information_schema 守卫）
--- ============================================================================
-
--- customer.openid：小程序登录按 openid 绑定/查询，缺索引会全表扫描（登录为热点路径）
-SET @add_cust_openid := (
-  SELECT IF(COUNT(*) = 0,
-            'ALTER TABLE customer ADD KEY idx_customer_openid (openid)',
-            'SELECT 1')
-  FROM information_schema.statistics
-  WHERE table_schema = DATABASE() AND table_name = 'customer' AND index_name = 'idx_customer_openid'
-);
-PREPARE stmt_cust_openid FROM @add_cust_openid;
-EXECUTE stmt_cust_openid;
-DEALLOCATE PREPARE stmt_cust_openid;
-
--- review.order_id：订单详情/评价查询按订单号关联，缺索引会全表扫描
-SET @add_review_order := (
-  SELECT IF(COUNT(*) = 0,
-            'ALTER TABLE review ADD KEY idx_review_order (order_id)',
-            'SELECT 1')
-  FROM information_schema.statistics
-  WHERE table_schema = DATABASE() AND table_name = 'review' AND index_name = 'idx_review_order'
-);
-PREPARE stmt_review_order FROM @add_review_order;
-EXECUTE stmt_review_order;
-DEALLOCATE PREPARE stmt_review_order;

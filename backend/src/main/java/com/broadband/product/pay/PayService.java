@@ -1,53 +1,72 @@
 package com.broadband.product.pay;
 
+import java.util.Map;
 
 /**
- * 支付服务接口：订单与支付解耦，微信支付 / 支付宝等均可作为实现插入。
+ * 支付服务接口：订单与支付解耦，微信支付 / 支付宝 / 模拟支付均可作为实现插入。
  *
- * <p>业务闭环（下单→支付→派单→装机→赔付→评价）中，支付这一环通过本接口完成。</p>
- *
- * <p><b>当前状态：本工程不提供任何实现（含模拟实现）。</b>此前的
- * {@code MockWeChatPayServiceImpl} 属测试/演示代码（永远返回成功、伪造交易号），
- * 已移除——让「支付」看起来成功会把未真实收款的订单推进到已支付并派单，
- * 是资金与履约上的双重隐患。</p>
- *
- * <p><b>接入方式：</b>接入真实支付渠道时，实现本接口并注册为 Spring Bean 即可
- * （如 {@code @Service public class WechatPayServiceImpl implements PayService}），
- * 调用方 {@code ClientOrderController} 无需改动：它按「是否存在 PayService Bean」
- * 判断支付能力，缺失时直接拒绝支付并给出明确提示，绝不放行。</p>
+ * <p>v1.15 支付真闭环：下单后由 {@code PaymentService} 调用 {@link #createPayment} 发起支付，
+ * 返回「前端拉起支付所需参数（payParams）+ 商户单号（outTradeNo）」，此时业务订单仍为 PENDING；
+ * 支付网关通过 {@link #verifyAndParse} 回传结果，校验通过后由 PaymentService 将订单置 PAID。
+ * 默认由 {@link MockWeChatPayServiceImpl} 模拟（开发态经 /api/pay/simulate 模拟网关回调）；
+ * 生产环境配置 app.pay.wechat.enabled=true 后由 {@link WeChatPayServiceImpl} 接管，
+ * 订单侧与支付编排代码无需改动。</p>
  */
 public interface PayService {
 
-    /** 发起一次支付。真实微信支付应在此调用统一下单 API 并校验异步回调签名。 */
-    PayResult pay(String orderId, int amount, String channel);
+    /** 发起支付。返回前端拉起支付所需参数、商户单号与过期时间（此时订单尚未支付成功）。 */
+    PayOrder createPayment(String bizOrderId, int amount, String channel, String clientIp);
 
     /**
-     * JSAPI 专用：携带支付用户 openid 发起支付。
-     * 默认实现退化为 {@link #pay(String, int, String)}（非 JSAPI 渠道可忽略 openid）。
+     * 校验并解析异步支付通知。verify=true 时验签（真实微信回调）。
+     * 返回：是否通过、商户单号、第三方交易号、支付状态（SUCCESS/FAIL）。
      */
-    default PayResult pay(String orderId, int amount, String channel, String openid) {
-        return pay(orderId, amount, channel);
-    }
+    NotifyResult verifyAndParse(Map<String, String> headers, String body);
 
-    /**
-     * 申请退款，返回渠道侧退款单号（真实单号，对接 R4 refund_no）。
-     * 默认实现不支持退款（无渠道时由业务层生成本地伪单号）。
-     */
-    default String refund(String outTradeNo, String outRefundNo, int refundFeeFen, String reason) {
-        throw new UnsupportedOperationException("支付渠道未实现退款");
-    }
+    /** 发起退款，返回第三方退款单号与结果。 */
+    RefundResult refund(String outTradeNo, int amount, String reason);
 
-    /** 支付结果载体。 */
-    class PayResult {
-        public final boolean success;
-        public final String transactionId;
+    /** 发起支付返回体。 */
+    class PayOrder {
+        public final String outTradeNo;
         public final String channel;
+        public final String payParams;   // JSON：前端拉起支付所需
+        public final long expireAt;      // 过期时间（毫秒）
+        public final String status;      // CREATED / PAYING
+
+        public PayOrder(String outTradeNo, String channel, String payParams, long expireAt, String status) {
+            this.outTradeNo = outTradeNo;
+            this.channel = channel;
+            this.payParams = payParams;
+            this.expireAt = expireAt;
+            this.status = status;
+        }
+    }
+
+    /** 异步通知解析结果。 */
+    class NotifyResult {
+        public final boolean verified;
+        public final String outTradeNo;
+        public final String transactionId;
+        public final String status;      // SUCCESS / FAIL
+
+        public NotifyResult(boolean verified, String outTradeNo, String transactionId, String status) {
+            this.verified = verified;
+            this.outTradeNo = outTradeNo;
+            this.transactionId = transactionId;
+            this.status = status;
+        }
+    }
+
+    /** 退款结果。 */
+    class RefundResult {
+        public final boolean success;
+        public final String refundNo;
         public final String message;
 
-        public PayResult(boolean success, String transactionId, String channel, String message) {
+        public RefundResult(boolean success, String refundNo, String message) {
             this.success = success;
-            this.transactionId = transactionId;
-            this.channel = channel;
+            this.refundNo = refundNo;
             this.message = message;
         }
     }

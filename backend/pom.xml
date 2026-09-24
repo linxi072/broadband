@@ -39,31 +39,12 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- 连接池：Alibaba Druid（替代默认 HikariCP）。
-             选 druid-spring-boot-3-starter（Spring Boot 3.x 专用 starter）。
-             版本固定 1.2.20：本机构建镜像到 aliyun-maven，本地仓库中仅 1.2.20 的
-             jar/pom 记录来自 aliyun-maven，1.2.23 记录来自 central，
-             离线构建（-o）会因仓库 ID 不匹配而拒绝解析。升级版本需同步确认缓存来源。
-             提供连接池监控、慢 SQL 日志、防泄漏回收、StatFilter 等运维能力；
-             配置见 application.yml 的 spring.datasource.druid.*。 -->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-3-starter</artifactId>
-            <version>1.2.20</version>
-        </dependency>
         <!-- 安全：RBAC + JWT 鉴权（Spring Security 6）。
              JWT 自身用 JDK 的 HMAC-SHA256 实现（见 system/security/JwtUtil，纯 Java 无三方依赖），
              因此这里不引入 jjwt，保持依赖面最小。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <!-- 缓存：Spring Data Redis（引入 Redis 做读密集数据缓存，降低聚合查询对 MySQL 的压力）。
-             连接 127.0.0.1:6379（沙箱已起 redis-server）；通过 app.cache.enabled 开关与
-             RedisCacheService 的 fail-safe 包裹，Redis 不可用时自动退化为直查 DB，不会击穿。 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         <!-- 监控（G6 监控深化）：Spring Boot Actuator + Micrometer Prometheus 注册表。
              /actuator/prometheus 供 Prometheus 抓取；HTTP/JVM/GC/线程/连接池指标由 Micrometer 自动采集。

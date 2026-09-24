@@ -72,6 +72,9 @@ export function orderList(params) {
 export function workOrderList(params) {
   return silent({ url: '/admin/work-orders', method: 'get', params })
 }
+export function resetWorkOrders() {
+  return request({ url: '/admin/work-orders/reset', method: 'post', data: {} })
+}
 
 // ---------- 投诉与评价 ----------
 export function reviewList(params) {
@@ -87,13 +90,6 @@ export function salesReport(params) {
 }
 export function financeReport(params) {
   return silent({ url: '/admin/finance/report', method: 'get', params })
-}
-// 报表下钻明细（US-2.2）：销售业绩 / 财务月报的底层订单与赔付
-export function salesReportDetail(params) {
-  return silent({ url: '/admin/sales/report/detail', method: 'get', params })
-}
-export function financeReportDetail(params) {
-  return silent({ url: '/admin/finance/report/detail', method: 'get', params })
 }
 
 // ---------- 性能监控 ----------
@@ -157,20 +153,96 @@ export function adminTrafficOverview() {
   return silent({ url: '/admin/traffic/overview', method: 'get' })
 }
 
-// ---------- 数据智能（V1.15 迭代二 · 数据深化） ----------
-export function intelligenceSegments() {
+/* =========================================================================
+   三、v1.14 运营留存（C 端接口；运营后台以客户视角查询 / 配置查看）
+   ========================================================================= */
+
+// ---------- 积分成长体系 points ----------
+export function pointsBalance(customerId) {
+  return silent({ url: '/points/balance', method: 'get', params: { customerId } })
+}
+export function pointsSign(customerId) {
+  return request({ url: '/points/sign', method: 'post', params: { customerId } })
+}
+export function pointsTasks(customerId) {
+  return silent({ url: '/points/tasks', method: 'get', params: { customerId } })
+}
+export function pointsMall() {
+  return silent({ url: '/points/mall', method: 'get' })
+}
+export function pointsRedeem(customerId, itemId) {
+  return request({ url: '/points/redeem', method: 'post', params: { customerId, itemId } })
+}
+
+// ---------- 优惠活动专区 promotion ----------
+export function promotionList(type) {
+  return silent({ url: '/promotions', method: 'get', params: type ? { type } : {} })
+}
+
+// ---------- 在线客服 / 帮助中心 support ----------
+export function supportFaq(category) {
+  return silent({ url: '/support/faq', method: 'get', params: category ? { category } : {} })
+}
+export function supportTicket(body) {
+  return request({ url: '/support/ticket', method: 'post', data: body })
+}
+
+// ---------- 账户与账单中心 account ----------
+export function accountSummary(customerId) {
+  return silent({ url: '/account/summary', method: 'get', params: { customerId } })
+}
+export function accountBills(customerId, period) {
+  return silent({ url: '/account/bills', method: 'get', params: period ? { customerId, period } : { customerId } })
+}
+
+/* =========================================================================
+   四、v1.15 支付真闭环 & 数据智能 intelligence
+   ========================================================================= */
+
+// ---------- 支付真闭环（C 端发起 / 状态 / 模拟网关 / 后台） ----------
+export function initiatePayment(orderId, channel = 'WECHAT_MOCK', customerId) {
+  return request({ url: '/order/pay', method: 'post', data: { orderId, channel, customerId } })
+}
+export function paymentStatus(orderId) {
+  return silent({ url: '/order/payment-status', method: 'get', params: { orderId } })
+}
+export function simulatePay(outTradeNo) {
+  return request({ url: `/pay/simulate/${outTradeNo}`, method: 'post', data: {} })
+}
+export function adminPayTransactions(params) {
+  return silent({ url: '/admin/pay/transactions', method: 'get', params })
+}
+export function adminPayRefund(data) {
+  return request({ url: '/admin/pay/refund', method: 'post', data })
+}
+
+// ---------- 数据智能 intelligence ----------
+export function intelSegments() {
   return silent({ url: '/intelligence/segments', method: 'get' })
 }
-export function intelligenceChurn(limit = 50) {
+export function intelChurn(limit = 50) {
   return silent({ url: '/intelligence/churn', method: 'get', params: { limit } })
 }
-export function intelligenceCampaigns() {
+export function intelCampaigns() {
   return silent({ url: '/intelligence/campaigns', method: 'get' })
 }
-export function intelligenceAutoTrigger(dryRun = false) {
-  return request({ url: '/intelligence/auto-trigger', method: 'post', data: { dryRun } })
+export function intelAutoTrigger() {
+  return request({ url: '/intelligence/auto-trigger', method: 'post', data: {} })
 }
-// 分群客户下钻（US-2.2）：点击数据智能分群饼图 / 流失柱图，返回该分群客户列表
-export function intelligenceSegmentCustomers(segment, limit = 50) {
-  return silent({ url: '/intelligence/segment-customers', method: 'get', params: { segment, limit } })
+export function intelSegmentCustomers(segment, params = {}) {
+  return silent({ url: '/intelligence/segment-customers', method: 'get', params: { segment, ...params } })
+}
+
+// ---------- 数据分析深化 analytics（T-04 三页深化） ----------
+export function analyticsCustomer360(customerId) {
+  return silent({ url: '/admin/analytics/customer-360', method: 'get', params: { customerId } })
+}
+export function analyticsFunnel() {
+  return silent({ url: '/admin/analytics/funnel', method: 'get' })
+}
+export function analyticsSlaHeatmap(range = 30) {
+  return silent({ url: '/admin/analytics/sla-heatmap', method: 'get', params: { range } })
+}
+export function analyticsPayoutTrend(range = 90) {
+  return silent({ url: '/admin/analytics/payout-trend', method: 'get', params: { range } })
 }

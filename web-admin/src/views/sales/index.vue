@@ -2,10 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import DetailDrawer from '@/components/DetailDrawer.vue'
-import { salesReport, salesReportDetail } from '@/api/business'
+import { salesReport } from '@/api/business'
 import { loadResource, money } from '@/composables/useResource'
-import { demoSales, demoSalesDetail } from '@/mock/fallback'
+import { demoSales } from '@/mock/fallback'
 
 const rows = ref([])
 const live = ref(false)
@@ -64,33 +63,6 @@ onMounted(async () => {
   live.value = r.live
   loading.value = false
 })
-
-// ---- 销售业绩下钻（US-2.2）：点击柱/饼图某销售，查看其底层订单明细
-const detail = ref([])
-const detailLoading = ref(false)
-const detailVisible = ref(false)
-const detailTitle = ref('')
-const STATUS_LABEL = { PENDING: '待受理', PAID: '已支付', INSTALLING: '安装中', DONE: '已完成', CANCELLED: '已取消', REFUND: '已退款' }
-const detailColumns = [
-  { prop: 'orderNo', label: '订单号', minWidth: 150 },
-  { prop: 'customerName', label: '客户', width: 110 },
-  { prop: 'packageName', label: '套餐', minWidth: 130 },
-  { prop: 'amount', label: '金额', width: 110, format: (r) => money(r.amount) },
-  { prop: 'status', label: '状态', width: 100, format: (r) => STATUS_LABEL[r.status] || r.status },
-  { prop: 'orderType', label: '类型', width: 120 },
-  { prop: 'createdDate', label: '日期', width: 120 }
-]
-
-async function onSalesChartClick(params) {
-  if (!params || !params.name) return
-  const name = params.name
-  detailTitle.value = `销售业绩明细 · ${name}`
-  detailLoading.value = true
-  detailVisible.value = true
-  const r = await loadResource(() => salesReportDetail({ salesName: name }), () => demoSalesDetail(name))
-  detail.value = Array.isArray(r.data) ? r.data : (r.data && r.data.rows) || []
-  detailLoading.value = false
-}
 </script>
 
 <template>
@@ -112,12 +84,12 @@ async function onSalesChartClick(params) {
 
     <div class="cols">
       <div class="card">
-        <div class="card-head"><h3>业绩对比<span class="hint">点击柱/饼下钻明细</span></h3><SourceTag :live="live" /></div>
-        <div class="card-body"><ChartBox :option="barOption" height="260px" @chart-click="onSalesChartClick" /></div>
+        <div class="card-head"><h3>业绩对比</h3><SourceTag :live="live" /></div>
+        <div class="card-body"><ChartBox :option="barOption" height="260px" /></div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>业绩占比<span class="hint">点击饼块下钻明细</span></h3><SourceTag :live="live" /></div>
-        <div class="card-body"><ChartBox :option="pieOption" height="260px" @chart-click="onSalesChartClick" /></div>
+        <div class="card-head"><h3>业绩占比</h3><SourceTag :live="live" /></div>
+        <div class="card-body"><ChartBox :option="pieOption" height="260px" /></div>
       </div>
     </div>
 
@@ -141,15 +113,6 @@ async function onSalesChartClick(params) {
         <template #empty><EmptyState icon="💼" title="暂无销售数据" desc="暂无销售业绩记录" /></template>
       </el-table>
     </div>
-
-    <DetailDrawer
-      v-model:visible="detailVisible"
-      :title="detailTitle"
-      :columns="detailColumns"
-      :rows="detail"
-      :loading="detailLoading"
-      :live="live"
-    />
   </div>
 </template>
 
@@ -174,13 +137,6 @@ async function onSalesChartClick(params) {
 
 .up {
   color: var(--bd-up);
-}
-
-.hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--bd-text-mute);
-  margin-left: 8px;
 }
 
 @media (max-width: 1100px) {

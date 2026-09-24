@@ -92,6 +92,17 @@ const api = {
     if (category) p += '?category=' + encodeURIComponent(category);
     return request(p, 'GET');
   },
-  submitSupportTicket(payload) { return request('/api/support/ticket', 'POST', payload || {}); }
+  submitSupportTicket(payload) { return request('/api/support/ticket', 'POST', payload || {}); },
+  // —— v1.15 支付真闭环（C 端）——
+  // 下单：{customerId, packageId, communityId, orderType?, contactName?, contactPhone?, timeSlot?}
+  createOrder(payload) { return request('/api/order/create', 'POST', payload || {}); },
+  // 发起支付：返回 {status:PAYING, outTradeNo, payParams, expireAt}（订单保持 PENDING，待网关回调）
+  initiatePay(orderId, channel) {
+    return request('/api/order/pay', 'POST', { orderId: orderId, channel: channel || 'WECHAT_MOCK' });
+  },
+  // 支付状态轮询：{orderStatus, payStatus, outTradeNo}
+  paymentStatus(orderId) { return request('/api/order/payment-status?orderId=' + encodeURIComponent(orderId), 'GET'); },
+  // 开发态模拟网关回调（演示环境无真实商户号时使用，等价于微信回传 SUCCESS）
+  simulatePay(outTradeNo) { return request('/api/pay/simulate/' + encodeURIComponent(outTradeNo), 'POST', {}); }
 };
 module.exports = api;

@@ -119,7 +119,7 @@ public class DispatchService {
         } else {
             plan.exceptions.add(new DispatchException(o.id, slot,
                     "时段 " + slot + " 所有师傅非相邻容量已耗尽（每师傅上限 "
-                            + CapacityPolicy.nonAdjacentMaxDefault() + " 单），建议增派师傅或调整时段"));
+                            + CapacityPolicy.NON_ADJACENT_MAX + " 单），建议增派师傅或调整时段"));
             plan.logs.add("⚠ 单 " + o.id + " 非相邻容量不足，已拦截未派");
         }
     }
@@ -142,7 +142,7 @@ public class DispatchService {
         for (WorkOrder o : remaining) {
             plan.exceptions.add(new DispatchException(o.id, slot,
                     "时段 " + slot + " 师傅相邻容量已耗尽（每师傅上限 "
-                            + CapacityPolicy.adjacentMaxDefault() + " 单/簇），簇 " + c.clusterId
+                            + CapacityPolicy.ADJACENT_MAX + " 单/簇），簇 " + c.clusterId
                             + " 部分工单超容，建议增派师傅或调整时段"));
             plan.logs.add("⚠ 簇 " + c.clusterId + " 工单 " + o.id + " 相邻容量不足，已拦截未派");
         }

@@ -71,7 +71,34 @@ const MAP = {
   是: { type: 'success', label: '是' },
   否: { type: 'info', label: '否' },
   在线: { type: 'success', label: '在线' },
-  离线: { type: 'info', label: '离线' }
+  离线: { type: 'info', label: '离线' },
+
+  // —— v1.14 运营留存 · 活动状态 ——
+  进行中: { type: 'success', label: '进行中' },
+  online: { type: 'success', label: '进行中' },
+  已下线: { type: 'info', label: '已下线' },
+  offline: { type: 'info', label: '已下线' },
+  草稿: { type: 'warning', label: '草稿' },
+  draft: { type: 'warning', label: '草稿' },
+
+  // —— v1.15 支付流水状态机 ——
+  created: { type: 'info', label: '已创建' },
+  paying: { type: 'warning', label: '支付中' },
+  支付中: { type: 'warning', label: '支付中' },
+  failed: { type: 'danger', label: '支付失败' },
+  支付失败: { type: 'danger', label: '支付失败' },
+  closed: { type: 'info', label: '已关闭' },
+  refunded: { type: 'warning', label: '已退款' },
+  已退款: { type: 'warning', label: '已退款' },
+  refund: { type: 'warning', label: '已退款' },
+
+  // —— v1.15 数据智能 · 客户分群 ——
+  new: { type: 'primary', label: '新客' },
+  active: { type: 'success', label: '活跃' },
+  at_risk: { type: 'warning', label: '预警' },
+  churn_risk: { type: 'danger', label: '流失风险' },
+  high_value: { type: 'primary', label: '高价值' },
+  complaint: { type: 'warning', label: '投诉处理' }
 }
 
 const DEFAULT = { type: 'info', label: '—' }

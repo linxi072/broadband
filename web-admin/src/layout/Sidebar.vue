@@ -30,7 +30,11 @@ const ICONS_BY_PATH = {
   '/sales': '💼',
   '/finance': '💰',
   '/system/user': '🔐',
-  '/monitor': '📈'
+  '/monitor': '📈',
+  '/points': '🎁',
+  '/promotion': '🎉',
+  '/support': '💬',
+  '/account': '💳'
 }
 const ICONS_BY_NAME = {
   套餐管理: '📦',

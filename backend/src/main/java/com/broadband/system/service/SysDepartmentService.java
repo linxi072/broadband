@@ -1,7 +1,5 @@
 package com.broadband.system.service;
 
-import com.broadband.common.Ids;
-import com.broadband.common.Values;
 import com.broadband.system.mapper.SysDepartmentMapper;
 import com.broadband.system.model.SysDepartment;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +21,6 @@ import java.util.Map;
 public class SysDepartmentService {
 
     @Autowired private SysDepartmentMapper departmentMapper;
-    @Autowired private OperLogService operLog;
 
     /** 全部部门（不区分状态，保证树完整、数据权限推导不漏）。 */
     public List<SysDepartment> listAll() {
@@ -90,71 +87,5 @@ public class SysDepartmentService {
             if (deptId.equals(d.parentId)) return true;
         }
         return false;
-    }
-
-    // ==================================================================== 管理端 CRUD
-
-    /** 新增部门（默认启用）。 */
-    public SysDepartment create(Map<String, Object> req) {
-        String name = require(Values.str(req.get("name")), "部门名称不能为空");
-        SysDepartment d = new SysDepartment();
-        d.id = Ids.next();
-        d.parentId = Values.str(req.get("parentId"));
-        d.name = name;
-        d.region = Values.str(req.get("region"));
-        d.sortOrder = Values.intOf(req.get("sortOrder"));
-        d.status = "ENABLED";
-        d.createdTime = System.currentTimeMillis();
-        departmentMapper.insert(d);
-        log("新增部门 " + d.name);
-        return d;
-    }
-
-    /**
-     * 编辑部门：不允许把父节点设为自己或自己的子孙（避免成环）。
-     * @throws IllegalArgumentException 部门不存在，或父节点非法
-     */
-    public Map<String, Object> update(String id, Map<String, Object> req) {
-        SysDepartment exist = departmentMapper.selectById(id);
-        if (exist == null) throw new IllegalArgumentException("部门不存在：" + id);
-        String newParent = Values.str(req.get("parentId"));
-        if (newParent != null && !newParent.isEmpty() && !newParent.equals(exist.parentId)) {
-            if (newParent.equals(id) || visibleDeptIds(id).contains(newParent)) {
-                throw new IllegalArgumentException("不能将部门挂到自身或其下级之下");
-            }
-        }
-        SysDepartment patch = new SysDepartment();
-        patch.id = id;
-        patch.parentId = newParent;
-        patch.name = Values.str(req.get("name"), exist.name);
-        patch.region = Values.str(req.get("region"), exist.region);
-        patch.sortOrder = Values.intOf(req.get("sortOrder"), exist.sortOrder);
-        patch.status = Values.str(req.get("status"), exist.status);
-        departmentMapper.updateById(patch);
-        log("编辑部门 " + id);
-        return Map.of("ok", true);
-    }
-
-    /** 删除部门：禁止删除含子部门的节点（需先清理下级）。 */
-    public Map<String, Object> delete(String id) {
-        if (hasChildren(id)) {
-            throw new IllegalArgumentException("该部门下存在子部门，请先删除子部门");
-        }
-        departmentMapper.deleteById(id);
-        log("删除部门 " + id);
-        return Map.of("ok", true);
-    }
-
-    // ==================================================================== 辅助
-
-    private static String require(String v, String msg) {
-        if (v == null) throw new IllegalArgumentException(msg);
-        return v;
-    }
-
-    private void log(String action) {
-        var me = CurrentUser.get();
-        operLog.record(me == null ? null : me.user.username, me == null ? null : me.user.name,
-                action, "/api/system/departments", "WRITE", "-", "成功", 0);
     }
 }

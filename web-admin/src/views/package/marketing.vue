@@ -120,26 +120,19 @@ const trendOption = computed(() => {
 const funnelOption = computed(() => {
   const list = data.value?.funnel || []
   return {
-    tooltip: { trigger: 'item', formatter: (p) => `${p.name}: ${p.value}（相对顶层 ${p.data.conversionFromTop}%）` },
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ' },
     series: [{
       type: 'funnel', top: 16, bottom: 16, left: '8%', width: '84%',
       minSize: '24%', maxSize: '100%', sort: 'descending', gap: 2,
-      label: {
-        show: true, position: 'inside', color: '#fff',
-        formatter: (p) => `${p.name}\n${p.value}（${p.data.conversionFromPrev}% 转化）`
-      },
+      label: { show: true, position: 'inside', formatter: '{b}\n{c}', color: '#fff' },
       itemStyle: { borderColor: '#fff', borderWidth: 2 },
       data: list.map((x, i) => ({
         name: x.stage, value: x.value,
-        conversionFromPrev: x.conversionFromPrev,
-        conversionFromTop: x.conversionFromTop,
         itemStyle: { color: PALETTE[i % PALETTE.length] }
       }))
     }]
   }
 })
-
-const funnelConv = computed(() => data.value?.funnel || [])
 
 async function load() {
   const r = await loadResource(() => productMarketing(), () => demoMarketingDashboard())
@@ -193,21 +186,6 @@ onMounted(async () => {
       <div class="card chart-card">
         <div class="card-head"><h3>转化漏斗<span class="hint">点击阶段下钻明细</span></h3></div>
         <ChartBox :option="funnelOption" height="300px" @chart-click="onFunnelClick" />
-      </div>
-      <div class="card span2">
-        <div class="card-head"><h3>漏斗阶段转化（深化）</h3><span class="hint">识别转化断点</span></div>
-        <el-table :data="funnelConv" size="small" style="width: 100%">
-          <el-table-column prop="stage" label="阶段" min-width="130" />
-          <el-table-column label="数量" width="110"><template #default="{ row }">{{ row.value }}</template></el-table-column>
-          <el-table-column label="相对顶层转化" min-width="180">
-            <template #default="{ row }"><el-progress :percentage="Math.round(row.conversionFromTop || 0)" :stroke-width="12" /></template>
-          </el-table-column>
-          <el-table-column label="相邻阶段转化" width="140">
-            <template #default="{ row }">
-              <el-tag :type="row.conversionFromPrev >= 80 ? 'success' : row.conversionFromPrev >= 50 ? 'warning' : 'danger'" size="small" effect="light">{{ row.conversionFromPrev }}%</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
       </div>
       <div class="card chart-card span2">
         <div class="card-head"><h3>近 6 月营收趋势</h3></div>

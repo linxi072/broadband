@@ -11,5 +11,7 @@
     <view class="row"><text class="muted">地址</text><text>{{address}}</text></view>
     <view class="row"><text class="muted">联系人</text><text>{{contact}}</text></view>
   </view>
-  <view class="btn-primary" bindtap="submit">提交订单</view>
+  <view class="btn-primary" bindtap="submit">{{ step === 'paid' ? '已支付' : (step === 'paying' ? '支付中…' : '提交订单') }}</view>
+  <view wx:if="{{step === 'paying'}}" class="hint">已发起支付，等待网关确认（演示态已模拟回调）</view>
+  <view wx:if="{{step === 'paid'}}" class="hint ok">支付成功，订单已生成</view>
 </view>

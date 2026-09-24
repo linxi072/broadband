@@ -1,11 +1,11 @@
 package com.broadband.common;
 
+import com.broadband.system.spring.AuthController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -31,8 +31,8 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(BadCredentials.class)
-    public ResponseEntity<Map<String, Object>> badCredentials(BadCredentials e) {
+    @ExceptionHandler(AuthController.BadCredentials.class)
+    public ResponseEntity<Map<String, Object>> badCredentials(AuthController.BadCredentials e) {
         return body(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
@@ -49,11 +49,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Map<String, Object>> missingParam(MissingServletRequestParameterException e) {
         return body(HttpStatus.BAD_REQUEST, "缺少请求参数：" + e.getParameterName());
-    }
-
-    @ExceptionHandler(MissingRequestHeaderException.class)
-    public ResponseEntity<Map<String, Object>> missingHeader(MissingRequestHeaderException e) {
-        return body(HttpStatus.BAD_REQUEST, "缺少请求头：" + e.getHeaderName());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

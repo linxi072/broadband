@@ -116,13 +116,6 @@ export const navConfig = [
     component: () => import('@/views/sla/index.vue')
   },
   {
-    title: '数据智能',
-    path: '/intelligence',
-    icon: '🧠',
-    perm: 'intelligence:view',
-    component: () => import('@/views/intelligence/index.vue')
-  },
-  {
     title: '流量监控',
     path: '/traffic',
     icon: '📶',
@@ -149,6 +142,36 @@ export const navConfig = [
     icon: '💰',
     perm: 'finance:view',
     component: () => import('@/views/finance/index.vue')
+  },
+  {
+    title: '运营留存',
+    icon: '🎁',
+    children: [
+      {
+        title: '积分成长',
+        path: '/points',
+        perm: 'points:view',
+        component: () => import('@/views/points/index.vue')
+      },
+      {
+        title: '优惠活动',
+        path: '/promotion',
+        perm: 'promotion:view',
+        component: () => import('@/views/promotion/index.vue')
+      },
+      {
+        title: '在线客服',
+        path: '/support',
+        perm: 'support:view',
+        component: () => import('@/views/support/index.vue')
+      },
+      {
+        title: '账户账单',
+        path: '/account',
+        perm: 'account:view',
+        component: () => import('@/views/account/index.vue')
+      }
+    ]
   },
   {
     title: '权限管理',
@@ -192,6 +215,60 @@ export const navConfig = [
     icon: '📈',
     perm: 'monitor:view',
     component: () => import('@/views/monitor/index.vue')
+  },
+  {
+    title: '数据智能',
+    icon: '🧠',
+    children: [
+      {
+        title: '客户分群与智能营销',
+        path: '/intelligence',
+        perm: 'intelligence:view',
+        component: () => import('@/views/intelligence/index.vue')
+      }
+    ]
+  },
+  {
+    title: '支付管理',
+    icon: '💳',
+    children: [
+      {
+        title: '支付流水',
+        path: '/admin/pay/transactions',
+        perm: 'payment:view',
+        component: () => import('@/views/payment/index.vue')
+      },
+      {
+        title: '退款处理',
+        path: '/admin/pay/refund',
+        perm: 'payment:view',
+        component: () => import('@/views/payment/index.vue')
+      }
+    ]
+  },
+  {
+    title: '数据分析深化',
+    icon: '📡',
+    children: [
+      {
+        title: '客户 360',
+        path: '/analytics/customer360',
+        perm: 'analytics:view',
+        component: () => import('@/views/analytics/customer360.vue')
+      },
+      {
+        title: '营销漏斗',
+        path: '/analytics/funnel',
+        perm: 'analytics:view',
+        component: () => import('@/views/analytics/funnel.vue')
+      },
+      {
+        title: 'SLA 超时与赔付',
+        path: '/analytics/sla',
+        perm: 'analytics:view',
+        component: () => import('@/views/analytics/sla.vue')
+      }
+    ]
   }
 ]
 

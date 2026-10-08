@@ -108,6 +108,64 @@ class NotificationServiceTest {
         verify(jdbc, org.mockito.Mockito.times(2)).update(anyString(), any(Object[].class));
     }
 
+    // ============================================================ 事件语义封装
+
+    @Test
+    @DisplayName("notifyContractExpiring：渲染标题/内容并写入（24h 去重窗口内首次写入成功）")
+    void contractExpiringRendersContent() {
+        when(jdbc.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(0L);
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+
+        String id = svc.notifyContractExpiring("C1", "张三", "千兆套餐", "2026-11-01", 24);
+
+        assertNotNull(id, "首次推送应写入并返回 ID");
+        verify(jdbc).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    @DisplayName("notifyWorkOrderCompleted / notifySlaPayout：渲染并写入")
+    void workOrderAndSlaPayoutRender() {
+        when(jdbc.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(0L);
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+
+        assertNotNull(svc.notifyWorkOrderCompleted("WO1", "李四", "王师傅", "2026-10-08 10:00"),
+                "工单完工通知应写入");
+        assertNotNull(svc.notifySlaPayout("CP1", "赵六", "装机超时触发慢必赔", 30.0, "O9"),
+                "SLA 赔付通知应写入");
+    }
+
+    @Test
+    @DisplayName("publishRealtime：默认无 sink 时为 no-op（不抛异常，仍写库）")
+    void realtimeNoOpByDefault() {
+        when(jdbc.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(0L);
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+
+        svc.notifyContractRenewed("C2", "钱七", "2027-01-01", 12);
+
+        verify(jdbc).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    @DisplayName("publishRealtime：注入 sink 后，语义事件自动推送至实时通道（含事件类型/refType/refId/角色）")
+    void realtimeRoutesToSink() {
+        when(jdbc.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(0L);
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+
+        final String[] captured = new String[6];
+        NotificationService.RealtimeSink capturing = (et, t, c, rt, rid, role) -> {
+            captured[0] = et; captured[1] = t; captured[2] = c;
+            captured[3] = rt; captured[4] = rid; captured[5] = role;
+        };
+        svc.setRealtimeSink(capturing);
+
+        svc.notifySlaPayout("CP9", "孙八", "网速不达标赔", 50.0, "O10");
+
+        assertEquals("SLA_PAYOUT", captured[0]);
+        assertEquals("sla", captured[3]);
+        assertEquals("CP9", captured[4]);
+        assertEquals("ALL", captured[5]);
+    }
+
     // ============================================================ 查阅 / 已读
 
     @Test

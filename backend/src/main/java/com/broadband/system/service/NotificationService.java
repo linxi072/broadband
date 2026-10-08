@@ -33,6 +33,16 @@ public class NotificationService {
     @Autowired
     private JdbcTemplate jdbc;
 
+    /**
+     * 实时推送汇聚接口（预留扩展点）。
+     *
+     * <p>当前为 {@code null}（no-op）。后续增量「实时推送（WebSocket / SSE）」只需提供一个实现该接口的
+     * Spring Bean 并交由 Spring 注入，所有语义化事件方法即会自动经由 {@link #publishRealtime} 推送，
+     * <b>业务模块无需改动</b>。</p>
+     */
+    @Autowired(required = false)
+    private RealtimeSink realtimeSink;
+
     // ============================================================ 纯逻辑（可单测，无 DB 依赖）
 
     /**
@@ -129,6 +139,82 @@ public class NotificationService {
         return ids;
     }
 
+    // ============================================================ 事件语义封装（事件 → 通知内容映射）
+
+    /**
+     * 实时推送钩子（预留扩展点）。
+     * 若注入了 {@link RealtimeSink} 实现则推送事件，否则 no-op（降级为拉取式：铃铛轮询）。
+     * 由所有语义化事件方法统一调用——未来接入 WebSocket/SSE 时无需改动各业务模块。
+     */
+    public void publishRealtime(String eventType, String title, String content,
+                               String refType, String refId, String targetRole) {
+        if (realtimeSink != null) {
+            realtimeSink.push(eventType, title, content, refType, refId, targetRole);
+        }
+    }
+
+    /** 统一入口：先写库（含 24h 去重），写库成功后再经 {@link #publishRealtime} 推送实时通道。 */
+    private String notifyEvent(String eventType, String title, String content,
+                               String refType, String refId, String targetRole) {
+        String id = notify(eventType, title, content, refType, refId, targetRole);
+        if (id != null) {
+            publishRealtime(eventType, title, content, refType, refId, targetRole);
+        }
+        return id;
+    }
+
+    // —— 合约到期预警（临期扫描触发 / POST /api/admin/contract/notify-expiring）——
+    public String notifyContractExpiring(String contractId, String customerName,
+                                         String packageName, String endDate, int daysLeft) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("customerName", customerName);
+        p.put("packageName", packageName);
+        p.put("endDate", endDate);
+        p.put("daysLeft", daysLeft);
+        String title = render("合约即将到期：{customerName}", p);
+        String content = render("客户 {customerName} 的「{packageName}」合约将于 {endDate} 到期（剩余 {daysLeft} 天），请及时跟进续约。", p);
+        return notifyEvent("CONTRACT_EXPIRING", title, content, "contract", contractId, "ALL");
+    }
+
+    // —— 合约续约成功（续约办理后触发）——
+    public String notifyContractRenewed(String contractId, String customerName,
+                                         String endDate, int months) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("customerName", customerName);
+        p.put("endDate", endDate);
+        p.put("months", months);
+        String title = render("合约已续约：{customerName}", p);
+        String content = render("客户 {customerName} 的合约已续约，期限顺延 {months} 个月，新到期日 {endDate}。", p);
+        return notifyEvent("CONTRACT_RENEWED", title, content, "contract", contractId, "ALL");
+    }
+
+    // —— 工单完工（师傅提交完工后触发）——
+    public String notifyWorkOrderCompleted(String workOrderId, String customerName,
+                                            String workerName, String completeTime) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("workOrderId", workOrderId);
+        p.put("customerName", customerName);
+        p.put("workerName", workerName);
+        p.put("completeTime", completeTime);
+        String title = render("工单完工：{workOrderId}", p);
+        String content = render("工单 {workOrderId}（客户 {customerName}）由师傅 {workerName} 于 {completeTime} 完成施工。", p);
+        return notifyEvent("WORK_ORDER_COMPLETED", title, content, "workorder", workOrderId, "ALL");
+    }
+
+    // —— SLA 赔付生成（SLA 评估触发赔付工单后触发）——
+    public String notifySlaPayout(String compId, String custName, String reason,
+                                  double amount, String orderId) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("compId", compId);
+        p.put("custName", custName);
+        p.put("reason", reason);
+        p.put("amount", amount);
+        p.put("orderId", orderId);
+        String title = render("SLA 赔付生成：{compId}", p);
+        String content = render("客户 {custName} 触发 SLA 赔付：{reason}，赔付金额 ¥{amount}（关联订单 {orderId}）。", p);
+        return notifyEvent("SLA_PAYOUT", title, content, "sla", compId, "ALL");
+    }
+
     // ============================================================ 查阅 / 已读
 
     public Map<String, Object> list(int page, int size, boolean unreadOnly, String role) {
@@ -208,5 +294,19 @@ public class NotificationService {
     /** 角色是否为「限定范围」：非空且非 ALL 时按角色过滤；否则展示全部。 */
     private static boolean isRoleScoped(String role) {
         return role != null && !role.isBlank() && !"ALL".equalsIgnoreCase(role);
+    }
+
+    /**
+     * 实时推送汇聚接口（后续增量扩展点：WebSocket / SSE）。
+     * 提供一个实现并交由 Spring 注入即可启用实时推送；未注入时为 no-op，通知仍按拉取式（铃铛轮询）可用。
+     */
+    public interface RealtimeSink {
+        void push(String eventType, String title, String content,
+                  String refType, String refId, String targetRole);
+    }
+
+    /** 供单元测试注入模拟实时通道。 */
+    void setRealtimeSink(RealtimeSink sink) {
+        this.realtimeSink = sink;
     }
 }

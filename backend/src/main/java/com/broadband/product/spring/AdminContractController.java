@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.broadband.system.service.NotificationService;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +41,9 @@ public class AdminContractController {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired(required = false)
+    private NotificationService notifications;
 
     // ============================================================ 合约台账
 
@@ -167,11 +172,66 @@ public class AdminContractController {
                         "SELECT id, end_date AS endDate, status FROM customer_contract WHERE id = ?", contractId)
                 .stream().findFirst().orElse(null);
 
+        if (notifications != null) {
+            try {
+                String custName = jdbc.queryForObject(
+                        "SELECT c.name FROM customer_contract ct LEFT JOIN customer c ON c.id = ct.customer_id WHERE ct.id = ?",
+                        String.class, contractId);
+                notifications.notifyContractRenewed(contractId, custName,
+                        after == null ? null : String.valueOf(after.get("endDate")), months);
+            } catch (Exception ignored) {
+                // 通知失败不影响续约主流程
+            }
+        }
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
         resp.put("contractId", contractId);
         resp.put("months", months);
         resp.put("endDate", after == null ? null : after.get("endDate"));
+        return resp;
+    }
+
+    // ============================================================ 合约到期预警推送
+
+    /**
+     * 扫描临期（默认 30 天）生效中合约并发送「合约即将到期」站内通知。
+     * 触发点：运营人员可手动触发（按钮）或后续由定时任务调用；同一合约 24h 内仅推送一次（去重）。
+     */
+    @PostMapping("/notify-expiring")
+    @PreAuthorize("hasAuthority('contract:view')")
+    public Map<String, Object> notifyExpiring(@RequestParam(defaultValue = "30") int days) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT ct.id, c.name AS customerName, p.name AS packageName, ct.end_date AS endDate, "
+                        + "DATEDIFF(STR_TO_DATE(ct.end_date, '%Y-%m-%d'), CURDATE()) AS daysLeft "
+                        + "FROM customer_contract ct "
+                        + "LEFT JOIN customer c ON c.id = ct.customer_id "
+                        + "LEFT JOIN package_info p ON p.id = ct.package_id "
+                        + "WHERE ct.status = 'ACTIVE' "
+                        + "AND STR_TO_DATE(ct.end_date, '%Y-%m-%d') <= DATE_ADD(CURDATE(), INTERVAL ? DAY) "
+                        + "ORDER BY ct.end_date ASC",
+                days);
+        int scanned = rows.size();
+        int notified = 0;
+        if (notifications != null) {
+            for (Map<String, Object> r : rows) {
+                try {
+                    String id = notifications.notifyContractExpiring(
+                            String.valueOf(r.get("id")),
+                            String.valueOf(r.get("customerName")),
+                            String.valueOf(r.get("packageName")),
+                            String.valueOf(r.get("endDate")),
+                            ((Number) r.get("daysLeft")).intValue());
+                    if (id != null) notified++;
+                } catch (Exception ignored) {
+                    // 单条失败不影响批次
+                }
+            }
+        }
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("scanned", scanned);
+        resp.put("notified", notified);
         return resp;
     }
 }

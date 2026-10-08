@@ -15,6 +15,8 @@ import com.broadband.install.model.SlaRule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.broadband.system.service.NotificationService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ public class SlaServiceImpl implements SlaServiceApi {
     @Autowired private SlaRuleMapper ruleMapper;
     @Autowired private SlaRecordMapper recordMapper;
     @Autowired private CompensationMapper compensationMapper;
+    @Autowired(required = false) private NotificationService notifications;
 
     private final SlaEngine engine = new SlaEngine();
 
@@ -48,6 +51,14 @@ public class SlaServiceImpl implements SlaServiceApi {
                 ev.compensation.id = Ids.next();
             }
             compensationMapper.insert(ev.compensation);
+            if (notifications != null) {
+                try {
+                    Compensation c = ev.compensation;
+                    notifications.notifySlaPayout(c.id, c.custName, c.reason, c.compAmount, c.orderId);
+                } catch (Exception ignored) {
+                    // 通知失败不影响 SLA 评估主流程
+                }
+            }
         }
         return ev;
     }

@@ -3,6 +3,7 @@ package com.broadband.install.spring;
 import com.broadband.install.model.SlaEnums;
 import com.broadband.install.model.SlaRecord;
 import com.broadband.system.security.WorkerPrincipal;
+import com.broadband.system.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,6 +44,7 @@ public class WorkerController {
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private SlaServiceApi slaService;
+    @Autowired(required = false) private NotificationService notifications;
 
     private static final String ORDER_SELECT = """
             SELECT w.id,
@@ -320,6 +322,18 @@ public class WorkerController {
                 jdbc.update("INSERT INTO review (id, order_id, customer_name, worker_name, score, tags, type, content, status, created_time) "
                         + "VALUES (?,?,?,?, 0, NULL, 'REVIEW', '本次服务已完成，请对本次服务进行评价', 'TO_EVALUATE', ?)",
                         reviewId, bizId, custName, workerName, System.currentTimeMillis());
+            }
+        }
+
+        if (notifications != null) {
+            try {
+                String custName = order.get("customer") == null ? null : String.valueOf(order.get("customer"));
+                String workerName = order.get("worker") == null ? null : String.valueOf(order.get("worker"));
+                String completeTime = jdbc.queryForObject(
+                        "SELECT complete_time FROM work_order WHERE id = ?", String.class, id);
+                notifications.notifyWorkOrderCompleted(id, custName, workerName, completeTime);
+            } catch (Exception ignored) {
+                // 通知失败不影响完工主流程
             }
         }
 

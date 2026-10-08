@@ -1,17 +1,22 @@
 # ============================================================================
 # 宽带业务管理系统 · CI 流水线（G8 CI/CD）
-#   触发：push 到 main / V1.0.1，或向 main 发 PR
+#   触发：push / PR 到 main 与各 V1.0.x 发布分支，或手动触发（workflow_dispatch）
 #   阶段：后端构建+单元测试 → 前端构建校验 → 容器镜像构建（不推送）
 #   说明：当前为纯校验型流水线（不推送镜像/不部署）。如需推送，可在
 #        docker-image 任务接入镜像仓库登录后开启 push: true 并设置 tags。
+#
+#   ⚠️ 维护注意（M15-CI）：新增发布分支时必须同步到下方 branches 列表。
+#      当前活跃分支为 V1.0.2；早期配置只列了 main / V1.0.1，导致 V1.0.2 的
+#      push 完全不触发 CI —— 这是静默失效（不报错、只是不跑），需特别留意。
 # ============================================================================
 name: CI
 
 on:
   push:
-    branches: [ main, V1.0.1 ]
+    branches: [ main, V1.0.1, V1.0.2 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, V1.0.2 ]
+  workflow_dispatch:
 
 jobs:
   backend-build-test:

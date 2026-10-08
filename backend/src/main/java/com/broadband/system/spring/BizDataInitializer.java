@@ -42,7 +42,7 @@ public class BizDataInitializer implements ApplicationRunner {
         seedPromotions();
         seedFaqs();
         seedIntelligenceCampaigns();
-        log.info("v1.14 运营留存 + v1.15 数据智能/支付管理 + 数据分析深化：菜单权限与基础数据初始化完成。");
+        log.info("v1.14 运营留存 + v1.15 数据智能/支付管理 + 数据分析深化 + v1.16 合约管理 + v1.17 宽带暂停恢复管理：菜单权限与基础数据初始化完成。");
     }
 
     // ---------------------------------------------------------------- RBAC 菜单与授权
@@ -67,7 +67,17 @@ public class BizDataInitializer implements ApplicationRunner {
                        ('M190', NULL, '数据分析深化', '/analytics/customer360', 'analytics:view', 'DIR', 16),
                        ('M191', 'M190', '客户360', '/analytics/customer360', 'analytics:view', 'MENU', 1),
                        ('M192', 'M190', '营销漏斗', '/analytics/funnel',      'analytics:view', 'MENU', 2),
-                       ('M193', 'M190', 'SLA超时与赔付', '/analytics/sla',    'analytics:view', 'MENU', 3)
+                       ('M193', 'M190', 'SLA超时与赔付', '/analytics/sla',    'analytics:view', 'MENU', 3),
+                       ('M200', NULL, '合约管理', '/contract', 'contract:view', 'DIR', 17),
+                       ('M201', 'M200', '合约台账与续约', '/contract', 'contract:view', 'MENU', 1),
+                       ('M210', NULL, '宽带服务管理', '/broadband', 'broadband:manage', 'DIR', 18),
+                       ('M211', 'M210', '暂停恢复管理', '/broadband', 'broadband:manage', 'MENU', 1),
+                       ('M220', NULL, '智能推荐', '/recommend', 'recommend:view', 'DIR', 19),
+                       ('M221', 'M220', '推荐位分析', '/recommend', 'recommend:view', 'MENU', 1),
+                       ('M230', NULL, '住宅管理', '/household', 'household:manage', 'DIR', 20),
+                       ('M231', 'M230', '住宅台账', '/household', 'household:manage', 'MENU', 1),
+                       ('M240', NULL, '消息通知', '/notification', 'notification:view', 'DIR', 21),
+                       ('M241', 'M240', '通知中心', '/notification', 'notification:view', 'MENU', 1)
                 """);
 
         // 授权给 ADMIN / OPERATOR（与 DictConfigInitializer 同源）
@@ -77,7 +87,12 @@ public class BizDataInitializer implements ApplicationRunner {
             String roleId = String.valueOf(r.get("id"));
             for (String menuId : new String[]{"M160", "M161", "M162", "M163", "M164",
                     "M150", "M151", "M180", "M181", "M182",
-                    "M190", "M191", "M192", "M193"}) {
+                    "M190", "M191", "M192", "M193",
+                    "M200", "M201",
+                    "M210", "M211",
+                    "M220", "M221",
+                    "M230", "M231",
+                    "M240", "M241"}) {
                 Integer cnt = jdbc.queryForObject(
                         "SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ? AND menu_id = ?",
                         Integer.class, roleId, menuId);

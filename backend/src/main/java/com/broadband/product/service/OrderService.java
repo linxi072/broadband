@@ -4,6 +4,7 @@ import com.broadband.common.Values;
 import com.broadband.product.mapper.OrderMapper;
 import com.broadband.product.pay.PayService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class OrderService {
 
     @Autowired private OrderMapper orderMapper;
+    @Autowired private JdbcTemplate jdbc;
 
     /**
      * 支付服务（可选 Bean）。
@@ -104,54 +106,8 @@ public class OrderService {
         return resp;
     }
 
-    /**
-     * 支付：调用真实支付渠道（{@link PayService}）完成扣款。
-     * 支付成功 -&gt; 业务订单置 PAID，并创建关联安装工单（PENDING）作为派单数据源。
-     * 幂等：已支付订单再次支付直接返回已关联工单。
-     *
-     * @throws IllegalStateException 未接入支付服务 / 支付渠道返回失败
-     */
-    public Map<String, Object> pay(Map<String, Object> body) {
-        if (payService == null) {
-            throw new IllegalStateException(
-                    "未接入支付服务（缺少 PayService 实现），无法完成支付。请接入真实支付渠道后重试");
-        }
-        String orderId = Values.str(body.get("orderId"));
-        String channel = Values.str(body.get("channel"), "WECHAT");
-        if (Values.isBlank(orderId)) throw new IllegalArgumentException("orderId 必填");
-
-        Map<String, Object> order = orderMapper.selectOrderStatus(orderId);
-        if (order == null) throw new IllegalArgumentException("订单不存在：" + orderId);
-
-        if (!"PENDING".equals(order.get("status"))) {
-            String existingWo = orderMapper.selectWorkOrderId(orderId);
-            Map<String, Object> r = new LinkedHashMap<>();
-            r.put("ok", true);
-            r.put("alreadyPaid", true);
-            r.put("orderId", orderId);
-            r.put("workOrderId", existingWo);
-            r.put("status", order.get("status"));
-            return r;
-        }
-
-        int amount = orderMapper.selectAmount(orderId);
-        // 金额单位：订单 amount 以元计，微信以「分」计（待联调确认，见 docs/微信支付集成方案.md）
-        int amountFen = amount * 100;
-        String openid = Values.str(body.get("openid"));
-        PayService.PayResult pr = payService.pay(orderId, amountFen, channel, openid);
-        if (!pr.success) throw new IllegalStateException("支付失败：" + pr.message);
-
-        // WeChat JSAPI 为异步确认：此处仅返回支付参数，真实支付成功由回调 /api/pay/wechat/notify 最终置 PAID
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("ok", true);
-        resp.put("awaitPayment", true);
-        resp.put("orderId", orderId);
-        resp.put("prepayId", pr.transactionId);
-        resp.put("channel", pr.channel);
-        resp.put("payParams", parseJson(pr.message));
-        resp.put("status", "PENDING");
-        return resp;
-    }
+    // 支付入口已迁移至 PaymentService（v1.15 支付真闭环编排器）。
+    // ClientOrderController.pay() 现调用 paymentService.initiatePayment(...)，由支付状态机统一驱动订单置 PAID。
 
     /**
      * 支付回调确认：把订单置 PAID 并生成关联安装工单（幂等）。
@@ -193,17 +149,6 @@ public class OrderService {
         resp.put("transactionId", transactionId);
         resp.put("status", "PAID");
         return resp;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String s) {
-        try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(s, Map.class);
-        } catch (Exception e) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("raw", s);
-            return m;
-        }
     }
 
     /**
@@ -251,10 +196,15 @@ public class OrderService {
         m.put("createdTime", System.currentTimeMillis());
         orderMapper.insertRefund(m);
 
-        // 已接入真实支付渠道时，同步向微信发起退款（金额单位 分 = amount*100；待联调确认，见 docs/微信支付集成方案.md）
+        // 已接入真实支付渠道时，同步向微信发起退款（金额单位 分 = amount*100）
         if (payService != null) {
             try {
-                payService.refund(orderId, refundId, amount * 100, reason);
+                String outTradeNo = jdbc.queryForObject(
+                        "select out_trade_no from pay_transaction where biz_order_id=? order by created_time desc limit 1",
+                        String.class, orderId);
+                if (outTradeNo != null) {
+                    payService.refund(outTradeNo, amount * 100, reason);
+                }
             } catch (Exception e) {
                 org.slf4j.LoggerFactory.getLogger(OrderService.class)
                         .warn("微信退款调用失败 orderId={} refundId={}，本地已落单，待对账/重试", orderId, refundId, e);

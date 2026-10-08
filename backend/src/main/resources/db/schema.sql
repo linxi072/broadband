@@ -268,6 +268,61 @@ CREATE TABLE IF NOT EXISTS customer (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户';
 
 -- ---------------------------------------------------------------------------
+-- 16c. 住宅（多住宅切换 · US-3.1，v1.19）
+--     一个账号 / 家庭可挂多个住宅，客户及业务数据按住宅隔离（customer.household_id）。
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS household (
+  id           VARCHAR(32)  NOT NULL COMMENT '住宅ID',
+  name         VARCHAR(128) NOT NULL COMMENT '住宅名称，如 保利花园·陈宅',
+  address      VARCHAR(255)          COMMENT '住宅地址',
+  community_id VARCHAR(32)           COMMENT '关联 community.id（可空）',
+  owner_name   VARCHAR(64)           COMMENT '户主姓名',
+  owner_phone  VARCHAR(32)           COMMENT '户主手机号',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'ACTIVE' COMMENT 'ACTIVE/INACTIVE',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_household_community (community_id),
+  KEY idx_household_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='住宅（多住宅切换）';
+
+-- customer：补齐 household_id（多住宅隔离维度）
+SET @add_cust_hid := (
+  SELECT IF(COUNT(*) = 0,
+            'ALTER TABLE customer ADD COLUMN household_id VARCHAR(32) NULL COMMENT ''住宅ID（多住宅切换）''',
+            'SELECT 1')
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'customer' AND column_name = 'household_id'
+);
+PREPARE stmt_cust_hid FROM @add_cust_hid;
+EXECUTE stmt_cust_hid;
+DEALLOCATE PREPARE stmt_cust_hid;
+
+-- 演示住宅种子（幂等，固定 ID 便于演示态下钻）
+INSERT IGNORE INTO household (id, name, address, community_id, owner_name, owner_phone, status, created_time)
+VALUES
+  ('h001', '保利花园·陈宅', '科技园路 1 号',  'cm001', '陈先生', '13800001111', 'ACTIVE', UNIX_TIMESTAMP() * 1000),
+  ('h002', '海岸城公寓·李宅', '粤海街道 8 号', 'cm002', '李女士', '13800002222', 'ACTIVE', UNIX_TIMESTAMP() * 1000),
+  ('h003', '阳光新村·王宅', '新安街道 12 号', 'cm003', '王先生', '13800003333', 'ACTIVE', UNIX_TIMESTAMP() * 1000);
+
+-- ---------------------------------------------------------------------------
+-- 16b. 用户行为事件（v1.18 埋点基础，供智能推荐聚合）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_behavior_event (
+  id          VARCHAR(32)  NOT NULL COMMENT '事件ID',
+  user_id     VARCHAR(32)  NOT NULL COMMENT '用户ID（客户/师傅/后台）',
+  user_type   VARCHAR(16)  NOT NULL DEFAULT 'CUSTOMER' COMMENT 'CUSTOMER/WORKER/ADMIN/ANONYMOUS',
+  event_type  VARCHAR(32)  NOT NULL DEFAULT 'CLICK' COMMENT 'PAGE_VIEW/CLICK/ORDER/SEARCH/SHARE/PAY',
+  entry       VARCHAR(64)  NOT NULL COMMENT '入口/功能标识（如 package_upgrade/community_check/pay/support）',
+  entry_title VARCHAR(128) NOT NULL COMMENT '入口展示名',
+  payload     VARCHAR(512) DEFAULT NULL COMMENT '附加信息（JSON）',
+  created_time BIGINT      NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_behavior_entry (entry),
+  KEY idx_behavior_user (user_id, created_time),
+  KEY idx_behavior_ctime (created_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户行为事件';
+
+-- ---------------------------------------------------------------------------
 -- 16. 客户合约（用于套餐升级剩余月数 / 补差折算）
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS customer_contract (
@@ -281,6 +336,21 @@ CREATE TABLE IF NOT EXISTS customer_contract (
   PRIMARY KEY (id),
   KEY idx_contract_cust (customer_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户合约';
+
+-- ---------------------------------------------------------------------------
+-- 16b. 宽带暂停/恢复记录（v1.17 状态机审计日志）
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS broadband_pause_log (
+  id           VARCHAR(32)  NOT NULL COMMENT '记录ID',
+  customer_id  VARCHAR(32)  NOT NULL COMMENT '客户ID',
+  type         VARCHAR(16)  NOT NULL COMMENT 'PAUSE/RESUME',
+  reason       VARCHAR(255)          COMMENT '操作原因',
+  operator     VARCHAR(64)           COMMENT '操作人（RBAC 登录账号）',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '操作时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_pause_log_cust (customer_id),
+  KEY idx_pause_log_created (created_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宽带暂停恢复记录';
 
 -- ---------------------------------------------------------------------------
 -- 17. 套餐升级申请单（PC 后台「套餐升级管理」数据源）
@@ -885,3 +955,22 @@ CREATE TABLE IF NOT EXISTS support_ticket (
   PRIMARY KEY (id),
   KEY idx_st_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='在线客服工单';
+
+-- 46. 消息通知中心（v1.23 新模块 · PC 后台站内信）
+CREATE TABLE IF NOT EXISTS notification (
+  id           VARCHAR(32)  NOT NULL COMMENT '通知ID',
+  event_type   VARCHAR(32)  NOT NULL COMMENT '事件类型（BROADBAND_PAUSE/BROADBAND_RESUME/PAY_SUCCESS/CONTRACT_EXPIRE/...）',
+  title        VARCHAR(128) NOT NULL COMMENT '标题',
+  content      VARCHAR(1024)        COMMENT '正文',
+  ref_type     VARCHAR(32)          COMMENT '关联业务对象类型（order/contract/customer/...）',
+  ref_id       VARCHAR(32)          COMMENT '关联业务对象ID',
+  target_role  VARCHAR(16)  NOT NULL DEFAULT 'ALL' COMMENT '目标角色（ADMIN/OPERATOR/ALL）',
+  dedup_key    VARCHAR(128)         COMMENT '去重键（同对象短时间内不重复推送）',
+  is_read      TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '0未读/1已读',
+  created_time BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒）',
+  read_time    BIGINT               COMMENT '已读时间（毫秒）',
+  PRIMARY KEY (id),
+  KEY idx_nt_read (is_read),
+  KEY idx_nt_dedup (dedup_key, created_time),
+  KEY idx_nt_created (created_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息通知中心';

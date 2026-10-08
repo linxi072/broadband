@@ -15,7 +15,7 @@ import java.util.Map;
 public interface PayService {
 
     /** 发起支付。返回前端拉起支付所需参数、商户单号与过期时间（此时订单尚未支付成功）。 */
-    PayOrder createPayment(String bizOrderId, int amount, String channel, String clientIp);
+    PayOrder createPayment(String bizOrderId, int amount, String channel, String clientIp, String openid);
 
     /**
      * 校验并解析异步支付通知。verify=true 时验签（真实微信回调）。

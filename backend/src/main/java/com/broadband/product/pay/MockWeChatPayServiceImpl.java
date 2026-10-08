@@ -19,7 +19,7 @@ import java.util.UUID;
 public class MockWeChatPayServiceImpl implements PayService {
 
     @Override
-    public PayOrder createPayment(String bizOrderId, int amount, String channel, String clientIp) {
+    public PayOrder createPayment(String bizOrderId, int amount, String channel, String clientIp, String openid) {
         String outTradeNo = "OUT" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4);
         // 模拟拉起参数：开发态前端凭 simulateUrl 触发「网关回调」，闭环与真实微信一致
         String payParams = "{\"channel\":\"WECHAT_MOCK\",\"simulateUrl\":\"/api/pay/simulate/"

@@ -67,11 +67,17 @@ public class SecurityConfig {
             "/api/points/redeem",
             "/api/promotions",
             "/api/support/faq",
-            "/api/support/ticket"
+            "/api/support/ticket",
+            // V1.18 行为埋点（C 端/师傅端上报，受保护态需 CUSTOMER/WORKER 令牌）
+            "/api/behavior/track"
     };
 
     @Value("${app.security.protect-client-api:false}")
     private boolean protectClientApi;
+
+    /** 开发态模拟网关开关（R3 安全加固）：true 时放行 /api/pay/simulate/**；生产(prod)置 false 关闭 */
+    @Value("${app.pay.simulate-enabled:true}")
+    private boolean paySimulateEnabled;
 
     @Value("${app.jwt.secret:broadband-rbac-secret-please-change-in-production}")
     private String jwtSecret;
@@ -108,8 +114,12 @@ public class SecurityConfig {
                 reg.requestMatchers("/actuator/**").permitAll();
                 // 数据字典 / 参数配置 开放读取（C 端小程序下拉与参数获取用，免鉴权）
                 reg.requestMatchers("/api/dict/public/**", "/api/config/public/**").permitAll();
-                // 支付网关回调（v1.15 真闭环）：微信服务器主动 POST，无登录态，必须放行
-                reg.requestMatchers("/api/pay/notify", "/api/pay/simulate/**").permitAll();
+                // 真实微信支付回调：微信服务器主动 POST，无登录态，必须放行（验签在 PayService 内完成）
+                reg.requestMatchers("/api/pay/notify", "/api/pay/wechat/notify").permitAll();
+                // 开发态模拟网关：仅当 simulate-enabled=true 时放行；生产(prod)已置 false，否则可伪造支付成功
+                if (paySimulateEnabled) {
+                    reg.requestMatchers("/api/pay/simulate/**").permitAll();
+                }
                 if (!protectClientApi) {
                     reg.requestMatchers(CLIENT_API).permitAll();
                 }

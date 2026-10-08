@@ -27,3 +27,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+# R3 安全加固：生产关闭开发态模拟网关，杜绝伪造支付成功回调（/api/pay/simulate/**）
+app:
+  pay:
+    simulate-enabled: false

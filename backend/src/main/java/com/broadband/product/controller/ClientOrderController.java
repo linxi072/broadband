@@ -1,5 +1,7 @@
 package com.broadband.product.controller;
 
+import com.broadband.common.Values;
+import com.broadband.product.pay.PaymentService;
 import com.broadband.product.service.OrderService;
 import com.broadband.system.security.CustomerPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ import java.util.Map;
 public class ClientOrderController {
 
     @Autowired private OrderService orderService;
+    @Autowired private PaymentService paymentService;
 
     @GetMapping("/my")
     public List<Map<String, Object>> my(@RequestParam(required = false) String customerId) {
@@ -51,13 +54,24 @@ public class ClientOrderController {
     }
 
     /**
-     * 支付：调用真实支付渠道完成扣款。
-     * 支付成功 -&gt; 业务订单置 PAID，并创建关联安装工单（PENDING）作为派单数据源。
-     * 幂等：已支付订单再次支付直接返回已关联工单。
+     * 支付：发起支付（v1.15 支付真闭环）。委托 PaymentService 写入 pay_transaction 并返回拉起参数，
+     * 订单置 PAID 由支付网关回调（/api/pay/notify 或 /api/pay/simulate）最终确认。
      */
     @PostMapping("/pay")
-    public Map<String, Object> pay(@RequestBody Map<String, Object> body) {
-        return orderService.pay(body);
+    public Map<String, Object> pay(@RequestBody Map<String, Object> body,
+                                   @AuthenticationPrincipal CustomerPrincipal cp) {
+        String orderId = Values.str(body.get("orderId"));
+        String channel = Values.str(body.get("channel"), "WECHAT_MOCK");
+        String customerId = Values.str(body.get("customerId"), cp == null ? null : cp.id);
+        String clientIp = Values.str(body.get("clientIp"));
+        String openid = Values.str(body.get("openid"));
+        return paymentService.initiatePayment(orderId, customerId, channel, clientIp, openid);
+    }
+
+    /** 支付状态轮询（C 端拉起支付后轮询订单支付结果）。 */
+    @GetMapping("/payment-status")
+    public Map<String, Object> paymentStatus(@RequestParam String orderId) {
+        return paymentService.queryStatus(orderId);
     }
 
     /** 申请退款（退款 / 对账状态机入口，C 端）。入参 {orderId, reason?}。 */

@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 微信支付集成装配。
  *
- * <p><b>安全默认</b>：{@code wechat.pay.enabled} 缺省为 false，不创建任何支付 Bean。
- * 此时 {@code OrderService.pay()} 仍走「无 PayService 实现 → 拒绝支付」的安全分支，
- * 现有运行时行为完全不变。</p>
+ * <p><b>安全默认</b>：{@code wechat.pay.enabled} 缺省为 false，不创建任何真实支付 Bean，
+ * 由 {@code MockWeChatPayServiceImpl} 接管（开发态可经 /api/pay/simulate 模拟网关回调）。
+ * 业务订单置 PAID 由 {@code PaymentService} 在网关确认后统一驱动，现有运行时行为完全不变。</p>
  *
  * <p><b>凭证到位后</b>：在 application.yml / 环境变量设 {@code wechat.pay.enabled=true}
  * 并填齐下列项，即自动装配真实微信支付（T-03 闭环）。</p>

@@ -1,14 +1,23 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useAppStore } from '@/store/app'
+import { useHouseholdStore } from '@/store/household'
+import { useI18n } from '@/i18n'
 import { navConfig } from '@/router/routes'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const app = useAppStore()
+const household = useHouseholdStore()
+const { locale, t, setLocale } = useI18n()
+
+onMounted(() => {
+  household.load()
+})
 
 const groupTitle = computed(() => {
   const hit = navConfig.find(
@@ -27,12 +36,12 @@ async function onCommand(cmd) {
 
 <template>
   <div class="navbar">
-    <button class="icon-btn" :title="app.collapsed ? '展开菜单' : '收起菜单'" @click="app.toggleSidebar()">
+    <button class="icon-btn" :title="app.collapsed ? t('navbar.expand') : t('navbar.collapse')" @click="app.toggleSidebar()">
       ☰
     </button>
 
     <div class="crumb">
-      <span class="crumb-root">运营后台</span>
+      <span class="crumb-root">{{ t('navbar.root') }}</span>
       <template v-if="groupTitle">
         <i>/</i><span>{{ groupTitle }}</span>
       </template>
@@ -41,10 +50,32 @@ async function onCommand(cmd) {
 
     <div class="spacer"></div>
 
+    <el-select
+      :model-value="locale"
+      size="small"
+      style="width: 96px"
+      @update:model-value="(v) => setLocale(v)"
+    >
+      <el-option :label="t('navbar.zh')" value="zh-CN" />
+      <el-option :label="t('navbar.en')" value="en-US" />
+    </el-select>
+
+    <el-select
+      v-model="household.currentId"
+      :placeholder="t('navbar.allHousehold')"
+      size="small"
+      style="width: 160px"
+      @change="(v) => household.setCurrent(v)"
+    >
+      <el-option v-for="opt in household.options" :key="opt.id" :label="opt.name" :value="opt.id" />
+    </el-select>
+
     <el-tag v-if="user.demoMode" type="warning" effect="light" size="small" round>
-      演示模式
+      {{ t('navbar.demo') }}
     </el-tag>
-    <el-tag v-else type="success" effect="light" size="small" round>后端在线</el-tag>
+    <el-tag v-else type="success" effect="light" size="small" round>{{ t('navbar.online') }}</el-tag>
+
+    <NotificationBell />
 
     <el-dropdown @command="onCommand">
       <span class="user">
@@ -56,8 +87,8 @@ async function onCommand(cmd) {
       </span>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item disabled>{{ user.profile?.dept || '运营中心' }}</el-dropdown-item>
-          <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+          <el-dropdown-item disabled>{{ user.profile?.dept || t('navbar.dept') }}</el-dropdown-item>
+          <el-dropdown-item divided command="logout">{{ t('navbar.logout') }}</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>

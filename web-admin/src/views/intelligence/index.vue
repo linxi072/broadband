@@ -7,17 +7,17 @@ import StatCard from '@/components/StatCard.vue'
 import ChartBox from '@/components/ChartBox.vue'
 import DetailDrawer from '@/components/DetailDrawer.vue'
 import {
-  intelligenceSegments,
-  intelligenceChurn,
-  intelligenceCampaigns,
-  intelligenceAutoTrigger,
-  intelligenceSegmentCustomers
+  intelSegments,
+  intelChurn,
+  intelCampaigns,
+  intelAutoTrigger,
+  intelSegmentCustomers
 } from '@/api/business'
 import { loadResource } from '@/composables/useResource'
 import {
-  demoIntelligenceSegments,
-  demoIntelligenceChurn,
-  demoIntelligenceCampaigns,
+  demoIntelSegments,
+  demoIntelChurn,
+  demoIntelCampaigns,
   demoSegmentCustomers
 } from '@/mock/fallback'
 
@@ -104,7 +104,7 @@ async function drillBySegment(segment, segmentLabel) {
   detailTitle.value = `分群客户明细 · ${segmentLabel || segment}`
   detailLoading.value = true
   detailVisible.value = true
-  const r = await loadResource(() => intelligenceSegmentCustomers(segment), () => demoSegmentCustomers(segment))
+  const r = await loadResource(() => intelSegmentCustomers(segment), () => demoSegmentCustomers(segment))
   const d = r.data || {}
   detail.value = d.rows || []
   detailLoading.value = false
@@ -128,7 +128,7 @@ async function onTrigger() {
   triggering.value = true
   triggerResult.value = null
   try {
-    const r = await intelligenceAutoTrigger(triggerDry.value)
+    const r = await intelAutoTrigger()
     triggerResult.value = r
     if (triggerDry.value) {
       ElMessage.info(`演练：将命中 ${r.matched} 人，其中发券 ${r.granted}、推送 ${r.pushed}，跳过 ${r.skipped}`)
@@ -153,17 +153,17 @@ async function onTrigger() {
 }
 
 async function loadSegments() {
-  const r = await loadResource(() => intelligenceSegments(), () => demoIntelligenceSegments())
+  const r = await loadResource(() => intelSegments(), () => demoIntelSegments())
   segData.value = r.data
   segLive.value = r.live
 }
 async function loadChurn() {
-  const r = await loadResource(() => intelligenceChurn(50), () => demoIntelligenceChurn())
+  const r = await loadResource(() => intelChurn(50), () => demoIntelChurn())
   churnData.value = r.data
   churnLive.value = r.live
 }
 async function loadCampaigns() {
-  const r = await loadResource(() => intelligenceCampaigns(), () => demoIntelligenceCampaigns())
+  const r = await loadResource(() => intelCampaigns(), () => demoIntelCampaigns())
   campaigns.value = r.data
   campLive.value = r.live
 }

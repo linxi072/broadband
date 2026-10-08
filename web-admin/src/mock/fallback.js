@@ -122,6 +122,38 @@ export const demoFinance = [
   { id: 'f003', month: '2026-07', revenue: 786300, refund: 7400, compensation: 610, receivable: 35200, status: '已结账' }
 ]
 
+/** 销售业绩明细下钻兜底（与 GET /admin/sales/report/detail 返回结构对齐） */
+export function demoSalesDetail(salesName = '', month = '') {
+  void salesName
+  void month
+  return [
+    { orderNo: 'B20260918001', customerName: '陈先生', packageName: '千兆融合套餐', amount: 1280, status: 'DONE', orderType: 'NEW', createdDate: '2026-09-18' },
+    { orderNo: 'B20260917012', customerName: '林女士', packageName: '家庭宽带 500M', amount: 780, status: 'INSTALLING', orderType: 'NEW', createdDate: '2026-09-17' },
+    { orderNo: 'B20260916008', customerName: '黄先生', packageName: '千兆融合套餐', amount: 1280, status: 'PAID', orderType: 'RENEW', createdDate: '2026-09-16' },
+    { orderNo: 'B20260915021', customerName: '吴女士', packageName: '企业专线 200M', amount: 2680, status: 'DONE', orderType: 'NEW', createdDate: '2026-09-15' },
+    { orderNo: 'B20260914005', customerName: '郑先生', packageName: '家庭宽带 500M', amount: 780, status: 'CANCELLED', orderType: 'NEW', createdDate: '2026-09-14' }
+  ]
+}
+
+/** 财务月度明细下钻兜底（与 GET /admin/finance/report/detail 返回结构对齐，rows 含 订单/赔付 两类） */
+export function demoFinanceDetail(month = '') {
+  const orders = [
+    { type: '订单', ref: 'B20260915001', customer: '黄女士', amount: 1280, status: 'PAID', orderType: 'NEW', createdDate: '2026-09-15' },
+    { type: '订单', ref: 'B20260914022', customer: '徐先生', amount: 780, status: 'DONE', orderType: 'RENEW', createdDate: '2026-09-14' },
+    { type: '订单', ref: 'B20260913017', customer: '孙女士', amount: 2680, status: 'INSTALLING', orderType: 'NEW', createdDate: '2026-09-13' }
+  ]
+  const comps = [
+    { type: '赔付', ref: 'C20260910001', customer: '周先生', amount: 200, status: 'PAID', orderType: 'SLA', reason: '装机超时赔付', createdDate: '2026-09-10' },
+    { type: '赔付', ref: 'C20260908002', customer: '马女士', amount: 140, status: 'PAID', orderType: 'SLA', reason: '维修超时赔付', createdDate: '2026-09-08' }
+  ]
+  return {
+    month: month || '2026-09',
+    orderCount: orders.length,
+    compCount: comps.length,
+    rows: [...orders, ...comps]
+  }
+}
+
 export const demoNodes = [
   { name: 'broadband-svc-01', addr: '127.0.0.1:8082', status: '在线', cpu: 38, mem: 71, qps: 842, rt: 126 },
   { name: 'mysql-01', addr: '127.0.0.1:3306', status: '在线', cpu: 22, mem: 48, qps: 310, rt: 8 },
@@ -189,6 +221,21 @@ export const demoMenus = [
     { id: 'M191', name: '客户 360', path: '/analytics/customer360', perm: 'analytics:view', type: 'MENU' },
     { id: 'M192', name: '营销漏斗', path: '/analytics/funnel', perm: 'analytics:view', type: 'MENU' },
     { id: 'M193', name: 'SLA 超时与赔付', path: '/analytics/sla', perm: 'analytics:view', type: 'MENU' }
+  ] },
+  { id: 'M200', name: '合约管理', path: '/contract', type: 'DIR', children: [
+    { id: 'M201', name: '合约台账与续约', path: '/contract', perm: 'contract:view', type: 'MENU' }
+  ] },
+  { id: 'M210', name: '宽带服务管理', path: '/broadband', type: 'DIR', children: [
+    { id: 'M211', name: '暂停恢复管理', path: '/broadband', perm: 'broadband:manage', type: 'MENU' }
+  ] },
+  { id: 'M220', name: '智能推荐', path: '/recommend', type: 'DIR', children: [
+    { id: 'M221', name: '推荐位分析', path: '/recommend', perm: 'recommend:view', type: 'MENU' }
+  ] },
+  { id: 'M230', name: '住宅管理', path: '/household', type: 'DIR', children: [
+    { id: 'M231', name: '住宅台账', path: '/household', perm: 'household:manage', type: 'MENU' }
+  ] },
+  { id: 'M240', name: '消息通知', path: '/notification', type: 'DIR', children: [
+    { id: 'M241', name: '通知中心', path: '/notification', perm: 'notification:view', type: 'MENU' }
   ] }
 ]
 
@@ -369,8 +416,10 @@ export const ALL_PERMS = [
   'community:view', 'workorder:view', 'dispatch:run', 'capacity:config', 'sla:view',
   'traffic:view', 'review:view', 'sales:view', 'finance:view',
   'points:view', 'promotion:view', 'support:view', 'account:view',
-  'intelligence:view', 'payment:view', 'analytics:view',
-  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view'
+  'intelligence:view', 'payment:view', 'analytics:view', 'contract:view', 'broadband:manage', 'household:manage',
+  'recommend:view',
+  'system:user', 'system:role', 'system:menu', 'system:log', 'monitor:view',
+  'notification:view'
 ]
 
 /* =========================================================================
@@ -470,6 +519,26 @@ export function demoIntelCampaigns() {
   return { list }
 }
 
+/** 分群客户下钻（/api/intelligence/segment-customers），返回 { rows } */
+export function demoSegmentCustomers(segment = 'NEW') {
+  const segLabel = {
+    NEW: '新客', ACTIVE: '活跃', AT_RISK: '预警',
+    CHURN_RISK: '流失风险', HIGH_VALUE: '高价值', COMPLAINT: '投诉处理'
+  }[segment] || segment
+  const orderCntOf = { c001: 4, c002: 2, c003: 3, c004: 3 }
+  const rows = demoCustomers.map((c) => ({
+    id: c.id,
+    name: c.name,
+    levelLabel: c.level,
+    status: c.status,
+    orderCnt: orderCntOf[c.id] || 1,
+    contractDaysLeft: c.id === 'c004' ? 96 : 540,
+    lastActiveText: c.id === 'c004' ? '168 天前' : '12 天前',
+    segmentLabel: segLabel
+  }))
+  return { rows }
+}
+
 /* =========================================================================
  * v1.15 T-04 数据分析深化（三页）· 演示兜底数据（接口不可达时降级）
  * 字段结构与 /api/admin/analytics/* 返回一一对齐
@@ -542,4 +611,214 @@ export function demoAnalyticsPayoutTrend(range = 90) {
   }
   const totalAmount = trend.reduce((a, t) => a + t.amount, 0)
   return { range, totalAmount, totalCount: trend.reduce((a, t) => a + t.count, 0), trend }
+}
+
+/* =========================================================================
+ * v1.16 合约与续约管理 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与 /api/admin/contract/* 返回一一对齐
+ * ========================================================================= */
+
+/** 合约统计（/api/admin/contract/stats） */
+export function demoContractStats() {
+  return { total: 4, active: 3, expired: 1, terminated: 0, expiring: 1, monthlyFeeSum: 496 }
+}
+
+/** 合约台账（/api/admin/contract/list） */
+export function demoContractList(params = {}) {
+  const list = [
+    { id: 'CT001', customerId: 'c001', customerName: '陈先生', phone: '13800001111', packageId: 'pkg-500', packageName: '500M 融合 40G', monthlyFee: 129, startDate: '2026-03-01', endDate: '2028-03-31', status: 'ACTIVE', communityName: '保利花园', daysLeft: 552 },
+    { id: 'CT002', customerId: 'c002', customerName: '李女士', phone: '13800002222', packageId: 'pkg-300', packageName: '300M 融合 20G', monthlyFee: 99, startDate: '2025-01-15', endDate: '2026-11-30', status: 'ACTIVE', communityName: '海岸城公寓', daysLeft: 24 },
+    { id: 'CT003', customerId: 'c003', customerName: '王先生', phone: '13800003333', packageId: 'pkg-1000', packageName: '1000M 融合 60G', monthlyFee: 199, startDate: '2025-09-01', endDate: '2028-09-30', status: 'ACTIVE', communityName: '阳光新村', daysLeft: 735 },
+    { id: 'CT004', customerId: 'c004', customerName: '赵女士', phone: '13800004444', packageId: 'pkg-200', packageName: '200M 单宽', monthlyFee: 69, startDate: '2024-12-01', endDate: '2026-08-15', status: 'EXPIRED', communityName: '保利花园', daysLeft: -18 }
+  ]
+  let rows = list
+  if (params.status) rows = rows.filter((r) => r.status === params.status)
+  if (params.expiringDays) rows = rows.filter((r) => r.status === 'ACTIVE' && r.daysLeft <= Number(params.expiringDays))
+  if (params.keyword) rows = rows.filter((r) => r.customerName.includes(params.keyword) || r.phone.includes(params.keyword))
+  return { list: rows, total: rows.length, page: 1, size: 20 }
+}
+
+/* =========================================================================
+ * v1.17 宽带暂停/恢复管理 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与 /api/admin/broadband/* 返回一一对齐
+ * ========================================================================= */
+
+/** 宽带服务概览（/api/admin/broadband/stats） */
+export function demoBroadbandStats() {
+  return { total: 4, active: 2, suspended: 1, closed: 1 }
+}
+
+/** 宽带客户台账（/api/admin/broadband/list） */
+export function demoBroadbandList(params = {}) {
+  const list = [
+    { id: 'c001', customerName: '陈先生', phone: '13800001111', level: '五星', packageId: 'pkg-500', packageName: '500M 融合 40G', communityId: 'cm001', communityName: '保利花园', address: '科技园路 1 号', status: 'ACTIVE', householdId: 'h001', createdTime: Date.now() - 400 * 86400000 },
+    { id: 'c002', customerName: '李女士', phone: '13800002222', level: '四星', packageId: 'pkg-300', packageName: '300M 融合 20G', communityId: 'cm002', communityName: '海岸城公寓', address: '粤海街道 8 号', status: 'ACTIVE', householdId: 'h002', createdTime: Date.now() - 300 * 86400000 },
+    { id: 'c003', customerName: '王先生', phone: '13800003333', level: '五星', packageId: 'pkg-1000', packageName: '1000M 融合 60G', communityId: 'cm003', communityName: '阳光新村', address: '新安街道 12 号', status: 'SUSPENDED', householdId: 'h003', createdTime: Date.now() - 200 * 86400000 },
+    { id: 'c004', customerName: '赵女士', phone: '13800004444', level: '三星', packageId: 'pkg-200', packageName: '200M 单宽', communityId: 'cm001', communityName: '保利花园', address: '科技园路 3 号', status: 'CLOSED', householdId: 'h001', createdTime: Date.now() - 500 * 86400000 }
+  ]
+  let rows = list
+  if (params.status) rows = rows.filter((r) => r.status === params.status)
+  if (params.keyword) rows = rows.filter((r) => r.customerName.includes(params.keyword) || r.phone.includes(params.keyword))
+  // 多住宅隔离（US-3.1）：演示态同样按住宅过滤
+  if (params.householdId) rows = rows.filter((r) => r.householdId === params.householdId)
+  return { list: rows, total: rows.length, page: 1, size: 20 }
+}
+
+/** 暂停/恢复记录（/api/admin/broadband/logs） */
+export function demoBroadbandLogs(params = {}) {
+  const all = [
+    { id: 'BPL1', customerId: 'c003', customerName: '王先生', phone: '13800003333', type: 'PAUSE', reason: '长期出差，申请暂停', operator: 'admin', createdTime: Date.now() - 5 * 86400000 },
+    { id: 'BPL2', customerId: 'c003', customerName: '王先生', phone: '13800003333', type: 'RESUME', reason: '已返深，恢复使用', operator: 'liuwei', createdTime: Date.now() - 2 * 86400000 },
+    { id: 'BPL3', customerId: 'c004', customerName: '赵女士', phone: '13800004444', type: 'PAUSE', reason: '迁居外地，注销前暂停', operator: 'admin', createdTime: Date.now() - 60 * 86400000 },
+    { id: 'BPL4', customerId: 'c004', customerName: '赵女士', phone: '13800004444', type: 'RESUME', reason: '短期回深，临时恢复', operator: 'liuwei', createdTime: Date.now() - 55 * 86400000 },
+    { id: 'BPL5', customerId: 'c004', customerName: '赵女士', phone: '13800004444', type: 'PAUSE', reason: '确认销户，终态暂停', operator: 'admin', createdTime: Date.now() - 50 * 86400000 }
+  ]
+  let rows = all
+  if (params.customerId) rows = rows.filter((r) => r.customerId === params.customerId)
+  if (params.type) rows = rows.filter((r) => r.type === params.type)
+  return { list: rows, total: rows.length, page: 1, size: 20 }
+}
+
+/** 住宅台账（/api/admin/household/list） */
+export function demoHouseholds(params = {}) {
+  const all = [
+    { id: 'h001', name: '保利花园·陈宅', address: '科技园路 1 号', communityId: 'cm001', communityName: '保利花园', ownerName: '陈先生', ownerPhone: '13800001111', status: 'ACTIVE', createdTime: Date.now() - 400 * 86400000 },
+    { id: 'h002', name: '海岸城公寓·李宅', address: '粤海街道 8 号', communityId: 'cm002', communityName: '海岸城公寓', ownerName: '李女士', ownerPhone: '13800002222', status: 'ACTIVE', createdTime: Date.now() - 300 * 86400000 },
+    { id: 'h003', name: '阳光新村·王宅', address: '新安街道 12 号', communityId: 'cm003', communityName: '阳光新村', ownerName: '王先生', ownerPhone: '13800003333', status: 'ACTIVE', createdTime: Date.now() - 200 * 86400000 }
+  ]
+  let rows = all
+  if (params.keyword) rows = rows.filter((r) => r.name.includes(params.keyword) || r.address.includes(params.keyword) || (r.ownerName || '').includes(params.keyword))
+  return { list: rows, total: rows.length, page: 1, size: 20 }
+}
+
+/* =========================================================================
+ * v1.18 行为埋点 + 智能推荐位 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与 /api/admin/recommend/* 返回一一对齐
+ * ========================================================================= */
+
+/** 高频入口 Top 榜（/api/admin/recommend/shortcuts） */
+export function demoRecommendShortcuts(params = {}) {
+  const all = [
+    { entry: 'package_upgrade', entryTitle: '套餐升级', hit: 1286, users: 642 },
+    { entry: 'community_check', entryTitle: '小区可装性校验', hit: 974, users: 503 },
+    { entry: 'pay', entryTitle: '宽带续费/支付', hit: 861, users: 410 },
+    { entry: 'support', entryTitle: '在线客服', hit: 612, users: 298 },
+    { entry: 'traffic', entryTitle: '流量监控', hit: 540, users: 327 },
+    { entry: 'points_mall', entryTitle: '积分商城', hit: 433, users: 256 },
+    { entry: 'promotion', entryTitle: '优惠活动', hit: 388, users: 211 },
+    { entry: 'account', entryTitle: '账户账单', hit: 274, users: 184 }
+  ]
+  let rows = all
+  if (params.scope === 'customer') rows = rows.map((r) => ({ ...r, hit: Math.round(r.hit * 0.7), users: Math.round(r.users * 0.7) }))
+  if (params.eventType) rows = rows.filter((_, i) => i % 2 === 0)
+  rows = rows
+    .slice()
+    .sort((a, b) => b.hit - a.hit)
+    .slice(0, (params.limit && Number(params.limit)) || 10)
+  let rank = 1
+  rows.forEach((r) => { r.rank = rank++ })
+  return { scope: params.scope || 'global', days: params.days || 30, list: rows, total: rows.length }
+}
+
+/** 行为趋势（/api/admin/recommend/trend） */
+export function demoRecommendTrend(params = {}) {
+  const n = (params && params.days) || 7
+  const today = new Date()
+  const list = []
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    list.push({
+      day: `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      cnt: Math.floor(Math.random() * 240) + 360,
+      users: Math.floor(Math.random() * 120) + 180
+    })
+  }
+  return { days: n, list }
+}
+
+/* =========================================================================
+ * v1.23 消息通知中心 · 演示兜底数据（接口不可达时降级）
+ * 字段结构与 /api/admin/notification/* 返回一一对齐
+ * 注意：demoNotifications 为模块级单例，页面/铃铛标记已读时直接就地改写，
+ *        未读计数随之实时联动（与真实后端行为一致）。
+ * ========================================================================= */
+
+export const demoNotifications = [
+  { id: 'N-DMO01', eventType: 'BROADBAND_PAUSE', title: '宽带已暂停', content: '客户 王先生（c003）申请长期出差暂停，已落库审计。', refType: 'customer', refId: 'c003', targetRole: 'ALL', isRead: 0, createdTime: Date.now() - 2 * 3600_000 },
+  { id: 'N-DMO02', eventType: 'CONTRACT_EXPIRING', title: '合约即将到期', content: '客户 李女士（c002）合约将于 24 天后到期，建议主动续约。', refType: 'contract', refId: 'CT002', targetRole: 'ALL', isRead: 0, createdTime: Date.now() - 6 * 3600_000 },
+  { id: 'N-DMO03', eventType: 'PAYMENT_SUCCESS', title: '支付成功', content: '订单 B20260914001 已支付 ¥129（微信支付）。', refType: 'order', refId: 'B20260914001', targetRole: 'ADMIN', isRead: 0, createdTime: Date.now() - 9 * 3600_000 },
+  { id: 'N-DMO04', eventType: 'WORKORDER_DONE', title: '工单完工', content: '工单 WO-0004 安装完工，测速下行 942M / 上行 48M。', refType: 'workorder', refId: 'WO-0004', targetRole: 'OPERATOR', isRead: 0, createdTime: Date.now() - 26 * 3600_000 },
+  { id: 'N-DMO05', eventType: 'SLA_COMPENSATION', title: 'SLA 超时赔付', content: '工单 WO-SLA-002 新装超时，触发 ¥50 话费赔付。', refType: 'workorder', refId: 'WO-SLA-002', targetRole: 'ALL', isRead: 1, createdTime: Date.now() - 2 * 86400_000 },
+  { id: 'N-DMO06', eventType: 'BROADBAND_RESUME', title: '宽带已恢复', content: '客户 王先生（c003）已返深，宽带恢复使用。', refType: 'customer', refId: 'c003', targetRole: 'ALL', isRead: 1, createdTime: Date.now() - 2 * 86400_000 },
+  { id: 'N-DMO07', eventType: 'ADMIN_PUSH', title: '系统升级通知', content: '运营后台将于本周日 02:00-04:00 进行版本升级，期间暂停服务。', refType: 'system', refId: 'sys-broadcast', targetRole: 'ALL', isRead: 1, createdTime: Date.now() - 4 * 86400_000 },
+  { id: 'N-DMO08', eventType: 'REVIEW_COMPLAINT', title: '新投诉待处理', content: '客户 王先生（c003）提交投诉，工单 WO-SLA-001 响应超时。', refType: 'review', refId: 'RV002', targetRole: 'OPERATOR', isRead: 0, createdTime: Date.now() - 30 * 3600_000 }
+]
+
+/** 通知列表（/api/admin/notification/list）—— 演示态返回同一引用数组，便于就地改写已读 */
+export function demoNotificationList(params = {}) {
+  let rows = demoNotifications
+  if (params.unreadOnly) rows = rows.filter((n) => n.isRead === 0)
+  return {
+    list: rows,
+    total: demoNotifications.length,
+    page: Number(params.page) || 1,
+    size: Number(params.size) || 20,
+    unread: demoNotificationUnreadCount()
+  }
+}
+
+/** 未读计数（/api/admin/notification/unread-count） */
+export function demoNotificationUnreadCount() {
+  return demoNotifications.filter((n) => n.isRead === 0).length
+}
+
+/** 标记已读（POST /api/admin/notification/mark-read）—— 演示态就地改写 */
+export function demoNotificationMarkRead(ids = []) {
+  const set = new Set(ids)
+  let n = 0
+  demoNotifications.forEach((x) => {
+    if (set.has(x.id) && x.isRead === 0) {
+      x.isRead = 1
+      x.readTime = Date.now()
+      n++
+    }
+  })
+  return { ok: true, updated: n }
+}
+
+/** 全部已读（POST /api/admin/notification/mark-all-read）—— 演示态就地改写 */
+export function demoNotificationMarkAllRead() {
+  let n = 0
+  demoNotifications.forEach((x) => {
+    if (x.isRead === 0) {
+      x.isRead = 1
+      x.readTime = Date.now()
+      n++
+    }
+  })
+  return { ok: true, updated: n }
+}
+
+/** 管理端主动推送（POST /api/admin/notification/create）—— 演示态追加一行 */
+export function demoNotificationCreate(data = {}) {
+  const role = data.targetRole || 'ALL'
+  const roles = role === 'ALL' ? ['ADMIN', 'OPERATOR'] : [role.toUpperCase()]
+  const ids = []
+  roles.forEach((r) => {
+    const id = 'N-DMO' + String(Date.now()).slice(-6) + r[0]
+    demoNotifications.unshift({
+      id,
+      eventType: 'ADMIN_PUSH',
+      title: data.title || '系统通知',
+      content: data.content || '',
+      refType: data.refType || 'system',
+      refId: (data.refId || 'sys-broadcast') + ':' + r,
+      targetRole: r,
+      isRead: 0,
+      createdTime: Date.now()
+    })
+    ids.push(id)
+  })
+  return { ok: true, ids }
 }

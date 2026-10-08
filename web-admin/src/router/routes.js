@@ -269,6 +269,61 @@ export const navConfig = [
         component: () => import('@/views/analytics/sla.vue')
       }
     ]
+  },
+  {
+    title: '合约管理',
+    icon: '📜',
+    children: [
+      {
+        title: '合约台账与续约',
+        path: '/contract',
+        perm: 'contract:view',
+        component: () => import('@/views/contract/index.vue')
+      }
+    ]
+  },
+  {
+    title: '宽带服务管理',
+    icon: '⏸️',
+    children: [
+      {
+        title: '暂停恢复管理',
+        path: '/broadband',
+        perm: 'broadband:manage',
+        component: () => import('@/views/broadband/index.vue')
+      }
+    ]
+  },
+  {
+    title: '智能推荐',
+    icon: '🎯',
+    children: [
+      {
+        title: '推荐位分析',
+        path: '/recommend',
+        perm: 'recommend:view',
+        component: () => import('@/views/recommend/index.vue')
+      }
+    ]
+  },
+  {
+    title: '住宅管理',
+    icon: '🏠',
+    children: [
+      {
+        title: '住宅台账',
+        path: '/household',
+        perm: 'household:manage',
+        component: () => import('@/views/household/index.vue')
+      }
+    ]
+  },
+  {
+    title: '消息通知',
+    path: '/notification',
+    icon: '🔔',
+    perm: 'notification:view',
+    component: () => import('@/views/notification/index.vue')
   }
 ]
 

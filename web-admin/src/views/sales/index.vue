@@ -2,13 +2,20 @@
 import { computed, onMounted, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import { salesReport } from '@/api/business'
+import { salesReport, salesReportDetail } from '@/api/business'
 import { loadResource, money } from '@/composables/useResource'
-import { demoSales } from '@/mock/fallback'
+import { demoSales, demoSalesDetail } from '@/mock/fallback'
 
 const rows = ref([])
 const live = ref(false)
 const loading = ref(true)
+
+// 下钻明细抽屉
+const drawer = ref(false)
+const detailRows = ref([])
+const detailLoading = ref(false)
+const detailLive = ref(false)
+const detailTitle = ref('')
 
 const total = computed(() => ({
   orders: rows.value.reduce((s, r) => s + Number(r.orders || 0), 0),
@@ -63,6 +70,20 @@ onMounted(async () => {
   live.value = r.live
   loading.value = false
 })
+
+async function openDetail(row) {
+  detailTitle.value = `${row.name} · ${row.month} 业绩明细`
+  drawer.value = true
+  detailLoading.value = true
+  detailLive.value = false
+  const r = await loadResource(
+    () => salesReportDetail({ salesName: row.name, month: row.month }),
+    () => demoSalesDetail(row.name, row.month)
+  )
+  detailRows.value = Array.isArray(r.data) ? r.data : []
+  detailLive.value = r.live
+  detailLoading.value = false
+}
 </script>
 
 <template>
@@ -110,9 +131,35 @@ onMounted(async () => {
             <el-progress :percentage="Number(row.doneRate) || 0" :stroke-width="10" color="#4f46e5" />
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="90" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="openDetail(row)">下钻</el-button>
+          </template>
+        </el-table-column>
         <template #empty><EmptyState icon="💼" title="暂无销售数据" desc="暂无销售业绩记录" /></template>
       </el-table>
     </div>
+
+    <el-drawer v-model="drawer" :title="detailTitle" size="60%">
+      <div class="head">
+        <SourceTag :live="detailLive" />
+        <span class="hint">共 {{ detailRows.length }} 笔在籍订单</span>
+      </div>
+      <el-table v-loading="detailLoading" :data="detailRows" style="width: 100%">
+        <el-table-column prop="orderNo" label="单号" min-width="140" />
+        <el-table-column prop="customerName" label="客户" width="110" />
+        <el-table-column prop="packageName" label="套餐" min-width="150" />
+        <el-table-column prop="orderType" label="类型" width="90" />
+        <el-table-column label="金额" width="120">
+          <template #default="{ row }"><b class="up">{{ money(row.amount) }}</b></template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="110">
+          <template #default="{ row }"><el-tag size="small" effect="light">{{ row.status }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="createdDate" label="日期" width="120" />
+        <template #empty><EmptyState icon="📄" title="暂无明细" desc="该销售本月在籍订单将在此列出" /></template>
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 

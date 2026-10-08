@@ -5,7 +5,9 @@ import SourceTag from '@/components/SourceTag.vue'
 import { customer360 } from '@/api/business'
 import { loadResource, money, pct, fmtTime } from '@/composables/useResource'
 import { demoCustomer360 } from '@/mock/fallback'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const id = computed(() => route.params.id)
@@ -28,7 +30,8 @@ const touchRecords = computed(() => data.value?.touchRecords || [])
 
 const TOUCH_LABEL = { order: '下单', review: '评价', complaint: '投诉', install: '安装', upgrade: '升级', contract: '合约' }
 const TOUCH_COLOR = { order: '#4f46e5', review: '#22c55e', complaint: '#ef4444', install: '#f59e0b', upgrade: '#a855f7', contract: '#06b6d4' }
-const touchLabel = (t) => TOUCH_LABEL[t] || '事件'
+const TOUCH_KEYS = { order: 'order', review: 'review', complaint: 'complaint', install: 'install', upgrade: 'upgrade', contract: 'contract' }
+const touchLabel = (tt) => t('customer360.touch.' + (TOUCH_KEYS[tt] || 'event'))
 const touchColor = (t) => TOUCH_COLOR[t] || '#4f46e5'
 
 const levelType = (l) => ({ 五星: 'danger', 四星: 'warning', 三星: 'info', VIP: 'danger', GOLD: 'warning', SILVER: 'info' }[l] || 'info')
@@ -64,14 +67,14 @@ const trendMax = computed(() => {
   <div class="page">
     <div class="head">
       <div class="hleft">
-        <el-button text :icon="'←'" @click="back">返回客户列表</el-button>
-        <h2 class="page-title">客户 360 全景</h2>
+        <el-button text :icon="'←'" @click="back">{{ t('customer360.back') }}</el-button>
+        <h2 class="page-title">{{ t('customer360.title') }}</h2>
       </div>
       <SourceTag :live="live" />
     </div>
 
     <div v-loading="loading" class="body">
-      <el-empty v-if="notFound" description="未找到该客户（id 不存在）" />
+      <el-empty v-if="notFound" :description="t('customer360.notFound')" />
 
       <template v-else-if="profile">
         <!-- 客户档案头卡 -->
@@ -83,7 +86,7 @@ const trendMax = computed(() => {
               <el-tag :type="levelType(profile.level)" size="small" effect="light">{{ profile.levelLabel }}</el-tag>
               <el-tag :type="statusType(profile.statusLabel)" size="small" effect="light">{{ profile.statusLabel }}</el-tag>
               <el-tag v-if="lifecycle.stageLabel" :type="lifecycle.color" size="small" effect="dark" class="lifecycle-tag" @click="drillLifecycle">{{ lifecycle.stageLabel }}<span class="drill">下钻 ›</span></el-tag>
-              <span v-for="t in profile.tags || []" :key="t" class="ctag">{{ t }}</span>
+              <span v-for="tg in profile.tags || []" :key="tg" class="ctag">{{ tg }}</span>
             </div>
             <p>📱 {{ profile.phone }} ｜ 🏠 {{ profile.communityName || '—' }} {{ profile.address || '' }}</p>
             <p class="sub">当前套餐：{{ profile.pkgName || '—' }} ｜ 月费 {{ money(profile.pkgMonthlyFee) }} ｜ 合约：{{ profile.contractEnd || '—' }}（{{ profile.contractStatus || '—' }}）</p>
@@ -92,54 +95,54 @@ const trendMax = computed(() => {
 
         <!-- 汇总指标 -->
         <div class="stats">
-          <div class="stat"><span class="num">{{ summary.orderCount ?? 0 }}</span><span class="lab">业务订单</span></div>
-          <div class="stat"><span class="num">{{ money(summary.paidAmount) }}</span><span class="lab">累计消费</span></div>
-          <div class="stat"><span class="num">{{ summary.workOrderCount ?? 0 }}</span><span class="lab">安装工单</span></div>
-          <div class="stat"><span class="num">{{ summary.reviewCount ?? 0 }}</span><span class="lab">评价/投诉</span></div>
-          <div class="stat"><span class="num">{{ summary.avgScore ?? 0 }}<i>分</i></span><span class="lab">平均评分</span></div>
-          <div class="stat"><span class="num">{{ summary.upgradeCount ?? 0 }}</span><span class="lab">升级申请</span></div>
+          <div class="stat"><span class="num">{{ summary.orderCount ?? 0 }}</span><span class="lab">{{ t('customer360.statOrderCount') }}</span></div>
+          <div class="stat"><span class="num">{{ money(summary.paidAmount) }}</span><span class="lab">{{ t('customer360.statPaidAmount') }}</span></div>
+          <div class="stat"><span class="num">{{ summary.workOrderCount ?? 0 }}</span><span class="lab">{{ t('customer360.statWorkOrder') }}</span></div>
+          <div class="stat"><span class="num">{{ summary.reviewCount ?? 0 }}</span><span class="lab">{{ t('customer360.statReview') }}</span></div>
+          <div class="stat"><span class="num">{{ summary.avgScore ?? 0 }}<i>分</i></span><span class="lab">{{ t('customer360.statAvgScore') }}</span></div>
+          <div class="stat"><span class="num">{{ summary.upgradeCount ?? 0 }}</span><span class="lab">{{ t('customer360.statUpgrade') }}</span></div>
         </div>
 
         <!-- 分栏 -->
         <el-tabs v-model="activeTab" class="tabs">
-          <el-tab-pane label="档案" name="profile">
+          <el-tab-pane :label="t('customer360.tabProfile')" name="profile">
             <el-descriptions :column="2" border size="small">
-              <el-descriptions-item label="客户ID">{{ profile.id }}</el-descriptions-item>
-              <el-descriptions-item label="姓名">{{ profile.name }}</el-descriptions-item>
-              <el-descriptions-item label="手机号">{{ profile.phone }}</el-descriptions-item>
-              <el-descriptions-item label="客户分层">{{ profile.levelLabel }}</el-descriptions-item>
-              <el-descriptions-item label="当前套餐">{{ profile.pkgName || '—' }}</el-descriptions-item>
-              <el-descriptions-item label="套餐月费">{{ money(profile.pkgMonthlyFee) }}</el-descriptions-item>
-              <el-descriptions-item label="所属小区">{{ profile.communityName || '—' }}</el-descriptions-item>
-              <el-descriptions-item label="安装地址">{{ profile.address || '—' }}</el-descriptions-item>
-              <el-descriptions-item label="账户状态">{{ profile.statusLabel }}</el-descriptions-item>
-              <el-descriptions-item label="合约到期">{{ profile.contractEnd || '—' }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descId')">{{ profile.id }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descName')">{{ profile.name }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descPhone')">{{ profile.phone }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descLevel')">{{ profile.levelLabel }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descPackage')">{{ profile.pkgName || '—' }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descMonthlyFee')">{{ money(profile.pkgMonthlyFee) }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descCommunity')">{{ profile.communityName || '—' }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descAddress')">{{ profile.address || '—' }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descStatus')">{{ profile.statusLabel }}</el-descriptions-item>
+              <el-descriptions-item :label="t('customer360.descContractEnd')">{{ profile.contractEnd || '—' }}</el-descriptions-item>
             </el-descriptions>
           </el-tab-pane>
 
-          <el-tab-pane label="业务订单" name="orders">
-            <el-table :data="orders" size="small" empty-text="暂无订单">
-              <el-table-column prop="id" label="订单号" min-width="160" />
-              <el-table-column prop="packageName" label="套餐" min-width="140" />
-              <el-table-column label="金额" width="100"><template #default="{ row }">{{ money(row.amount) }}</template></el-table-column>
-              <el-table-column prop="orderTypeLabel" label="类型" width="90" />
-              <el-table-column prop="statusLabel" label="状态" width="100" />
-              <el-table-column prop="createdAt" label="下单时间" min-width="140" />
+          <el-tab-pane :label="t('customer360.tabOrders')" name="orders">
+            <el-table :data="orders" size="small" :empty-text="t('customer360.emptyOrders')">
+              <el-table-column prop="id" :label="t('customer360.colOrderId')" min-width="160" />
+              <el-table-column prop="packageName" :label="t('customer360.colPackage')" min-width="140" />
+              <el-table-column :label="t('customer360.colAmount')" width="100"><template #default="{ row }">{{ money(row.amount) }}</template></el-table-column>
+              <el-table-column prop="orderTypeLabel" :label="t('customer360.colType')" width="90" />
+              <el-table-column prop="statusLabel" :label="t('customer360.colStatus')" width="100" />
+              <el-table-column prop="createdAt" :label="t('customer360.colTime')" min-width="140" />
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="合约" name="contracts">
-            <el-table :data="contracts" size="small" empty-text="暂无合约">
-              <el-table-column prop="id" label="合约ID" min-width="140" />
-              <el-table-column prop="packageId" label="套餐ID" min-width="120" />
-              <el-table-column label="月费" width="100"><template #default="{ row }">{{ money(row.monthlyFee) }}</template></el-table-column>
-              <el-table-column prop="startDate" label="生效日" width="120" />
-              <el-table-column prop="endDate" label="到期日" width="120" />
-              <el-table-column prop="statusLabel" label="状态" width="100" />
+          <el-tab-pane :label="t('customer360.tabContracts')" name="contracts">
+            <el-table :data="contracts" size="small" :empty-text="t('customer360.emptyContracts')">
+              <el-table-column prop="id" :label="t('customer360.colContractId')" min-width="140" />
+              <el-table-column prop="packageId" :label="t('customer360.colPackageId')" min-width="120" />
+              <el-table-column :label="t('customer360.colMonthlyFee')" width="100"><template #default="{ row }">{{ money(row.monthlyFee) }}</template></el-table-column>
+              <el-table-column prop="startDate" :label="t('customer360.colStartDate')" width="120" />
+              <el-table-column prop="endDate" :label="t('customer360.colEndDate')" width="120" />
+              <el-table-column prop="statusLabel" :label="t('customer360.colStatus')" width="100" />
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="流量" name="traffic">
+          <el-tab-pane :label="t('customer360.tabTraffic')" name="traffic">
             <div v-if="traffic" class="traffic">
               <div class="tline">
                 <span>{{ traffic.mobileUsed }}G / {{ traffic.mobileTotal }}G（手机）｜ 峰值 {{ traffic.broadbandPeak || '—' }} ｜ 当月时长 {{ traffic.broadbandHours || 0 }}h</span>
@@ -149,7 +152,7 @@ const trendMax = computed(() => {
               </div>
               <el-progress :percentage="pct(traffic.mobileUsed, traffic.mobileTotal)"
                            :color="traffic.mobileUsed >= traffic.mobileTotal ? '#dc2626' : '#4f46e5'" :stroke-width="10" />
-              <h4 class="sec">近 7 日趋势（G）</h4>
+              <h4 class="sec">{{ t('customer360.trafficTrendTitle') }}</h4>
               <div class="bars">
                 <div v-for="(v, i) in (traffic.dailyTrend || [])" :key="i" class="bar">
                   <div class="bcol" :style="{ height: (v / trendMax * 60) + 'px' }"></div>
@@ -157,51 +160,51 @@ const trendMax = computed(() => {
                 </div>
               </div>
             </div>
-            <el-empty v-else description="暂无流量数据" :image-size="60" />
+            <el-empty v-else :description="t('customer360.emptyTraffic')" :image-size="60" />
           </el-tab-pane>
 
-          <el-tab-pane label="安装工单" name="work">
-            <el-table :data="workOrders" size="small" empty-text="暂无工单">
-              <el-table-column prop="id" label="工单号" min-width="120" />
-              <el-table-column prop="statusLabel" label="状态" width="90" />
-              <el-table-column prop="timeSlot" label="时段" min-width="130" />
-              <el-table-column prop="packageDesc" label="业务" width="90" />
-              <el-table-column prop="workerId" label="师傅" width="100" />
-              <el-table-column label="测速↓/↑" width="120">
+          <el-tab-pane :label="t('customer360.tabWork')" name="work">
+            <el-table :data="workOrders" size="small" :empty-text="t('customer360.emptyWork')">
+              <el-table-column prop="id" :label="t('customer360.colWorkId')" min-width="120" />
+              <el-table-column prop="statusLabel" :label="t('customer360.colStatus')" width="90" />
+              <el-table-column prop="timeSlot" :label="t('customer360.colTimeSlot')" min-width="130" />
+              <el-table-column prop="packageDesc" :label="t('customer360.colBusiness')" width="90" />
+              <el-table-column prop="workerId" :label="t('customer360.colWorker')" width="100" />
+              <el-table-column :label="t('customer360.colSpeed')" width="120">
                 <template #default="{ row }">{{ row.downSpeed ?? '—' }} / {{ row.upSpeed ?? '—' }}</template>
               </el-table-column>
-              <el-table-column prop="completeTime" label="完工时间" min-width="140" />
+              <el-table-column prop="completeTime" :label="t('customer360.colCompleteTime')" min-width="140" />
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="投诉与评价" name="reviews">
-            <el-table :data="reviews" size="small" empty-text="暂无评价">
-              <el-table-column prop="typeLabel" label="类型" width="80" />
-              <el-table-column label="评分" width="80"><template #default="{ row }">{{ row.score }}★</template></el-table-column>
-              <el-table-column label="标签" min-width="160">
+          <el-tab-pane :label="t('customer360.tabReviews')" name="reviews">
+            <el-table :data="reviews" size="small" :empty-text="t('customer360.emptyReviews')">
+              <el-table-column prop="typeLabel" :label="t('customer360.colReviewType')" width="80" />
+              <el-table-column :label="t('customer360.colScore')" width="80"><template #default="{ row }">{{ row.score }}★</template></el-table-column>
+              <el-table-column :label="t('customer360.colTags')" min-width="160">
                 <template #default="{ row }">
-                  <el-tag v-for="t in (row.tags || [])" :key="t" size="small" effect="plain" style="margin-right:4px">{{ t }}</el-tag>
+                  <el-tag v-for="tg in (row.tags || [])" :key="tg" size="small" effect="plain" style="margin-right:4px">{{ tg }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="statusLabel" label="状态" width="90" />
-              <el-table-column prop="createdAt" label="时间" min-width="140" />
+              <el-table-column prop="content" :label="t('customer360.colContent')" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="statusLabel" :label="t('customer360.colReviewStatus')" width="90" />
+              <el-table-column prop="createdAt" :label="t('customer360.colReviewTime')" min-width="140" />
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="升级申请" name="upgrade">
-            <el-table :data="upgradeOrders" size="small" empty-text="暂无升级申请">
-              <el-table-column prop="id" label="申请号" min-width="150" />
-              <el-table-column prop="fromPackageId" label="原套餐" min-width="120" />
-              <el-table-column prop="targetBandKey" label="目标" min-width="120" />
-              <el-table-column label="月补差" width="90"><template #default="{ row }">+{{ money(row.monthDiff) }}</template></el-table-column>
-              <el-table-column label="一次性补差" width="110"><template #default="{ row }">{{ money(row.oneTimeDiff) }}</template></el-table-column>
-              <el-table-column prop="statusLabel" label="状态" width="90" />
-              <el-table-column prop="createdAt" label="时间" min-width="140" />
+          <el-tab-pane :label="t('customer360.tabUpgrade')" name="upgrade">
+            <el-table :data="upgradeOrders" size="small" :empty-text="t('customer360.emptyUpgrade')">
+              <el-table-column prop="id" :label="t('customer360.colApplyId')" min-width="150" />
+              <el-table-column prop="fromPackageId" :label="t('customer360.colFromPackage')" min-width="120" />
+              <el-table-column prop="targetBandKey" :label="t('customer360.colTarget')" min-width="120" />
+              <el-table-column :label="t('customer360.colMonthDiff')" width="90"><template #default="{ row }">+{{ money(row.monthDiff) }}</template></el-table-column>
+              <el-table-column :label="t('customer360.colOneTimeDiff')" width="110"><template #default="{ row }">{{ money(row.oneTimeDiff) }}</template></el-table-column>
+              <el-table-column prop="statusLabel" :label="t('customer360.colApplyStatus')" width="90" />
+              <el-table-column prop="createdAt" :label="t('customer360.colApplyTime')" min-width="140" />
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="触达记录" name="touch">
+          <el-tab-pane :label="t('customer360.tabTouch')" name="touch">
             <div v-if="lifecycle.reasons && lifecycle.reasons.length" class="lifecycle-reasons">
               <el-tag :type="lifecycle.color" size="small" effect="dark">{{ lifecycle.stageLabel }}</el-tag>
               <span v-for="(r, i) in lifecycle.reasons" :key="i" class="reason">{{ r }}</span>
@@ -220,7 +223,7 @@ const trendMax = computed(() => {
                 </div>
               </el-timeline-item>
             </el-timeline>
-            <el-empty v-else description="暂无触达记录" :image-size="60" />
+            <el-empty v-else :description="t('customer360.emptyTouch')" :image-size="60" />
           </el-tab-pane>
         </el-tabs>
       </template>

@@ -2,14 +2,23 @@
 import { computed, onMounted, ref } from 'vue'
 import SourceTag from '@/components/SourceTag.vue'
 import ChartBox from '@/components/ChartBox.vue'
-import { financeReport, slaCompensations } from '@/api/business'
+import { financeReport, slaCompensations, financeReportDetail } from '@/api/business'
 import { loadResource, money } from '@/composables/useResource'
-import { demoFinance } from '@/mock/fallback'
+import { demoFinance, demoFinanceDetail } from '@/mock/fallback'
 
 const rows = ref([])
 const live = ref(false)
 const loading = ref(true)
 const comps = ref([])
+
+// 下钻明细抽屉
+const drawer = ref(false)
+const detailRows = ref([])
+const detailLoading = ref(false)
+const detailLive = ref(false)
+const detailTitle = ref('')
+const detailOrders = computed(() => detailRows.value.filter((x) => x.type === '订单'))
+const detailComps = computed(() => detailRows.value.filter((x) => x.type === '赔付'))
 
 const latest = computed(() => rows.value[0] || {})
 
@@ -44,6 +53,20 @@ onMounted(async () => {
   comps.value = Array.isArray(c.data) ? c.data : []
   loading.value = false
 })
+
+async function openDetail(row) {
+  detailTitle.value = `${row.month} 月度明细`
+  drawer.value = true
+  detailLoading.value = true
+  detailLive.value = false
+  const r = await loadResource(
+    () => financeReportDetail({ month: row.month }),
+    () => demoFinanceDetail(row.month)
+  )
+  detailRows.value = (r.data && r.data.rows) || []
+  detailLive.value = r.live
+  detailLoading.value = false
+}
 </script>
 
 <template>
@@ -96,9 +119,43 @@ onMounted(async () => {
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="90" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="openDetail(row)">下钻</el-button>
+          </template>
+        </el-table-column>
         <template #empty><EmptyState icon="💰" title="暂无财务数据" desc="订单营收与对账数据将在此汇总" /></template>
       </el-table>
     </div>
+
+    <el-drawer v-model="drawer" :title="detailTitle" size="64%">
+      <div class="head">
+        <SourceTag :live="detailLive" />
+        <span class="hint">订单 {{ detailOrders.length }} 笔 · 赔付 {{ detailComps.length }} 笔</span>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><h3>订单明细</h3></div>
+        <el-table v-loading="detailLoading" :data="detailOrders" size="small">
+          <el-table-column prop="ref" label="单号" min-width="140" />
+          <el-table-column prop="customer" label="客户" width="110" />
+          <el-table-column prop="orderType" label="类型" width="90" />
+          <el-table-column label="金额" width="120"><template #default="{ row }"><b class="up">{{ money(row.amount) }}</b></template></el-table-column>
+          <el-table-column prop="status" label="状态" width="110"><template #default="{ row }"><el-tag size="small" effect="light">{{ row.status }}</el-tag></template></el-table-column>
+          <el-table-column prop="createdDate" label="日期" width="120" />
+        </el-table>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>赔付明细</h3></div>
+        <el-table :data="detailComps" size="small">
+          <el-table-column prop="ref" label="单号" min-width="140" />
+          <el-table-column prop="customer" label="客户" width="110" />
+          <el-table-column label="赔付金额" width="120"><template #default="{ row }"><b class="up">{{ money(row.amount) }}</b></template></el-table-column>
+          <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag size="small" effect="light">{{ row.status }}</el-tag></template></el-table-column>
+          <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="createdDate" label="日期" width="120" />
+        </el-table>
+      </div>
+    </el-drawer>
 
     <div class="card">
       <div class="card-head">

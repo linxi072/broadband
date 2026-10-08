@@ -34,7 +34,8 @@ const ICONS_BY_PATH = {
   '/points': '🎁',
   '/promotion': '🎉',
   '/support': '💬',
-  '/account': '💳'
+  '/account': '💳',
+  '/notification': '🔔'
 }
 const ICONS_BY_NAME = {
   套餐管理: '📦',

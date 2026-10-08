@@ -1,6 +1,7 @@
 <script setup>
 import Sidebar from './Sidebar.vue'
 import Navbar from './Navbar.vue'
+import ForceChangePassword from '@/components/ForceChangePassword.vue'
 import { useAppStore } from '@/store/app'
 
 const app = useAppStore()
@@ -23,6 +24,9 @@ const app = useAppStore()
         </router-view>
       </main>
     </div>
+
+    <!-- T-02：首登强制改密门禁（服务端已拦截，此处只负责给出不可绕过的改密入口） -->
+    <ForceChangePassword />
   </div>
 </template>
 

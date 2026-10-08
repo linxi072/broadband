@@ -91,6 +91,14 @@ export function salesReport(params) {
 export function financeReport(params) {
   return silent({ url: '/admin/finance/report', method: 'get', params })
 }
+/** 销售业绩明细下钻（US-2.2）：按销售 / 月份返回底层业务订单 */
+export function salesReportDetail(params) {
+  return silent({ url: '/admin/sales/report/detail', method: 'get', params })
+}
+/** 财务月度明细下钻（US-2.2）：某月营收/退款/赔付的底层业务订单 + 赔付工单 */
+export function financeReportDetail(params) {
+  return silent({ url: '/admin/finance/report/detail', method: 'get', params })
+}
 
 // ---------- 性能监控 ----------
 export function monitorOverview() {
@@ -245,4 +253,71 @@ export function analyticsSlaHeatmap(range = 30) {
 }
 export function analyticsPayoutTrend(range = 90) {
   return silent({ url: '/admin/analytics/payout-trend', method: 'get', params: { range } })
+}
+
+// ---------- 合约与续约管理 contract（v1.16） ----------
+export function adminContractList(params) {
+  return silent({ url: '/admin/contract/list', method: 'get', params })
+}
+export function adminContractStats() {
+  return silent({ url: '/admin/contract/stats', method: 'get' })
+}
+export function adminContractRenew(data) {
+  return request({ url: '/admin/contract/renew', method: 'post', data })
+}
+
+// ---------- 宽带暂停/恢复管理 broadband（v1.17） ----------
+export function adminBroadbandList(params) {
+  return silent({ url: '/admin/broadband/list', method: 'get', params })
+}
+export function adminBroadbandStats() {
+  return silent({ url: '/admin/broadband/stats', method: 'get' })
+}
+export function adminBroadbandLogs(params) {
+  return silent({ url: '/admin/broadband/logs', method: 'get', params })
+}
+export function adminBroadbandPause(data) {
+  return request({ url: '/admin/broadband/pause', method: 'post', data })
+}
+export function adminBroadbandResume(data) {
+  return request({ url: '/admin/broadband/resume', method: 'post', data })
+}
+
+// ---------- 住宅管理 household（v1.19 · US-3.1 多住宅切换） ----------
+export function householdList(params) {
+  return silent({ url: '/admin/household/list', method: 'get', params })
+}
+export function householdStats() {
+  return silent({ url: '/admin/household/stats', method: 'get' })
+}
+export function householdCreate(data) {
+  return request({ url: '/admin/household/create', method: 'post', data })
+}
+
+// ---------- 行为埋点 + 智能推荐位（v1.18） ----------
+export function behaviorTrack(data) {
+  return request({ url: '/behavior/track', method: 'post', data })
+}
+export function adminRecommendShortcuts(params) {
+  return silent({ url: '/admin/recommend/shortcuts', method: 'get', params })
+}
+export function adminRecommendTrend(params) {
+  return silent({ url: '/admin/recommend/trend', method: 'get', params })
+}
+
+// ---------- 消息通知中心 notification（v1.23） ----------
+export function notificationList(params) {
+  return silent({ url: '/admin/notification/list', method: 'get', params })
+}
+export function notificationUnreadCount() {
+  return silent({ url: '/admin/notification/unread-count', method: 'get' })
+}
+export function notificationMarkRead(ids) {
+  return request({ url: '/admin/notification/mark-read', method: 'post', data: { ids } })
+}
+export function notificationMarkAllRead() {
+  return request({ url: '/admin/notification/mark-all-read', method: 'post', data: {} })
+}
+export function notificationCreate(data) {
+  return request({ url: '/admin/notification/create', method: 'post', data })
 }

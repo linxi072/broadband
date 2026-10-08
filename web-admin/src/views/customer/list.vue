@@ -5,7 +5,9 @@ import SourceTag from '@/components/SourceTag.vue'
 import { customerList, upgradeOptions, trafficUsage } from '@/api/business'
 import { loadResource, money, pct } from '@/composables/useResource'
 import { demoCustomers } from '@/mock/fallback'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 const rows = ref([])
 const live = ref(false)
 const loading = ref(true)
@@ -24,6 +26,7 @@ const detailLive = ref(false)
 const upgradeInfo = ref(null)
 
 const LEVELS = ['五星', '四星', '三星']
+const LEVEL_KEYS = { '五星': 'fiveStar', '四星': 'fourStar', '三星': 'threeStar' }
 
 const filtered = computed(() =>
   rows.value.filter((r) => {
@@ -65,60 +68,60 @@ onMounted(async () => {
   <div class="page">
     <div class="head">
       <div>
-        <h2 class="page-title">客户管理</h2>
-        <p class="page-sub">客户分层、合约状态与流量/升级情况</p>
+        <h2 class="page-title">{{ t('customer.title') }}</h2>
+        <p class="page-sub">{{ t('customer.sub') }}</p>
       </div>
       <SourceTag :live="live" />
     </div>
 
     <div class="card">
       <div class="toolbar">
-        <el-input v-model="keyword" placeholder="客户姓名 / 手机号" clearable style="width: 220px" />
-        <el-select v-model="level" placeholder="全部等级" clearable style="width: 140px">
-          <el-option v-for="l in LEVELS" :key="l" :label="l" :value="l" />
+        <el-input v-model="keyword" :placeholder="t('customer.placeholderKeyword')" clearable style="width: 220px" />
+        <el-select v-model="level" :placeholder="t('customer.placeholderLevel')" clearable style="width: 140px">
+          <el-option v-for="l in LEVELS" :key="l" :label="t('customer.level.' + LEVEL_KEYS[l])" :value="l" />
         </el-select>
         <div class="spacer"></div>
-        <span class="count">共 {{ filtered.length }} 位客户</span>
+        <span class="count">{{ filtered.length }} {{ t('customer.countSuffix') }}</span>
       </div>
 
       <el-table v-loading="loading" :data="filtered" style="width: 100%">
-        <el-table-column prop="id" label="客户ID" width="90" />
-        <el-table-column prop="name" label="客户" width="100" />
-        <el-table-column prop="phone" label="手机号" width="130" />
-        <el-table-column label="等级" width="90">
+        <el-table-column prop="id" :label="t('customer.colId')" width="90" />
+        <el-table-column prop="name" :label="t('customer.colName')" width="100" />
+        <el-table-column prop="phone" :label="t('customer.colPhone')" width="130" />
+        <el-table-column :label="t('customer.colLevel')" width="90">
           <template #default="{ row }">
             <el-tag :type="levelType(row.level)" size="small" effect="light">{{ row.level || '—' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="pkgName" label="当前套餐" min-width="150" />
-        <el-table-column label="月费" width="100">
+        <el-table-column prop="pkgName" :label="t('customer.colPackage')" min-width="150" />
+        <el-table-column :label="t('customer.colMonthlyFee')" width="100">
           <template #default="{ row }">{{ money(row.monthlyFee) }}</template>
         </el-table-column>
-        <el-table-column prop="contractEnd" label="合约到期" width="120" />
-        <el-table-column label="状态" width="100">
+        <el-table-column prop="contractEnd" :label="t('customer.colContractEnd')" width="120" />
+        <el-table-column :label="t('customer.colStatus')" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === '待续约' ? 'warning' : 'success'" size="small" effect="light">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="标签" min-width="150">
+        <el-table-column :label="t('customer.colTags')" min-width="150">
           <template #default="{ row }">
-            <el-tag v-for="t in row.tags || []" :key="t" size="small" effect="plain" style="margin-right: 4px">
-              {{ t }}
+            <el-tag v-for="tg in row.tags || []" :key="tg" size="small" effect="plain" style="margin-right: 4px">
+              {{ tg }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column :label="t('customer.colAction')" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
+            <el-button link type="primary" size="small" @click="openDetail(row)">{{ t('customer.detail') }}</el-button>
           </template>
         </el-table-column>
-        <template #empty><EmptyState icon="👥" title="暂无客户数据" desc="录入宽带客户档案，支撑订单与售后关联" /></template>
+        <template #empty><EmptyState icon="👥" :title="t('customer.emptyTitle')" :desc="t('customer.emptyDesc')" /></template>
       </el-table>
     </div>
 
-    <el-drawer v-model="drawer" title="客户详情" size="440px">
+    <el-drawer v-model="drawer" :title="t('customer.drawerTitle')" size="440px">
       <div v-if="detail" v-loading="detailLoading" class="detail">
         <div class="dhead">
           <el-avatar :size="44" style="background: var(--bd-primary)">{{ detail.name?.slice(0, 1) }}</el-avatar>
@@ -126,24 +129,24 @@ onMounted(async () => {
             <b>{{ detail.name }}</b>
             <p>{{ detail.phone }} ｜ {{ detail.level || '—' }}</p>
           </div>
-          <el-button size="small" type="primary" link @click="go360(detail)">查看 360 全景 →</el-button>
+          <el-button size="small" type="primary" link @click="go360(detail)">{{ t('customer.go360') }} →</el-button>
           <SourceTag :live="detailLive" />
         </div>
 
         <el-descriptions :column="1" border size="small" style="margin-top: 16px">
-          <el-descriptions-item label="客户ID">{{ detail.id }}</el-descriptions-item>
-          <el-descriptions-item label="当前套餐">{{ detail.pkgName }}</el-descriptions-item>
-          <el-descriptions-item label="月费">{{ money(detail.monthlyFee) }}</el-descriptions-item>
-          <el-descriptions-item label="合约到期">{{ detail.contractEnd }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ detail.status }}</el-descriptions-item>
+          <el-descriptions-item :label="t('customer.descId')">{{ detail.id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('customer.descPackage')">{{ detail.pkgName }}</el-descriptions-item>
+          <el-descriptions-item :label="t('customer.descMonthlyFee')">{{ money(detail.monthlyFee) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('customer.descContractEnd')">{{ detail.contractEnd }}</el-descriptions-item>
+          <el-descriptions-item :label="t('customer.descStatus')">{{ detail.status }}</el-descriptions-item>
         </el-descriptions>
 
-        <h4 class="sec">流量使用</h4>
+        <h4 class="sec">{{ t('customer.trafficTitle') }}</h4>
         <template v-if="detail.traffic">
           <div class="tline">
             <span>{{ detail.traffic.mobileUsed }}G / {{ detail.traffic.mobileTotal }}G</span>
             <el-tag :type="detail.traffic.warn ? 'danger' : 'success'" size="small" effect="light">
-              {{ detail.traffic.warn ? '预警' : '正常' }}
+              {{ detail.traffic.warn ? t('customer.trafficWarn') : t('customer.trafficNormal') }}
             </el-tag>
           </div>
           <el-progress
@@ -152,9 +155,9 @@ onMounted(async () => {
             :stroke-width="10"
           />
         </template>
-        <el-empty v-else description="未取到流量数据（需 customerId 命中）" :image-size="60" />
+        <el-empty v-else :description="t('customer.trafficEmpty')" :image-size="60" />
 
-        <h4 class="sec">升档选项</h4>
+        <h4 class="sec">{{ t('customer.upgradeTitle') }}</h4>
         <template v-if="upgradeInfo">
           <p class="hint-line">
             当前套餐 {{ upgradeInfo.current?.name || '—' }} ｜ 月费
@@ -162,13 +165,13 @@ onMounted(async () => {
             <b>{{ upgradeInfo.current?.contractLeftMonths ?? 0 }}</b> 个月
           </p>
           <el-table :data="(upgradeInfo.options || []).filter((o) => o.type === 'bandwidth')" size="small" max-height="200">
-            <el-table-column prop="name" label="可升档" />
-            <el-table-column label="月加价" width="90">
+            <el-table-column prop="name" :label="t('customer.upgradeName')" />
+            <el-table-column :label="t('customer.upgradeExtra')" width="90">
               <template #default="{ row }">+{{ money(row.extraFee) }}</template>
             </el-table-column>
           </el-table>
         </template>
-        <el-empty v-else description="未取到升档信息" :image-size="60" />
+        <el-empty v-else :description="t('customer.upgradeEmpty')" :image-size="60" />
       </div>
     </el-drawer>
   </div>

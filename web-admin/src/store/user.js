@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, getMe, logout as logoutApi } from '@/api/auth'
+import { login as loginApi, getMe, logout as logoutApi, changePassword as changePasswordApi } from '@/api/auth'
 import { ALL_PERMS, demoMenus } from '@/mock/fallback'
 
 const TOKEN_KEY = 'bd_token'
@@ -19,7 +19,9 @@ export const useUserStore = defineStore('user', {
     roles: (s) => (s.profile && s.profile.roles) || [],
     perms: (s) => (s.profile && s.profile.perms) || [],
     isLogin: (s) => !!s.token,
-    displayName: (s) => (s.profile && (s.profile.name || s.profile.username)) || '未登录'
+    displayName: (s) => (s.profile && (s.profile.name || s.profile.username)) || '未登录',
+    // T-02：1 = 处于「首次登录必须改密」状态，服务端会拦截除改密外的全部后台接口
+    mustChangePassword: (s) => (s.profile && s.profile.mustChangePassword) || 0
   },
 
   actions: {
@@ -77,6 +79,16 @@ export const useUserStore = defineStore('user', {
       this.menus = me.menus || []
       this.loaded = true
       return this.profile
+    },
+
+    /**
+     * T-02：自服务改密。成功后后端已清零 mustChangePassword，
+     * 此处同步清空本地标记 —— 强制改密弹窗即时关闭，后台接口随即放行，无需重新登录。
+     */
+    async changePassword(payload) {
+      const res = await changePasswordApi(payload)
+      if (this.profile) this.profile.mustChangePassword = 0
+      return res
     },
 
     async logout() {

@@ -1,0 +1,48 @@
+# 宽带业务管理系统 · Prometheus 告警规则（R8 收口）
+# 部署：挂载到 Prometheus 容器 /etc/prometheus/rules/（见 docker-compose.yml 卷映射）。
+# 下列规则仅依赖 Micrometer 默认暴露的 JVM / HTTP 指标，可立即生效。
+# 业务指标（支付失败率、SLA 赔付）需后端补充自定义埋点（MeterRegistry / @Timed）后启用，见末尾注释。
+
+groups:
+  - name: broadband_alerts
+    rules:
+      # —— JVM / 资源 ——
+      - alert: JvmHeapMemoryLeak
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM 堆内存使用率持续偏高"
+          description: "堆内存使用率 > 85% 已持续 10 分钟，疑似内存泄漏（对照 T-06 长稳报告中的锯齿 vs 单调抬升）。"
+
+      # —— HTTP ——
+      - alert: Http5xxErrorRateHigh
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count[5m])) > 0.001
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx 错误率超过门禁"
+          description: "5xx 错误率 {{ $value | humanizePercentage }} 超过 0.1% 上线门禁（见安全检查清单）。"
+
+      - alert: HttpP95LatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 接口时延偏高"
+          description: "P95 时延 {{ $value | humanizeDuration }} 超过 1s。"
+
+# —— 后续启用（待后端补充自定义指标）——
+# 支付失败率（需后端埋点 pay_transaction_total / pay_transaction_failures_total）：
+#   - alert: PaymentFailureRateHigh
+#     expr: sum(rate(pay_transaction_failures_total[5m])) / sum(rate(pay_transaction_total[5m])) > 0.01
+#     for: 5m
+#     labels: { severity: critical }
+# SLA 超时赔付（需后端埋点 sla_timeout_compensation_total）：
+#   - alert: SlaTimeoutCompensationSpike
+#     expr: increase(sla_timeout_compensation_total[1h]) > 20
+#     for: 0m
+#     labels: { severity: warning }

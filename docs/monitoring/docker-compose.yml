@@ -1,0 +1,37 @@
+version: '3.8'
+
+# 宽带业务管理系统 · 监控告警栈（R8 收口）
+# 部署：将本目录放置到服务器 deploy/monitoring/ 后执行 `docker compose up -d`
+# 切勿将 9090/9093/3000 暴露公网；Prometheus 抓取目标须在后端同内网网段。
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: broadband-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules-broadband.yml:/etc/prometheus/rules/rules-broadband.yml:ro
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: broadband-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: broadband-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
